@@ -1,0 +1,6 @@
+for local :
+npx expo start
+
+
+for server or tunnel:
+npx expo start --tunnel 

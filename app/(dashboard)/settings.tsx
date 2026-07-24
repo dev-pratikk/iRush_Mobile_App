@@ -1,0 +1,184 @@
+import React from 'react';
+import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useThemeColors } from '../../context/ThemeContext';
+import { Typography } from '../../constants/Typography';
+import { useNavigation } from '@react-navigation/native';
+import { DrawerActions } from '@react-navigation/native';
+import { router, usePathname } from 'expo-router';
+
+const Header = () => {
+  const colors = useThemeColors();
+  const navigation = useNavigation();
+
+  return (
+    <View style={[styles.header, { backgroundColor: colors.card }]}>
+      <TouchableOpacity 
+        style={styles.headerButton} 
+        onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+      >
+        <Ionicons
+          name="menu"
+          size={22}
+          color={colors.textPrimary}
+        />
+      </TouchableOpacity>
+      <View style={styles.headerCenter}>
+        <Text style={[styles.userName, { color: colors.textPrimary }]}>
+          Settings
+        </Text>
+      </View>
+      <View style={styles.headerRight}>
+        <TouchableOpacity style={styles.headerButton}>
+          <Ionicons
+            name="notifications-outline"
+            size={22}
+            color={colors.textPrimary}
+          />
+          <View
+            style={[styles.badge, { backgroundColor: colors.primary }]}
+          >
+            <Text style={styles.badgeText}>3</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+const BottomNav = () => {
+  const colors = useThemeColors();
+  const pathname = usePathname();
+  const tabs = [
+    { icon: 'home', label: 'Dashboard', route: '/' },
+    { icon: 'cube', label: 'Orders', route: '/open-orders' },
+    { icon: 'chatbox', label: 'Quotes', route: '/quotes' },
+    { icon: 'bar-chart', label: 'Reports', route: '/reports' },
+  ];
+
+  return (
+    <View style={[styles.bottomNav, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+      {tabs.map((tab, index) => {
+        const isActive = pathname === tab.route;
+        return (
+          <TouchableOpacity key={index} style={styles.navTab} onPress={() => router.push(tab.route as any)}>
+            <Ionicons
+              name={isActive ? `${tab.icon}` : `${tab.icon}-outline` as any}
+              size={24}
+              color={isActive ? colors.primary : colors.inactive}
+            />
+            <Text
+              style={[
+                styles.navLabel,
+                {
+                  color: isActive ? colors.primary : colors.inactive,
+                },
+              ]}
+            >
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+};
+
+export default function SettingsScreen() {
+  const colors = useThemeColors();
+
+  return (
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <Header />
+      <View style={styles.contentContainer}>
+        <Ionicons name="construct-outline" size={64} color={colors.textSecondary} />
+        <Text style={[styles.title, { color: colors.textPrimary }]}>
+          Work in Progress
+        </Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          We're building this page! Check back soon.
+        </Text>
+      </View>
+      <BottomNav />
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
+  contentContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+    gap: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  userName: {
+    fontFamily: Typography.headingSemiBold,
+    fontSize: 18,
+  },
+  headerButton: {
+    position: 'relative',
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontFamily: Typography.headingSemiBold,
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    paddingTop: 8,
+    paddingBottom: 24,
+    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+  },
+  navTab: {
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  navLabel: {
+    fontSize: 11,
+    fontFamily: Typography.bodyMedium,
+    marginTop: 4,
+  },
+  title: {
+    fontFamily: Typography.headingSemiBold,
+    fontSize: 24,
+  },
+  subtitle: {
+    fontFamily: Typography.body,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+});

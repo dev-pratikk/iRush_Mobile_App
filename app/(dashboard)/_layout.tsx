@@ -144,6 +144,15 @@ export default function DashboardLayout() {
         }}
       />
       <Drawer.Screen
+        name="orders"
+        options={{
+          title: 'Orders',
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="cube-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
         name="open-orders"
         options={{
           title: 'Open orders',
@@ -158,6 +167,60 @@ export default function DashboardLayout() {
           title: 'Quotes',
           drawerIcon: ({ color, size }) => (
             <Ionicons name="chatbox-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="pending-orders"
+        options={{
+          title: 'Pending orders',
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="time-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="partial-orders"
+        options={{
+          title: 'Partial orders',
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="duplicate-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="all-quotes"
+        options={{
+          title: 'All quotes',
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="list-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="quotes-by-salesperson"
+        options={{
+          title: 'Quotes by salesperson',
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="people-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="quotes-by-service-type"
+        options={{
+          title: 'Quotes by service type',
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="layers-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="quotes-to-orders"
+        options={{
+          title: 'Quotes → orders',
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="swap-horizontal-outline" size={size} color={color} />
           ),
         }}
       />

@@ -1,0 +1,1357 @@
+export interface OpenOrderDetail {
+  CREATED_BY: number;
+  CREATED_DATE: string;
+  UPDATED_BY: number;
+  UPDATED_DATE: string;
+  ORDERD_ID: string;
+  ORDER_ID: string;
+  QUANTITY: number;
+  UNIT_PRICE: number;
+  WEB_PRICE: number | null;
+  PRICE_INCREASE: number | null;
+  FINISH_DATE: string;
+  PROMISED_DATE: string;
+  DAY: number;
+  INVOICED_QTY: number;
+  LINE_TOTAL: number;
+  CREDIT_ID: number;
+  CUSTOMERADDRESSID: number;
+  customerMessageTop: string | null;
+  customerMessageBottom: string | null;
+}
+
+export interface OpenOrderShippingAddress {
+  addressText1: string;
+  addressText2: string;
+  cityName: string;
+  stateName: string;
+  zipCode: string;
+  phone1: string;
+  email: string | null;
+  salesPersonId: number;
+  netTerm: string;
+  salesPersonName: string;
+}
+
+export interface OpenOrderCustomerContact {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone1: string;
+  phone2: string;
+}
+
+export interface OpenOrderVendor {
+  [key: string]: any;
+}
+
+export interface OpenOrderInvoice {
+  [key: string]: any;
+}
+
+export interface OpenOrderPackingSlip {
+  [key: string]: any;
+}
+
+export interface OpenOrderItem {
+  ORDER_ID: string;
+  CUSTOMERID: string;
+  QUOTEID: string;
+  ORDER_NO: string;
+  PO_NO: string;
+  ORDER_DATE: string;
+  ORDER_TOTALCOST_AF_DISCCHRG: number;
+  orderType: string;
+  orderedQuantity: number;
+  totalInvoicedQty: number;
+  totalInvoicedAmount: number;
+  totalShippedQtyAmount: number;
+  pendingQuantity: number;
+  pendingAmount: number;
+  paymentsReceived: number;
+  pcbpartNo: string;
+  orderStatus: string;
+  companyName: string;
+  companyCode: string;
+  quoteId: string;
+  quoteNo: string;
+  salesPersonId: number;
+  salesPersonName: string;
+  netTerm: string;
+  customerMessageTop: string | null;
+  customerMessageBottom: string | null;
+  orderDetails: OpenOrderDetail[];
+  shippingAddress: OpenOrderShippingAddress;
+  customerContact: OpenOrderCustomerContact;
+  invoices: OpenOrderInvoice[];
+  orderPackingSlips: OpenOrderPackingSlip[];
+  orderVendors: OpenOrderVendor[];
+}
+
+export interface OpenOrdersResponse {
+  totalOpenOrders: number;
+  totalOpenOrdersAmount: number;
+  totalInvoicedQty: number;
+  totalInvoicedAmount: number;
+  totalShippedAmount: number;
+  totalPendingQty: number;
+  totalPendingAmount: number;
+  totalPaymentsReceived: number;
+  vendorOrderAmount: number;
+  pendingOrdersCount: number;
+  pendingOrdersAmount: number;
+  partialOrdersCount: number;
+  partialOrdersAmount: number;
+  pendingOrders: OpenOrderItem[];
+  partialOrders: OpenOrderItem[];
+}
+
+const DEFAULT_TIMEOUT_MS = 10000;
+
+export const EMPTY_OPEN_ORDERS: OpenOrdersResponse = {
+  totalOpenOrders: 0,
+  totalOpenOrdersAmount: 0,
+  totalInvoicedQty: 0,
+  totalInvoicedAmount: 0,
+  totalShippedAmount: 0,
+  totalPendingQty: 0,
+  totalPendingAmount: 0,
+  totalPaymentsReceived: 0,
+  vendorOrderAmount: 0,
+  pendingOrdersCount: 0,
+  pendingOrdersAmount: 0,
+  partialOrdersCount: 0,
+  partialOrdersAmount: 0,
+  pendingOrders: [],
+  partialOrders: [],
+};
+
+export const SAMPLE_OPEN_ORDERS: OpenOrdersResponse = {
+  totalOpenOrders: 302,
+  totalOpenOrdersAmount: 6772317.08,
+  totalInvoicedQty: 23038,
+  totalInvoicedAmount: 2210717.97,
+  totalShippedAmount: 2140192.83,
+  totalPendingQty: 26370,
+  totalPendingAmount: 4632124.25,
+  totalPaymentsReceived: 1711314.3,
+  vendorOrderAmount: 2242850.86,
+  pendingOrdersCount: 236,
+  pendingOrdersAmount: 3614422.33,
+  partialOrdersCount: 66,
+  partialOrdersAmount: 3157894.75,
+  pendingOrders: [
+    {
+      ORDER_ID: '61806',
+      CUSTOMERID: '3664',
+      QUOTEID: '56732',
+      ORDER_NO: '483069',
+      PO_NO: '5504539106',
+      ORDER_DATE: '2026-07-27T20:07:53.000Z',
+      ORDER_TOTALCOST_AF_DISCCHRG: 7905,
+      orderType: ' Full Turnkey ',
+      orderedQuantity: 200,
+      totalInvoicedQty: 0,
+      totalInvoicedAmount: 0,
+      totalShippedQtyAmount: 0,
+      pendingQuantity: 200,
+      pendingAmount: 7905,
+      paymentsReceived: 0,
+      pcbpartNo: 'flexitemp',
+      orderStatus: 'Open',
+      companyName: 'Ecolab Inc.',
+      companyCode: 'ECO712',
+      quoteId: '56732',
+      quoteNo: 'PCB303480',
+      salesPersonId: 43,
+      salesPersonName: 'Mehraj',
+      netTerm: 'NET 120',
+      customerMessageTop: 'QUOTED LEAD TIME IS IN BUSINESS DAYS ONLY EXCLUDING WEEKENDS AND HOLIDAYS.\nAll turnkey orders which include component purchase are subject to change at the time of order placement due to component shortages in the market.\n1. Quoted as NON-ITAR.\n2. Quoted with 0.008"+/-0.002" PCB thickness tolerance, Polyimide material, Amber coverlay mask, White silk, 2u" ENIG Finish, ROHS, 1 OZ copper thickness, IPC CLASS-II. Please confirm.\n3. 10-up array proposed. Please refer to the attached pdf.\n',
+      customerMessageBottom: null,
+      orderDetails: [
+        {
+          CREATED_BY: 83,
+          CREATED_DATE: '2026-07-27T20:07:53.000Z',
+          UPDATED_BY: 83,
+          UPDATED_DATE: '2026-07-27T20:17:07.000Z',
+          ORDERD_ID: '65313',
+          ORDER_ID: '61806',
+          QUANTITY: 200,
+          UNIT_PRICE: 39.52,
+          WEB_PRICE: null,
+          PRICE_INCREASE: null,
+          FINISH_DATE: '2026-08-25T00:00:00.000Z',
+          PROMISED_DATE: '2026-08-26T00:00:00.000Z',
+          DAY: 21,
+          INVOICED_QTY: 0,
+          LINE_TOTAL: 7905,
+          CREDIT_ID: 0,
+          CUSTOMERADDRESSID: 59414,
+          customerMessageTop: 'QUOTED LEAD TIME IS IN BUSINESS DAYS ONLY EXCLUDING WEEKENDS AND HOLIDAYS.\nAll turnkey orders which include component purchase are subject to change at the time of order placement due to component shortages in the market.\n1. Quoted as NON-ITAR.\n2. Quoted with 0.008"+/-0.002" PCB thickness tolerance, Polyimide material, Amber coverlay mask, White silk, 2u" ENIG Finish, ROHS, 1 OZ copper thickness, IPC CLASS-II. Please confirm.\n3. 10-up array proposed. Please refer to the attached pdf.\n',
+          customerMessageBottom: null,
+        },
+      ],
+      shippingAddress: {
+        addressText1: '5151 E. ROCKTON ROAD',
+        addressText2: '',
+        cityName: 'ROSCOE',
+        stateName: 'ILLINOIS',
+        zipCode: '61073-7649',
+        phone1: '0',
+        email: null,
+        salesPersonId: 43,
+        netTerm: 'NET 120',
+        salesPersonName: 'Mehraj',
+      },
+      customerContact: {
+        firstName: 'Jared',
+        lastName: 'Weldon',
+        email: 'jared.weldon@ecolab.com',
+        phone1: '7047289328',
+        phone2: '',
+      },
+      invoices: [],
+      orderPackingSlips: [],
+      orderVendors: [],
+    },
+    {
+      ORDER_ID: '61805',
+      CUSTOMERID: '2877',
+      QUOTEID: '56731',
+      ORDER_NO: '483068',
+      PO_NO: 'PNEU-240060',
+      ORDER_DATE: '2026-07-27T18:45:22.000Z',
+      ORDER_TOTALCOST_AF_DISCCHRG: 4400,
+      orderType: 'PCB Assembly',
+      orderedQuantity: 100,
+      totalInvoicedQty: 0,
+      totalInvoicedAmount: 0,
+      totalShippedQtyAmount: 0,
+      pendingQuantity: 100,
+      pendingAmount: 4400,
+      paymentsReceived: 0,
+      pcbpartNo: 'PCB161796A',
+      orderStatus: 'Open',
+      companyName: 'Precision Neuroscience',
+      companyCode: 'PNEU235',
+      quoteId: '56731',
+      quoteNo: 'PCB303479',
+      salesPersonId: 43,
+      salesPersonName: 'Mehraj',
+      netTerm: 'NET 30',
+      customerMessageTop: null,
+      customerMessageBottom: null,
+      orderDetails: [
+        {
+          CREATED_BY: 83,
+          CREATED_DATE: '2026-07-27T18:45:22.000Z',
+          UPDATED_BY: 83,
+          UPDATED_DATE: '2026-07-27T18:45:22.000Z',
+          ORDERD_ID: '65312',
+          ORDER_ID: '61805',
+          QUANTITY: 100,
+          UNIT_PRICE: 44,
+          WEB_PRICE: null,
+          PRICE_INCREASE: null,
+          FINISH_DATE: '2026-08-04T00:00:00.000Z',
+          PROMISED_DATE: '2026-08-05T00:00:00.000Z',
+          DAY: 8,
+          INVOICED_QTY: 0,
+          LINE_TOTAL: 4400,
+          CREDIT_ID: 0,
+          CUSTOMERADDRESSID: 48219,
+          customerMessageTop: null,
+          customerMessageBottom: null,
+        },
+      ],
+      shippingAddress: {
+        addressText1: '100 INNOVATION BLVD',
+        addressText2: '',
+        cityName: 'MIAMI',
+        stateName: 'FLORIDA',
+        zipCode: '33173',
+        phone1: '0',
+        email: null,
+        salesPersonId: 43,
+        netTerm: 'NET 30',
+        salesPersonName: 'Mehraj',
+      },
+      customerContact: {
+        firstName: 'Alex',
+        lastName: 'Smith',
+        email: 'a***@precisionneuro.com',
+        phone1: '3055551234',
+        phone2: '',
+      },
+      invoices: [],
+      orderPackingSlips: [],
+      orderVendors: [],
+    },
+    {
+      ORDER_ID: '61804',
+      CUSTOMERID: '4129',
+      QUOTEID: '56730',
+      ORDER_NO: '483067',
+      PO_NO: 'INK-260701',
+      ORDER_DATE: '2026-07-27T17:30:11.000Z',
+      ORDER_TOTALCOST_AF_DISCCHRG: 431.84,
+      orderType: 'PCB Fab',
+      orderedQuantity: 50,
+      totalInvoicedQty: 0,
+      totalInvoicedAmount: 0,
+      totalShippedQtyAmount: 0,
+      pendingQuantity: 50,
+      pendingAmount: 431.84,
+      paymentsReceived: 0,
+      pcbpartNo: 'PCB161795',
+      orderStatus: 'Open',
+      companyName: 'Inkspace Imaging',
+      companyCode: 'INK101',
+      quoteId: '56730',
+      quoteNo: 'PCB303478',
+      salesPersonId: 44,
+      salesPersonName: 'Imran',
+      netTerm: 'NET 15',
+      customerMessageTop: null,
+      customerMessageBottom: null,
+      orderDetails: [
+        {
+          CREATED_BY: 82,
+          CREATED_DATE: '2026-07-27T17:30:11.000Z',
+          UPDATED_BY: 82,
+          UPDATED_DATE: '2026-07-27T17:30:11.000Z',
+          ORDERD_ID: '65311',
+          ORDER_ID: '61804',
+          QUANTITY: 50,
+          UNIT_PRICE: 8.6368,
+          WEB_PRICE: null,
+          PRICE_INCREASE: null,
+          FINISH_DATE: '2026-08-06T00:00:00.000Z',
+          PROMISED_DATE: '2026-08-07T00:00:00.000Z',
+          DAY: 10,
+          INVOICED_QTY: 0,
+          LINE_TOTAL: 431.84,
+          CREDIT_ID: 0,
+          CUSTOMERADDRESSID: 61200,
+          customerMessageTop: null,
+          customerMessageBottom: null,
+        },
+      ],
+      shippingAddress: {
+        addressText1: '4500 HARBOR BLVD STE 100',
+        addressText2: '',
+        cityName: 'DALLAS',
+        stateName: 'TEXAS',
+        zipCode: '75201',
+        phone1: '0',
+        email: null,
+        salesPersonId: 44,
+        netTerm: 'NET 15',
+        salesPersonName: 'Imran',
+      },
+      customerContact: {
+        firstName: 'Maria',
+        lastName: 'Chen',
+        email: 'm*****@inkspaceimaging.com',
+        phone1: '2145550912',
+        phone2: '',
+      },
+      invoices: [],
+      orderPackingSlips: [],
+      orderVendors: [],
+    },
+    {
+      ORDER_ID: '61803',
+      CUSTOMERID: '3992',
+      QUOTEID: '56728',
+      ORDER_NO: '483064',
+      PO_NO: 'TR-2026-0727',
+      ORDER_DATE: '2026-07-27T15:12:40.000Z',
+      ORDER_TOTALCOST_AF_DISCCHRG: 3108.39,
+      orderType: 'Full Turnkey',
+      orderedQuantity: 50,
+      totalInvoicedQty: 0,
+      totalInvoicedAmount: 0,
+      totalShippedQtyAmount: 0,
+      pendingQuantity: 50,
+      pendingAmount: 3108.39,
+      paymentsReceived: 0,
+      pcbpartNo: 'PCB161793',
+      orderStatus: 'Open',
+      companyName: 'Truman Robotics',
+      companyCode: 'TRU238',
+      quoteId: '56728',
+      quoteNo: 'PCB303476',
+      salesPersonId: 43,
+      salesPersonName: 'Mehraj',
+      netTerm: 'NET 30',
+      customerMessageTop: null,
+      customerMessageBottom: null,
+      orderDetails: [
+        {
+          CREATED_BY: 83,
+          CREATED_DATE: '2026-07-27T15:12:40.000Z',
+          UPDATED_BY: 83,
+          UPDATED_DATE: '2026-07-27T15:12:40.000Z',
+          ORDERD_ID: '65310',
+          ORDER_ID: '61803',
+          QUANTITY: 50,
+          UNIT_PRICE: 62.1678,
+          WEB_PRICE: null,
+          PRICE_INCREASE: null,
+          FINISH_DATE: '2026-08-11T00:00:00.000Z',
+          PROMISED_DATE: '2026-08-12T00:00:00.000Z',
+          DAY: 15,
+          INVOICED_QTY: 0,
+          LINE_TOTAL: 3108.39,
+          CREDIT_ID: 0,
+          CUSTOMERADDRESSID: 58800,
+          customerMessageTop: null,
+          customerMessageBottom: null,
+        },
+      ],
+      shippingAddress: {
+        addressText1: '2345 ENGINEERING DR',
+        addressText2: 'BUILDING C',
+        cityName: 'SAN JOSE',
+        stateName: 'CALIFORNIA',
+        zipCode: '95110',
+        phone1: '0',
+        email: null,
+        salesPersonId: 43,
+        netTerm: 'NET 30',
+        salesPersonName: 'Mehraj',
+      },
+      customerContact: {
+        firstName: 'David',
+        lastName: 'Truman',
+        email: 'd*****@trumanrobotics.ai',
+        phone1: '4085551029',
+        phone2: '',
+      },
+      invoices: [],
+      orderPackingSlips: [],
+      orderVendors: [],
+    },
+    {
+      ORDER_ID: '61802',
+      CUSTOMERID: '3992',
+      QUOTEID: '56727',
+      ORDER_NO: '483061',
+      PO_NO: 'TR-2026-0725',
+      ORDER_DATE: '2026-07-27T14:55:10.000Z',
+      ORDER_TOTALCOST_AF_DISCCHRG: 2483.69,
+      orderType: 'Full Turnkey',
+      orderedQuantity: 25,
+      totalInvoicedQty: 0,
+      totalInvoicedAmount: 0,
+      totalShippedQtyAmount: 0,
+      pendingQuantity: 25,
+      pendingAmount: 2483.69,
+      paymentsReceived: 0,
+      pcbpartNo: 'PCB161790',
+      orderStatus: 'Open',
+      companyName: 'Truman Robotics',
+      companyCode: 'TRU238',
+      quoteId: '56727',
+      quoteNo: 'PCB303475',
+      salesPersonId: 43,
+      salesPersonName: 'Mehraj',
+      netTerm: 'NET 30',
+      customerMessageTop: null,
+      customerMessageBottom: null,
+      orderDetails: [
+        {
+          CREATED_BY: 83,
+          CREATED_DATE: '2026-07-27T14:55:10.000Z',
+          UPDATED_BY: 83,
+          UPDATED_DATE: '2026-07-27T14:55:10.000Z',
+          ORDERD_ID: '65309',
+          ORDER_ID: '61802',
+          QUANTITY: 25,
+          UNIT_PRICE: 99.3476,
+          WEB_PRICE: null,
+          PRICE_INCREASE: null,
+          FINISH_DATE: '2026-08-11T00:00:00.000Z',
+          PROMISED_DATE: '2026-08-12T00:00:00.000Z',
+          DAY: 15,
+          INVOICED_QTY: 0,
+          LINE_TOTAL: 2483.69,
+          CREDIT_ID: 0,
+          CUSTOMERADDRESSID: 58800,
+          customerMessageTop: null,
+          customerMessageBottom: null,
+        },
+      ],
+      shippingAddress: {
+        addressText1: '2345 ENGINEERING DR',
+        addressText2: 'BUILDING C',
+        cityName: 'SAN JOSE',
+        stateName: 'CALIFORNIA',
+        zipCode: '95110',
+        phone1: '0',
+        email: null,
+        salesPersonId: 43,
+        netTerm: 'NET 30',
+        salesPersonName: 'Mehraj',
+      },
+      customerContact: {
+        firstName: 'David',
+        lastName: 'Truman',
+        email: 'd*****@trumanrobotics.ai',
+        phone1: '4085551029',
+        phone2: '',
+      },
+      invoices: [],
+      orderPackingSlips: [],
+      orderVendors: [],
+    },
+    {
+      ORDER_ID: '61801',
+      CUSTOMERID: '2551',
+      QUOTEID: '56726',
+      ORDER_NO: '483058',
+      PO_NO: 'TG-2607-001',
+      ORDER_DATE: '2026-07-27T13:20:08.000Z',
+      ORDER_TOTALCOST_AF_DISCCHRG: 8950,
+      orderType: 'Full Turnkey',
+      orderedQuantity: 10,
+      totalInvoicedQty: 0,
+      totalInvoicedAmount: 0,
+      totalShippedQtyAmount: 0,
+      pendingQuantity: 10,
+      pendingAmount: 8950,
+      paymentsReceived: 0,
+      pcbpartNo: 'PCB161789',
+      orderStatus: 'Open',
+      companyName: 'Teledyne Gavia',
+      companyCode: 'TEL108',
+      quoteId: '56726',
+      quoteNo: 'PCB303474',
+      salesPersonId: 44,
+      salesPersonName: 'Imran',
+      netTerm: 'NET 30',
+      customerMessageTop: null,
+      customerMessageBottom: null,
+      orderDetails: [
+        {
+          CREATED_BY: 82,
+          CREATED_DATE: '2026-07-27T13:20:08.000Z',
+          UPDATED_BY: 82,
+          UPDATED_DATE: '2026-07-27T13:20:08.000Z',
+          ORDERD_ID: '65308',
+          ORDER_ID: '61801',
+          QUANTITY: 10,
+          UNIT_PRICE: 895,
+          WEB_PRICE: null,
+          PRICE_INCREASE: null,
+          FINISH_DATE: '2026-08-11T00:00:00.000Z',
+          PROMISED_DATE: '2026-08-12T00:00:00.000Z',
+          DAY: 15,
+          INVOICED_QTY: 0,
+          LINE_TOTAL: 8950,
+          CREDIT_ID: 0,
+          CUSTOMERADDRESSID: 45678,
+          customerMessageTop: null,
+          customerMessageBottom: null,
+        },
+      ],
+      shippingAddress: {
+        addressText1: '600 TECHNOLOGY PARKWAY',
+        addressText2: '',
+        cityName: 'ANNAPOLIS',
+        stateName: 'MARYLAND',
+        zipCode: '21401',
+        phone1: '0',
+        email: null,
+        salesPersonId: 44,
+        netTerm: 'NET 30',
+        salesPersonName: 'Imran',
+      },
+      customerContact: {
+        firstName: 'Robert',
+        lastName: 'Gavia',
+        email: 'r*****@teledynegavia.com',
+        phone1: '4105558040',
+        phone2: '',
+      },
+      invoices: [],
+      orderPackingSlips: [],
+      orderVendors: [],
+    },
+    {
+      ORDER_ID: '61800',
+      CUSTOMERID: '1888',
+      QUOTEID: '56725',
+      ORDER_NO: '483057',
+      PO_NO: 'FA-2026-JUL27',
+      ORDER_DATE: '2026-07-27T11:02:19.000Z',
+      ORDER_TOTALCOST_AF_DISCCHRG: 650,
+      orderType: 'PCB Fab',
+      orderedQuantity: 100,
+      totalInvoicedQty: 0,
+      totalInvoicedAmount: 0,
+      totalShippedQtyAmount: 0,
+      pendingQuantity: 100,
+      pendingAmount: 650,
+      paymentsReceived: 0,
+      pcbpartNo: 'PCB161788',
+      orderStatus: 'Open',
+      companyName: 'Fulcrum Acoustic, LLC',
+      companyCode: 'FLA192',
+      quoteId: '56725',
+      quoteNo: 'PCB303473',
+      salesPersonId: 43,
+      salesPersonName: 'Mehraj',
+      netTerm: 'NET 30',
+      customerMessageTop: null,
+      customerMessageBottom: null,
+      orderDetails: [
+        {
+          CREATED_BY: 83,
+          CREATED_DATE: '2026-07-27T11:02:19.000Z',
+          UPDATED_BY: 83,
+          UPDATED_DATE: '2026-07-27T11:02:19.000Z',
+          ORDERD_ID: '65307',
+          ORDER_ID: '61800',
+          QUANTITY: 100,
+          UNIT_PRICE: 6.5,
+          WEB_PRICE: null,
+          PRICE_INCREASE: null,
+          FINISH_DATE: '2026-08-11T00:00:00.000Z',
+          PROMISED_DATE: '2026-08-12T00:00:00.000Z',
+          DAY: 15,
+          INVOICED_QTY: 0,
+          LINE_TOTAL: 650,
+          CREDIT_ID: 0,
+          CUSTOMERADDRESSID: 32155,
+          customerMessageTop: null,
+          customerMessageBottom: null,
+        },
+      ],
+      shippingAddress: {
+        addressText1: '121 SOUND ROAD',
+        addressText2: '',
+        cityName: 'HAVERHILL',
+        stateName: 'MASSACHUSETTS',
+        zipCode: '01830',
+        phone1: '0',
+        email: null,
+        salesPersonId: 43,
+        netTerm: 'NET 30',
+        salesPersonName: 'Mehraj',
+      },
+      customerContact: {
+        firstName: 'Steve',
+        lastName: 'Fulcrum',
+        email: 's******@fulcrumacoustic.com',
+        phone1: '9785552211',
+        phone2: '',
+      },
+      invoices: [],
+      orderPackingSlips: [],
+      orderVendors: [],
+    },
+  ],
+  partialOrders: [
+    {
+      ORDER_ID: '61750',
+      CUSTOMERID: '4150',
+      QUOTEID: '56680',
+      ORDER_NO: '482979',
+      PO_NO: 'IR-2607-002',
+      ORDER_DATE: '2026-07-22T09:12:15.000Z',
+      ORDER_TOTALCOST_AF_DISCCHRG: 887.1,
+      orderType: 'PCB Fab',
+      orderedQuantity: 170,
+      totalInvoicedQty: 55,
+      totalInvoicedAmount: 321.1,
+      totalShippedQtyAmount: 287,
+      pendingQuantity: 115,
+      pendingAmount: 600.1,
+      paymentsReceived: 321.1,
+      pcbpartNo: 'PCB161740',
+      orderStatus: 'Partial Ship',
+      companyName: 'Ironsite AI (IRO002)',
+      companyCode: 'IRO201',
+      quoteId: '56680',
+      quoteNo: 'PCB303430',
+      salesPersonId: 44,
+      salesPersonName: 'Imran',
+      netTerm: 'NET 15',
+      customerMessageTop: null,
+      customerMessageBottom: null,
+      orderDetails: [
+        {
+          CREATED_BY: 82,
+          CREATED_DATE: '2026-07-22T09:12:15.000Z',
+          UPDATED_BY: 82,
+          UPDATED_DATE: '2026-07-27T10:22:10.000Z',
+          ORDERD_ID: '65260',
+          ORDER_ID: '61750',
+          QUANTITY: 170,
+          UNIT_PRICE: 5.2182,
+          WEB_PRICE: null,
+          PRICE_INCREASE: null,
+          FINISH_DATE: '2026-07-29T00:00:00.000Z',
+          PROMISED_DATE: '2026-07-30T00:00:00.000Z',
+          DAY: 2,
+          INVOICED_QTY: 55,
+          LINE_TOTAL: 887.1,
+          CREDIT_ID: 0,
+          CUSTOMERADDRESSID: 62100,
+          customerMessageTop: null,
+          customerMessageBottom: null,
+        },
+      ],
+      shippingAddress: {
+        addressText1: '1455 NEBRASKA ST NE',
+        addressText2: '',
+        cityName: 'ALBUQUERQUE',
+        stateName: 'NEW MEXICO',
+        zipCode: '87102',
+        phone1: '0',
+        email: null,
+        salesPersonId: 44,
+        netTerm: 'NET 15',
+        salesPersonName: 'Imran',
+      },
+      customerContact: {
+        firstName: 'Raj',
+        lastName: 'Patel',
+        email: 'r***@ironsite.ai',
+        phone1: '5055551299',
+        phone2: '',
+      },
+      invoices: [],
+      orderPackingSlips: [],
+      orderVendors: [],
+    },
+    {
+      ORDER_ID: '61700',
+      CUSTOMERID: '2004',
+      QUOTEID: '56620',
+      ORDER_NO: '482663',
+      PO_NO: 'HG-JUL08-003',
+      ORDER_DATE: '2026-07-08T10:41:22.000Z',
+      ORDER_TOTALCOST_AF_DISCCHRG: 1069.92,
+      orderType: 'PCB Parts',
+      orderedQuantity: 24,
+      totalInvoicedQty: 1,
+      totalInvoicedAmount: 44.58,
+      totalShippedQtyAmount: 44.58,
+      pendingQuantity: 23,
+      pendingAmount: 1025.34,
+      paymentsReceived: 44.58,
+      pcbpartNo: 'PCB161693',
+      orderStatus: 'Partial Ship',
+      companyName: 'Higher Ground, LLC',
+      companyCode: 'HG155',
+      quoteId: '56620',
+      quoteNo: 'PCB303380',
+      salesPersonId: 43,
+      salesPersonName: 'Mehraj',
+      netTerm: 'NET 30',
+      customerMessageTop: null,
+      customerMessageBottom: null,
+      orderDetails: [
+        {
+          CREATED_BY: 83,
+          CREATED_DATE: '2026-07-08T10:41:22.000Z',
+          UPDATED_BY: 83,
+          UPDATED_DATE: '2026-07-10T12:00:00.000Z',
+          ORDERD_ID: '65210',
+          ORDER_ID: '61700',
+          QUANTITY: 24,
+          UNIT_PRICE: 44.58,
+          WEB_PRICE: null,
+          PRICE_INCREASE: null,
+          FINISH_DATE: '2026-07-15T00:00:00.000Z',
+          PROMISED_DATE: '2026-07-16T00:00:00.000Z',
+          DAY: -11,
+          INVOICED_QTY: 1,
+          LINE_TOTAL: 1069.92,
+          CREDIT_ID: 0,
+          CUSTOMERADDRESSID: 20014,
+          customerMessageTop: null,
+          customerMessageBottom: null,
+        },
+      ],
+      shippingAddress: {
+        addressText1: '100 MANUFACTURING WAY',
+        addressText2: 'SUITE 200',
+        cityName: 'GREENVILLE',
+        stateName: 'SOUTH CAROLINA',
+        zipCode: '29601',
+        phone1: '0',
+        email: null,
+        salesPersonId: 43,
+        netTerm: 'NET 30',
+        salesPersonName: 'Mehraj',
+      },
+      customerContact: {
+        firstName: 'Carol',
+        lastName: 'White',
+        email: 'c****@highergroundllc.us',
+        phone1: '8645551414',
+        phone2: '',
+      },
+      invoices: [],
+      orderPackingSlips: [],
+      orderVendors: [],
+    },
+    {
+      ORDER_ID: '61699',
+      CUSTOMERID: '2004',
+      QUOTEID: '56619',
+      ORDER_NO: '482662',
+      PO_NO: 'HG-JUL08-002',
+      ORDER_DATE: '2026-07-08T10:30:11.000Z',
+      ORDER_TOTALCOST_AF_DISCCHRG: 1089.9,
+      orderType: 'PCB Parts',
+      orderedQuantity: 30,
+      totalInvoicedQty: 1,
+      totalInvoicedAmount: 36.33,
+      totalShippedQtyAmount: 36.33,
+      pendingQuantity: 29,
+      pendingAmount: 1053.57,
+      paymentsReceived: 36.33,
+      pcbpartNo: 'PCB161692',
+      orderStatus: 'Partial Ship',
+      companyName: 'Higher Ground, LLC',
+      companyCode: 'HG155',
+      quoteId: '56619',
+      quoteNo: 'PCB303379',
+      salesPersonId: 43,
+      salesPersonName: 'Mehraj',
+      netTerm: 'NET 30',
+      customerMessageTop: null,
+      customerMessageBottom: null,
+      orderDetails: [
+        {
+          CREATED_BY: 83,
+          CREATED_DATE: '2026-07-08T10:30:11.000Z',
+          UPDATED_BY: 83,
+          UPDATED_DATE: '2026-07-10T12:00:00.000Z',
+          ORDERD_ID: '65209',
+          ORDER_ID: '61699',
+          QUANTITY: 30,
+          UNIT_PRICE: 36.33,
+          WEB_PRICE: null,
+          PRICE_INCREASE: null,
+          FINISH_DATE: '2026-07-15T00:00:00.000Z',
+          PROMISED_DATE: '2026-07-16T00:00:00.000Z',
+          DAY: -11,
+          INVOICED_QTY: 1,
+          LINE_TOTAL: 1089.9,
+          CREDIT_ID: 0,
+          CUSTOMERADDRESSID: 20014,
+          customerMessageTop: null,
+          customerMessageBottom: null,
+        },
+      ],
+      shippingAddress: {
+        addressText1: '100 MANUFACTURING WAY',
+        addressText2: 'SUITE 200',
+        cityName: 'GREENVILLE',
+        stateName: 'SOUTH CAROLINA',
+        zipCode: '29601',
+        phone1: '0',
+        email: null,
+        salesPersonId: 43,
+        netTerm: 'NET 30',
+        salesPersonName: 'Mehraj',
+      },
+      customerContact: {
+        firstName: 'Carol',
+        lastName: 'White',
+        email: 'c****@highergroundllc.us',
+        phone1: '8645551414',
+        phone2: '',
+      },
+      invoices: [],
+      orderPackingSlips: [],
+      orderVendors: [],
+    },
+    {
+      ORDER_ID: '61698',
+      CUSTOMERID: '2004',
+      QUOTEID: '56618',
+      ORDER_NO: '482661',
+      PO_NO: 'HG-JUL08-001',
+      ORDER_DATE: '2026-07-08T10:15:55.000Z',
+      ORDER_TOTALCOST_AF_DISCCHRG: 1179.84,
+      orderType: 'PCB Parts',
+      orderedQuantity: 24,
+      totalInvoicedQty: 1,
+      totalInvoicedAmount: 49.16,
+      totalShippedQtyAmount: 49.16,
+      pendingQuantity: 23,
+      pendingAmount: 1130.68,
+      paymentsReceived: 49.16,
+      pcbpartNo: 'PCB161691',
+      orderStatus: 'Partial Ship',
+      companyName: 'Higher Ground, LLC',
+      companyCode: 'HG155',
+      quoteId: '56618',
+      quoteNo: 'PCB303378',
+      salesPersonId: 43,
+      salesPersonName: 'Mehraj',
+      netTerm: 'NET 30',
+      customerMessageTop: null,
+      customerMessageBottom: null,
+      orderDetails: [
+        {
+          CREATED_BY: 83,
+          CREATED_DATE: '2026-07-08T10:15:55.000Z',
+          UPDATED_BY: 83,
+          UPDATED_DATE: '2026-07-10T12:00:00.000Z',
+          ORDERD_ID: '65208',
+          ORDER_ID: '61698',
+          QUANTITY: 24,
+          UNIT_PRICE: 49.16,
+          WEB_PRICE: null,
+          PRICE_INCREASE: null,
+          FINISH_DATE: '2026-07-15T00:00:00.000Z',
+          PROMISED_DATE: '2026-07-16T00:00:00.000Z',
+          DAY: -11,
+          INVOICED_QTY: 1,
+          LINE_TOTAL: 1179.84,
+          CREDIT_ID: 0,
+          CUSTOMERADDRESSID: 20014,
+          customerMessageTop: null,
+          customerMessageBottom: null,
+        },
+      ],
+      shippingAddress: {
+        addressText1: '100 MANUFACTURING WAY',
+        addressText2: 'SUITE 200',
+        cityName: 'GREENVILLE',
+        stateName: 'SOUTH CAROLINA',
+        zipCode: '29601',
+        phone1: '0',
+        email: null,
+        salesPersonId: 43,
+        netTerm: 'NET 30',
+        salesPersonName: 'Mehraj',
+      },
+      customerContact: {
+        firstName: 'Carol',
+        lastName: 'White',
+        email: 'c****@highergroundllc.us',
+        phone1: '8645551414',
+        phone2: '',
+      },
+      invoices: [],
+      orderPackingSlips: [],
+      orderVendors: [],
+    },
+    {
+      ORDER_ID: '61697',
+      CUSTOMERID: '2004',
+      QUOTEID: '56617',
+      ORDER_NO: '482660',
+      PO_NO: 'HG-JUL08-004',
+      ORDER_DATE: '2026-07-08T09:55:30.000Z',
+      ORDER_TOTALCOST_AF_DISCCHRG: 359.92,
+      orderType: 'PCB Parts',
+      orderedQuantity: 22,
+      totalInvoicedQty: 1,
+      totalInvoicedAmount: 16.36,
+      totalShippedQtyAmount: 16.36,
+      pendingQuantity: 21,
+      pendingAmount: 343.56,
+      paymentsReceived: 16.36,
+      pcbpartNo: 'PCB161690',
+      orderStatus: 'Partial Ship',
+      companyName: 'Higher Ground, LLC',
+      companyCode: 'HG155',
+      quoteId: '56617',
+      quoteNo: 'PCB303377',
+      salesPersonId: 43,
+      salesPersonName: 'Mehraj',
+      netTerm: 'NET 30',
+      customerMessageTop: null,
+      customerMessageBottom: null,
+      orderDetails: [
+        {
+          CREATED_BY: 83,
+          CREATED_DATE: '2026-07-08T09:55:30.000Z',
+          UPDATED_BY: 83,
+          UPDATED_DATE: '2026-07-10T12:00:00.000Z',
+          ORDERD_ID: '65207',
+          ORDER_ID: '61697',
+          QUANTITY: 22,
+          UNIT_PRICE: 16.36,
+          WEB_PRICE: null,
+          PRICE_INCREASE: null,
+          FINISH_DATE: '2026-07-15T00:00:00.000Z',
+          PROMISED_DATE: '2026-07-16T00:00:00.000Z',
+          DAY: -11,
+          INVOICED_QTY: 1,
+          LINE_TOTAL: 359.92,
+          CREDIT_ID: 0,
+          CUSTOMERADDRESSID: 20014,
+          customerMessageTop: null,
+          customerMessageBottom: null,
+        },
+      ],
+      shippingAddress: {
+        addressText1: '100 MANUFACTURING WAY',
+        addressText2: 'SUITE 200',
+        cityName: 'GREENVILLE',
+        stateName: 'SOUTH CAROLINA',
+        zipCode: '29601',
+        phone1: '0',
+        email: null,
+        salesPersonId: 43,
+        netTerm: 'NET 30',
+        salesPersonName: 'Mehraj',
+      },
+      customerContact: {
+        firstName: 'Carol',
+        lastName: 'White',
+        email: 'c****@highergroundllc.us',
+        phone1: '8645551414',
+        phone2: '',
+      },
+      invoices: [],
+      orderPackingSlips: [],
+      orderVendors: [],
+    },
+    {
+      ORDER_ID: '61696',
+      CUSTOMERID: '2004',
+      QUOTEID: '56616',
+      ORDER_NO: '482659',
+      PO_NO: 'HG-JUL08-005',
+      ORDER_DATE: '2026-07-08T09:40:08.000Z',
+      ORDER_TOTALCOST_AF_DISCCHRG: 590.1,
+      orderType: 'PCB Parts',
+      orderedQuantity: 21,
+      totalInvoicedQty: 1,
+      totalInvoicedAmount: 28.1,
+      totalShippedQtyAmount: 28.1,
+      pendingQuantity: 20,
+      pendingAmount: 562.0,
+      paymentsReceived: 28.1,
+      pcbpartNo: 'PCB161689',
+      orderStatus: 'Partial Ship',
+      companyName: 'Higher Ground, LLC',
+      companyCode: 'HG155',
+      quoteId: '56616',
+      quoteNo: 'PCB303376',
+      salesPersonId: 43,
+      salesPersonName: 'Mehraj',
+      netTerm: 'NET 30',
+      customerMessageTop: null,
+      customerMessageBottom: null,
+      orderDetails: [
+        {
+          CREATED_BY: 83,
+          CREATED_DATE: '2026-07-08T09:40:08.000Z',
+          UPDATED_BY: 83,
+          UPDATED_DATE: '2026-07-10T12:00:00.000Z',
+          ORDERD_ID: '65206',
+          ORDER_ID: '61696',
+          QUANTITY: 21,
+          UNIT_PRICE: 28.1,
+          WEB_PRICE: null,
+          PRICE_INCREASE: null,
+          FINISH_DATE: '2026-07-15T00:00:00.000Z',
+          PROMISED_DATE: '2026-07-16T00:00:00.000Z',
+          DAY: -11,
+          INVOICED_QTY: 1,
+          LINE_TOTAL: 590.1,
+          CREDIT_ID: 0,
+          CUSTOMERADDRESSID: 20014,
+          customerMessageTop: null,
+          customerMessageBottom: null,
+        },
+      ],
+      shippingAddress: {
+        addressText1: '100 MANUFACTURING WAY',
+        addressText2: 'SUITE 200',
+        cityName: 'GREENVILLE',
+        stateName: 'SOUTH CAROLINA',
+        zipCode: '29601',
+        phone1: '0',
+        email: null,
+        salesPersonId: 43,
+        netTerm: 'NET 30',
+        salesPersonName: 'Mehraj',
+      },
+      customerContact: {
+        firstName: 'Carol',
+        lastName: 'White',
+        email: 'c****@highergroundllc.us',
+        phone1: '8645551414',
+        phone2: '',
+      },
+      invoices: [],
+      orderPackingSlips: [],
+      orderVendors: [],
+    },
+    {
+      ORDER_ID: '61695',
+      CUSTOMERID: '2004',
+      QUOTEID: '56615',
+      ORDER_NO: '482658',
+      PO_NO: 'HG-JUL08-006',
+      ORDER_DATE: '2026-07-08T09:22:44.000Z',
+      ORDER_TOTALCOST_AF_DISCCHRG: 904.8,
+      orderType: 'PCB Parts',
+      orderedQuantity: 24,
+      totalInvoicedQty: 1,
+      totalInvoicedAmount: 37.7,
+      totalShippedQtyAmount: 37.7,
+      pendingQuantity: 23,
+      pendingAmount: 867.1,
+      paymentsReceived: 37.7,
+      pcbpartNo: 'PCB161688',
+      orderStatus: 'Partial Ship',
+      companyName: 'Higher Ground, LLC',
+      companyCode: 'HG155',
+      quoteId: '56615',
+      quoteNo: 'PCB303375',
+      salesPersonId: 43,
+      salesPersonName: 'Mehraj',
+      netTerm: 'NET 30',
+      customerMessageTop: null,
+      customerMessageBottom: null,
+      orderDetails: [
+        {
+          CREATED_BY: 83,
+          CREATED_DATE: '2026-07-08T09:22:44.000Z',
+          UPDATED_BY: 83,
+          UPDATED_DATE: '2026-07-10T12:00:00.000Z',
+          ORDERD_ID: '65205',
+          ORDER_ID: '61695',
+          QUANTITY: 24,
+          UNIT_PRICE: 37.7,
+          WEB_PRICE: null,
+          PRICE_INCREASE: null,
+          FINISH_DATE: '2026-07-15T00:00:00.000Z',
+          PROMISED_DATE: '2026-07-16T00:00:00.000Z',
+          DAY: -11,
+          INVOICED_QTY: 1,
+          LINE_TOTAL: 904.8,
+          CREDIT_ID: 0,
+          CUSTOMERADDRESSID: 20014,
+          customerMessageTop: null,
+          customerMessageBottom: null,
+        },
+      ],
+      shippingAddress: {
+        addressText1: '100 MANUFACTURING WAY',
+        addressText2: 'SUITE 200',
+        cityName: 'GREENVILLE',
+        stateName: 'SOUTH CAROLINA',
+        zipCode: '29601',
+        phone1: '0',
+        email: null,
+        salesPersonId: 43,
+        netTerm: 'NET 30',
+        salesPersonName: 'Mehraj',
+      },
+      customerContact: {
+        firstName: 'Carol',
+        lastName: 'White',
+        email: 'c****@highergroundllc.us',
+        phone1: '8645551414',
+        phone2: '',
+      },
+      invoices: [],
+      orderPackingSlips: [],
+      orderVendors: [],
+    },
+    {
+      ORDER_ID: '61694',
+      CUSTOMERID: '2004',
+      QUOTEID: '56614',
+      ORDER_NO: '482657',
+      PO_NO: 'HG-JUL08-007',
+      ORDER_DATE: '2026-07-08T09:05:19.000Z',
+      ORDER_TOTALCOST_AF_DISCCHRG: 519.96,
+      orderType: 'PCB Parts',
+      orderedQuantity: 28,
+      totalInvoicedQty: 1,
+      totalInvoicedAmount: 18.57,
+      totalShippedQtyAmount: 18.57,
+      pendingQuantity: 27,
+      pendingAmount: 501.39,
+      paymentsReceived: 18.57,
+      pcbpartNo: 'PCB161687',
+      orderStatus: 'Partial Ship',
+      companyName: 'Higher Ground, LLC',
+      companyCode: 'HG155',
+      quoteId: '56614',
+      quoteNo: 'PCB303374',
+      salesPersonId: 43,
+      salesPersonName: 'Mehraj',
+      netTerm: 'NET 30',
+      customerMessageTop: null,
+      customerMessageBottom: null,
+      orderDetails: [
+        {
+          CREATED_BY: 83,
+          CREATED_DATE: '2026-07-08T09:05:19.000Z',
+          UPDATED_BY: 83,
+          UPDATED_DATE: '2026-07-10T12:00:00.000Z',
+          ORDERD_ID: '65204',
+          ORDER_ID: '61694',
+          QUANTITY: 28,
+          UNIT_PRICE: 18.57,
+          WEB_PRICE: null,
+          PRICE_INCREASE: null,
+          FINISH_DATE: '2026-07-15T00:00:00.000Z',
+          PROMISED_DATE: '2026-07-16T00:00:00.000Z',
+          DAY: -11,
+          INVOICED_QTY: 1,
+          LINE_TOTAL: 519.96,
+          CREDIT_ID: 0,
+          CUSTOMERADDRESSID: 20014,
+          customerMessageTop: null,
+          customerMessageBottom: null,
+        },
+      ],
+      shippingAddress: {
+        addressText1: '100 MANUFACTURING WAY',
+        addressText2: 'SUITE 200',
+        cityName: 'GREENVILLE',
+        stateName: 'SOUTH CAROLINA',
+        zipCode: '29601',
+        phone1: '0',
+        email: null,
+        salesPersonId: 43,
+        netTerm: 'NET 30',
+        salesPersonName: 'Mehraj',
+      },
+      customerContact: {
+        firstName: 'Carol',
+        lastName: 'White',
+        email: 'c****@highergroundllc.us',
+        phone1: '8645551414',
+        phone2: '',
+      },
+      invoices: [],
+      orderPackingSlips: [],
+      orderVendors: [],
+    },
+  ],
+};
+
+export const getOpenOrders = async (
+  options?: { token?: string | null; timeoutMs?: number }
+): Promise<OpenOrdersResponse> => {
+  const baseURL = 'https://proboardv2.rushpcb.com/api/mobile/v1';
+  const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    };
+
+    if (options?.token) {
+      headers['Authorization'] = `Bearer ${options.token}`;
+    }
+
+    const response = await fetch(`${baseURL}/dashboard/open-orders`, {
+      method: 'GET',
+      headers,
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      let detail = '';
+      try {
+        const errBody = await response.text();
+        detail = errBody ? ` — ${errBody.slice(0, 120)}` : '';
+      } catch {}
+      throw new Error(`Server error ${response.status}${detail}`);
+    }
+
+    const data: OpenOrdersResponse = await response.json();
+
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid response format');
+    }
+
+    if (!Number.isFinite(data.totalOpenOrders)) data.totalOpenOrders = 0;
+    if (!Number.isFinite(data.totalOpenOrdersAmount)) data.totalOpenOrdersAmount = 0;
+    if (!Number.isFinite(data.totalInvoicedQty)) data.totalInvoicedQty = 0;
+    if (!Number.isFinite(data.totalInvoicedAmount)) data.totalInvoicedAmount = 0;
+    if (!Number.isFinite(data.totalShippedAmount)) data.totalShippedAmount = 0;
+    if (!Number.isFinite(data.totalPendingQty)) data.totalPendingQty = 0;
+    if (!Number.isFinite(data.totalPendingAmount)) data.totalPendingAmount = 0;
+    if (!Number.isFinite(data.totalPaymentsReceived)) data.totalPaymentsReceived = 0;
+    if (!Number.isFinite(data.vendorOrderAmount)) data.vendorOrderAmount = 0;
+    if (!Number.isFinite(data.pendingOrdersCount)) data.pendingOrdersCount = 0;
+    if (!Number.isFinite(data.pendingOrdersAmount)) data.pendingOrdersAmount = 0;
+    if (!Number.isFinite(data.partialOrdersCount)) data.partialOrdersCount = 0;
+    if (!Number.isFinite(data.partialOrdersAmount)) data.partialOrdersAmount = 0;
+    if (!Array.isArray(data.pendingOrders)) data.pendingOrders = [];
+    if (!Array.isArray(data.partialOrders)) data.partialOrders = [];
+
+    return data;
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      throw new Error(`Request timed out after ${timeoutMs / 1000}s — check your connection or VPN`);
+    }
+    if (error?.message?.includes('Network request failed')) {
+      throw new Error('Network error — check internet / VPN / CORS');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+export const extractOrderDate = (isoDate: string | null | undefined): string => {
+  if (!isoDate) return '';
+  try {
+    const d = new Date(isoDate);
+    if (isNaN(d.getTime())) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  } catch {
+    return '';
+  }
+};
+
+export const extractDaysLeft = (item: OpenOrderItem): number => {
+  if (item.orderDetails && item.orderDetails.length > 0) {
+    const detail = item.orderDetails[0];
+    if (detail && typeof detail.DAY === 'number') {
+      return detail.DAY;
+    }
+  }
+  return 0;
+};
+
+export const extractVendorCount = (item: OpenOrderItem): { completed: number; total: number } => {
+  const total = item.orderVendors?.length ?? 0;
+  let completed = 0;
+  if (total > 0) {
+    completed = item.orderVendors.filter(
+      (v: any) => v && (v.STATUS || v.status || '').toString().toLowerCase().includes('complete')
+    ).length;
+  }
+  return { completed, total: total > 0 ? total : 0 };
+};
+
+export const getOverallStatus = (item: OpenOrderItem): 'On track' | 'Due Soon' | 'Overdue' => {
+  const d = extractDaysLeft(item);
+  const s = (item.orderStatus || '').toString().toLowerCase();
+  if (d < 0 || s.includes('overdue') || s.includes('late')) return 'Overdue';
+  if (d <= 3 || s.includes('due') || s.includes('partial')) return 'Due Soon';
+  return 'On track';
+};
+
+export const trimStr = (v: any): string => (typeof v === 'string' ? v.trim() : v == null ? '' : String(v));

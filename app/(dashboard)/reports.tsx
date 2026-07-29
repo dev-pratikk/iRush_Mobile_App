@@ -140,6 +140,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  headerRight: {
+    width: 40,
+    height: 40,
+  },
   badge: {
     position: 'absolute',
     top: 4,

@@ -7,7 +7,7 @@ import { Typography } from '../../constants/Typography';
 import { router, usePathname } from 'expo-router';
 import { useAuthContext } from '../../context/AuthContext';
 import {
-  formatCurrency,
+  formatCurrencyWithCents,
   formatNumber,
   formatOrderDate,
   SAMPLE_ORDERS,
@@ -17,12 +17,13 @@ import { useOrders, type OrdersRowItem } from '../../hooks/useOrders';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';
-const SUMMARY_TEXT = '#8A8A85';
-const TAG_BG = '#EFEFEC';
-const TAG_TEXT = '#54534F';
 const DIVIDER = '#E7E6E2';
-const TOGGLE_TRACK = '#EDEDEC';
 const PAGE_BG = '#FFFFFF';
+const SUMMARY_CARD_BG = '#3A4151';
+const SUMMARY_CARD_TEXT = '#FFFFFF';
+const TOGGLE_TRACK = '#EDEDEC';
+
+// ─── Header ──────────────────────────────────────────────────────────────────
 
 const Header = () => {
   return (
@@ -51,6 +52,8 @@ const Header = () => {
     </View>
   );
 };
+
+// ─── Date Segment Control ────────────────────────────────────────────────────
 
 const DateSegmentControl = ({
   period,
@@ -94,7 +97,9 @@ const DateSegmentControl = ({
   );
 };
 
-const OrderSummaryBar = ({
+// ─── Dark/Grey KPI Summary Box ───────────────────────────────────────────────
+
+const SummaryCard = ({
   count,
   totalAmount,
   loading,
@@ -105,67 +110,69 @@ const OrderSummaryBar = ({
   loading: boolean;
   usingSample: boolean;
 }) => {
+  if (loading && count === 0 && totalAmount === 0) {
+    return (
+      <View style={[styles.summaryCard, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="small" color={SUMMARY_CARD_TEXT} />
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.summaryBar}>
-      <View style={styles.summaryRow}>
-        {loading ? (
-          <ActivityIndicator size="small" color={SUMMARY_TEXT} style={{ height: 14 }} />
-        ) : (
-          <Text style={styles.summaryText}>
-            {formatNumber(count)} order{count === 1 ? '' : 's'} · {formatCurrency(totalAmount)}
-          </Text>
-        )}
-        {usingSample && !loading ? (
+    <View style={styles.summaryCard}>
+      <View style={styles.summaryLeft}>
+        <Text style={styles.summaryCount}>{formatNumber(count)}</Text>
+        {usingSample && (
           <View style={styles.demoPill}>
             <Text style={styles.demoPillText}>Demo</Text>
           </View>
-        ) : null}
+        )}
       </View>
+      <Text style={styles.summaryAmount}>{formatCurrencyWithCents(totalAmount)}</Text>
     </View>
   );
 };
 
+// ─── Order Row Component ──────────────────────────────────────────────────────
+
 const OrderRow = React.memo(function OrderRow({ item }: { item: OrdersRowItem }) {
-  const dateStr = formatOrderDate(item.orderDate || item.updatedDate);
+  const orderDate = formatOrderDate(item.orderDate || item.updatedDate);
+  // Clean order number: remove any leading #
+  const orderNo = (item.orderNo || '').replace(/^#/, '').trim() || 'N/A';
+  const companyName = item.companyName || 'N/A';
+  const orderType = item.orderTypeName || 'Full Turnkey';
+  const salesperson = item.salespersonName || '';
 
   return (
     <View style={styles.row}>
-      <View style={styles.rowLine1}>
-        <Text
-          style={styles.rowLine1Left}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          <Text style={styles.orderNoText}>#{item.orderNo}</Text>
-          <Text>{' '}</Text>
-          <Text style={styles.companyText}>{item.companyName}</Text>
+      {/* Left Column: Order No -> Company Name -> Order/Service Type */}
+      <View style={styles.rowLeftCol}>
+        <Text style={styles.orderNoText} numberOfLines={1} ellipsizeMode="tail">
+          {orderNo}
         </Text>
-        <Text style={styles.amountText}>
-          {formatCurrency(item.orderTotal)}
+        <Text style={styles.companyText} numberOfLines={1} ellipsizeMode="tail">
+          {companyName}
+        </Text>
+        <Text style={styles.orderTypeText} numberOfLines={1} ellipsizeMode="tail">
+          {orderType}
         </Text>
       </View>
-      <View style={styles.rowLine2}>
-        <View style={styles.rowLine2Left}>
-          {item.orderTypeName ? (
-            <View style={styles.tagBadge}>
-              <Text style={styles.tagText} numberOfLines={1}>
-                {item.orderTypeName}
-              </Text>
-            </View>
-          ) : null}
-          {item.salespersonName ? (
-            <Text style={styles.salespersonText} numberOfLines={1}>
-              {item.salespersonName}
-            </Text>
-          ) : null}
-        </View>
-        {dateStr ? (
-          <Text style={styles.dateText}>{dateStr}</Text>
+
+      {/* Right Column: Amount -> Date -> Salesperson */}
+      <View style={styles.rowRightCol}>
+        <Text style={styles.amountText}>{formatCurrencyWithCents(item.orderTotal)}</Text>
+        {orderDate ? <Text style={styles.dateText}>{orderDate}</Text> : null}
+        {salesperson ? (
+          <Text style={styles.salespersonText} numberOfLines={1} ellipsizeMode="tail">
+            {salesperson}
+          </Text>
         ) : null}
       </View>
     </View>
   );
 });
+
+// ─── Empty State ──────────────────────────────────────────────────────────────
 
 const EmptyState = ({ period, usingSample }: { period: DatePeriod; usingSample: boolean }) => {
   const title = period === 'today' ? 'No orders today' : 'No orders this month';
@@ -179,6 +186,8 @@ const EmptyState = ({ period, usingSample }: { period: DatePeriod; usingSample: 
     </View>
   );
 };
+
+// ─── Bottom Nav ───────────────────────────────────────────────────────────────
 
 const BottomNav = () => {
   const colors = useThemeColors();
@@ -197,7 +206,7 @@ const BottomNav = () => {
         return (
           <TouchableOpacity key={index} style={styles.navTab} onPress={() => router.push(tab.route as any)}>
             <Ionicons
-              name={isActive ? `${tab.icon}` : `${tab.icon}-outline` as any}
+              name={isActive ? `${tab.icon}` : (`${tab.icon}-outline` as any)}
               size={24}
               color={isActive ? colors.primary : colors.inactive}
             />
@@ -217,6 +226,8 @@ const BottomNav = () => {
     </View>
   );
 };
+
+// ─── Header Component for FlatList ───────────────────────────────────────────
 
 const ListHeaderComponent = React.memo(function ListHeaderComponent({
   period,
@@ -243,6 +254,12 @@ const ListHeaderComponent = React.memo(function ListHeaderComponent({
   return (
     <View>
       <DateSegmentControl period={period} setPeriod={setPeriod} disabled={disabled} />
+      <SummaryCard
+        count={count}
+        totalAmount={totalAmount}
+        loading={summaryLoading}
+        usingSample={usingSample}
+      />
       {error ? (
         <TouchableOpacity
           style={[styles.errorBanner, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}55` }]}
@@ -262,21 +279,14 @@ const ListHeaderComponent = React.memo(function ListHeaderComponent({
             <Ionicons name="refresh-outline" size={13} color="#FFFFFF" />
             <Text style={styles.retryChipText}>Tap to retry</Text>
           </View>
-          {usingSample && (
-            <Text style={styles.sampleHint}>Showing demo data below</Text>
-          )}
         </TouchableOpacity>
       ) : null}
-      <OrderSummaryBar
-        count={count}
-        totalAmount={totalAmount}
-        loading={summaryLoading}
-        usingSample={usingSample}
-      />
       <View style={styles.dividerHairline} />
     </View>
   );
 });
+
+// ─── Main Screen Component ────────────────────────────────────────────────────
 
 export default function OrdersListScreen() {
   const colors = useThemeColors();
@@ -300,18 +310,19 @@ export default function OrdersListScreen() {
   // Fall back to sample data when we have an error and no items loaded yet
   const usingSample = isError && items.length === 0;
   const sampleItems = useMemo(
-    () => SAMPLE_ORDERS.orders.map((raw) => ({
-      id: String(raw.ORDER_ID ?? raw.ORDER_NO),
-      orderNo: String(raw.ORDER_NO ?? ''),
-      companyName: String(raw.COMPANY_NAME ?? ''),
-      orderDate: raw.ORDER_DATE ?? '',
-      updatedDate: raw.UPDATED_DATE ?? '',
-      orderTypeName: (raw.ORDER_TYPE_NAME ?? '').trim(),
-      salespersonName: (raw.SALESPERSON_NAME ?? '').trim(),
-      orderTotal: Number.isFinite(raw.ORDER_TOTAL) ? raw.ORDER_TOTAL : 0,
-      orderStatus: raw.ORDER_STATUS ?? '',
-      orderCategory: raw.ORDER_CATEGORY ?? '',
-    })),
+    () =>
+      SAMPLE_ORDERS.orders.map((raw) => ({
+        id: String(raw.ORDER_ID ?? raw.ORDER_NO),
+        orderNo: String(raw.ORDER_NO ?? '').replace(/^#/, ''),
+        companyName: String(raw.COMPANY_NAME ?? ''),
+        orderDate: raw.ORDER_DATE ?? '',
+        updatedDate: raw.UPDATED_DATE ?? '',
+        orderTypeName: (raw.ORDER_TYPE_NAME ?? '').trim(),
+        salespersonName: (raw.SALESPERSON_NAME ?? '').trim(),
+        orderTotal: Number.isFinite(raw.ORDER_TOTAL) ? raw.ORDER_TOTAL : 0,
+        orderStatus: raw.ORDER_STATUS ?? '',
+        orderCategory: raw.ORDER_CATEGORY ?? '',
+      })),
     []
   );
 
@@ -330,25 +341,30 @@ export default function OrdersListScreen() {
 
   const keyExtractor = useCallback((item: OrdersRowItem) => item.id, []);
 
+  const ItemSeparator = useCallback(() => <View style={styles.dividerHairline} />, []);
+
   const onEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const listHeader = useMemo(() => (
-    <ListHeaderComponent
-      period={period}
-      setPeriod={setPeriod}
-      disabled={isLoading && items.length === 0}
-      error={errorMessage}
-      onRetryTap={() => refetch()}
-      usingSample={usingSample}
-      count={displayCount}
-      totalAmount={displayTotal}
-      summaryLoading={isLoading && !isRefreshing}
-    />
-  ), [period, isLoading, items.length, errorMessage, usingSample, displayCount, displayTotal, isRefreshing, refetch]);
+  const listHeader = useMemo(
+    () => (
+      <ListHeaderComponent
+        period={period}
+        setPeriod={setPeriod}
+        disabled={isLoading && items.length === 0}
+        error={errorMessage}
+        onRetryTap={() => refetch()}
+        usingSample={usingSample}
+        count={displayCount}
+        totalAmount={displayTotal}
+        summaryLoading={isLoading && !isRefreshing}
+      />
+    ),
+    [period, isLoading, items.length, errorMessage, usingSample, displayCount, displayTotal, isRefreshing, refetch]
+  );
 
   const listEmpty = useMemo(() => {
     if (isLoading && items.length === 0) return null;
@@ -356,7 +372,6 @@ export default function OrdersListScreen() {
   }, [isLoading, items.length, period, usingSample]);
 
   const listFooter = useMemo(() => {
-    // Initial page load spinner
     if (isLoading && !isRefreshing && items.length === 0) {
       return (
         <View style={styles.loadingRow}>
@@ -367,7 +382,6 @@ export default function OrdersListScreen() {
         </View>
       );
     }
-    // Pagination spinner (loading next page)
     if (isFetchingNextPage) {
       return (
         <View style={styles.loadingRow}>
@@ -391,6 +405,7 @@ export default function OrdersListScreen() {
         ListHeaderComponent={listHeader}
         ListEmptyComponent={listEmpty}
         ListFooterComponent={listFooter}
+        ItemSeparatorComponent={ItemSeparator}
         contentContainerStyle={styles.flatListContent}
         showsVerticalScrollIndicator={false}
         initialNumToRender={20}
@@ -412,6 +427,10 @@ export default function OrdersListScreen() {
     </SafeAreaView>
   );
 }
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const hairline = StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5;
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -481,7 +500,7 @@ const styles = StyleSheet.create({
   segmentContainer: {
     marginTop: 4,
     marginHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 12,
     width: 'auto',
   },
   segmentWrapper: {
@@ -512,25 +531,41 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // Summary line
-  summaryBar: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 10,
-    backgroundColor: 'transparent',
+  // Dark/Grey KPI Summary Box
+  summaryCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    backgroundColor: SUMMARY_CARD_BG,
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    minHeight: 72,
   },
-  summaryRow: {
+  summaryLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
+    gap: 10,
   },
-  summaryText: {
-    fontSize: 13,
-    fontFamily: Typography.body,
-    fontWeight: '400',
-    color: SUMMARY_TEXT,
+  summaryCount: {
+    fontSize: 34,
+    lineHeight: 38,
+    fontFamily: Typography.numberHeavy,
+    fontWeight: '800',
+    color: SUMMARY_CARD_TEXT,
     includeFontPadding: false,
+  },
+  summaryAmount: {
+    fontSize: 18,
+    lineHeight: 22,
+    fontFamily: Typography.numberHeavy,
+    fontWeight: '800',
+    color: SUMMARY_CARD_TEXT,
+    includeFontPadding: false,
+    flexShrink: 1,
+    textAlign: 'right',
   },
   demoPill: {
     backgroundColor: 'rgba(255,212,59,0.18)',
@@ -544,88 +579,69 @@ const styles = StyleSheet.create({
     color: '#B48A00',
   },
   dividerHairline: {
-    height: StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5,
+    height: hairline,
     backgroundColor: DIVIDER,
+    marginHorizontal: 16,
   },
 
-  // Order rows
+  // Order rows (2-column layout matching pending & partial orders)
   row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     paddingVertical: 14,
     paddingHorizontal: 18,
-    borderBottomWidth: StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5,
-    borderBottomColor: DIVIDER,
-    backgroundColor: 'transparent',
   },
-  rowLine1: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-  },
-  rowLine1Left: {
+  rowLeftCol: {
     flex: 1,
-    paddingRight: 14,
-    flexShrink: 1,
+    paddingRight: 12,
+    gap: 3,
+  },
+  rowRightCol: {
+    alignItems: 'flex-end',
+    flexShrink: 0,
+    gap: 3,
   },
   orderNoText: {
-    fontSize: 15,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '600',
+    fontSize: 14,
+    fontFamily: Typography.numberHeavy,
+    fontWeight: '500',
     color: PRIMARY,
+    includeFontPadding: false,
   },
   companyText: {
-    fontSize: 15,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '600',
-    color: PRIMARY,
-  },
-  amountText: {
-    fontSize: 16,
-    fontFamily: Typography.numberHeavy,
-    fontWeight: '600',
+    fontSize: 13,
+    fontFamily: Typography.body,
+    fontWeight: '400',
     color: PRIMARY,
     includeFontPadding: false,
-    flexShrink: 0,
   },
-  rowLine2: {
-    marginTop: 6,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  rowLine2Left: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    columnGap: 8,
-    flexShrink: 1,
-    paddingRight: 10,
-  },
-  tagBadge: {
-    backgroundColor: TAG_BG,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  tagText: {
+  orderTypeText: {
     fontSize: 12,
-    fontFamily: Typography.bodyMedium,
-    fontWeight: '500',
-    color: TAG_TEXT,
-    includeFontPadding: false,
-  },
-  salespersonText: {
-    fontSize: 12.5,
     fontFamily: Typography.body,
     fontWeight: '400',
     color: SECONDARY,
+    includeFontPadding: false,
+  },
+  amountText: {
+    fontSize: 14,
+    fontFamily: Typography.numberHeavy,
+    fontWeight: '500',
+    color: PRIMARY,
     includeFontPadding: false,
   },
   dateText: {
-    fontSize: 12.5,
+    fontSize: 12,
     fontFamily: Typography.body,
     fontWeight: '400',
     color: SECONDARY,
     includeFontPadding: false,
-    flexShrink: 0,
+  },
+  salespersonText: {
+    fontSize: 12,
+    fontFamily: Typography.body,
+    fontWeight: '400',
+    color: SECONDARY,
+    includeFontPadding: false,
   },
 
   // Empty state
@@ -655,10 +671,10 @@ const styles = StyleSheet.create({
   errorBanner: {
     marginHorizontal: 16,
     marginBottom: 12,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
-    padding: 14,
-    gap: 8,
+    padding: 12,
+    gap: 6,
   },
   errorBannerIconRow: {
     flexDirection: 'row',
@@ -666,7 +682,7 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   errorBannerTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '600',
   },
@@ -680,8 +696,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 999,
     marginTop: 2,
   },
@@ -690,12 +706,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '600',
-  },
-  sampleHint: {
-    fontSize: 11,
-    fontFamily: Typography.body,
-    color: '#8A8A85',
-    marginTop: 2,
   },
 
   // Loading row
@@ -718,7 +728,9 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     paddingHorizontal: 16,
     justifyContent: 'space-between',
-    borderTopWidth: 1,
+    borderTopWidth: hairline,
+    borderTopColor: DIVIDER,
+    backgroundColor: PAGE_BG,
   },
   navTab: {
     alignItems: 'center',

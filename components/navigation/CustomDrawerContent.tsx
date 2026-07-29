@@ -4,6 +4,8 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, usePathname } from 'expo-router';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { useAuthContext } from '@context/AuthContext';
 import { useTheme, useThemeColors } from '@context/ThemeContext';
 import { Spacing } from '@theme/spacing';
@@ -30,6 +32,7 @@ export function CustomDrawerContent(props: any) {
   const colors = useThemeColors();
   const { theme } = useTheme();
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
 
   return (
     <DrawerContentScrollView
@@ -37,7 +40,7 @@ export function CustomDrawerContent(props: any) {
       style={[styles.drawerContent, { backgroundColor: colors.card }]}
       contentContainerStyle={styles.drawerScrollViewContent}
     >
-      <View style={styles.drawerHeader}>
+      <View style={[styles.drawerHeader, { paddingTop: Math.max(insets.top + 8, 36) }]}>
         <Image source={getLogo(theme)} style={styles.drawerLogo} resizeMode="contain" />
         <Text style={[styles.drawerTitle, { color: colors.textPrimary }]}>iRush</Text>
       </View>

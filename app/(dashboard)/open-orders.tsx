@@ -30,7 +30,7 @@ const Header = () => {
     <View style={[styles.header, { backgroundColor: colors.background }]}>
       <TouchableOpacity
         style={styles.headerButton}
-        onPress={() => router.back()}
+        onPress={() => router.push('/' as any)}
         hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
       >
         <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />

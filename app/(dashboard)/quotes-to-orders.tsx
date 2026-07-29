@@ -26,7 +26,7 @@ const Header = () => {
     <View style={styles.header}>
       <TouchableOpacity
         style={styles.headerIconWrap}
-        onPress={() => router.back()}
+        onPress={() => router.push('/quotes' as any)}
         hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
       >
         <Ionicons name="arrow-back" size={20} color={PRIMARY} />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Text, ActivityIndicator, RefreshControl } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,15 +7,13 @@ import { Typography } from '../../constants/Typography';
 import { router, usePathname } from 'expo-router';
 import { useAuthContext } from '../../context/AuthContext';
 import {
-  getDashboardOrders,
-  OrdersListResponse,
-  OrderItem,
   formatCurrency,
   formatNumber,
   formatOrderDate,
   SAMPLE_ORDERS,
   DashboardPeriod as DatePeriod,
 } from '../../services/api/orders.service';
+import { useOrders, type OrdersRowItem } from '../../hooks/useOrders';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';
@@ -31,7 +29,7 @@ const Header = () => {
     <View style={styles.header}>
       <TouchableOpacity
         style={styles.headerIconWrap}
-        onPress={() => router.back()}
+        onPress={() => router.push('/' as any)}
         hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
       >
         <Ionicons name="arrow-back" size={20} color={PRIMARY} />
@@ -97,24 +95,24 @@ const DateSegmentControl = ({
 };
 
 const OrderSummaryBar = ({
-  data,
+  count,
+  totalAmount,
   loading,
   usingSample,
 }: {
-  data: OrdersListResponse | null;
+  count: number;
+  totalAmount: number;
   loading: boolean;
   usingSample: boolean;
 }) => {
-  const active = data ?? SAMPLE_ORDERS;
-
   return (
     <View style={styles.summaryBar}>
       <View style={styles.summaryRow}>
-        {loading && !data ? (
+        {loading ? (
           <ActivityIndicator size="small" color={SUMMARY_TEXT} style={{ height: 14 }} />
         ) : (
           <Text style={styles.summaryText}>
-            {formatNumber(active.count)} order{active.count === 1 ? '' : 's'} · {formatCurrency(active.totalAmount)}
+            {formatNumber(count)} order{count === 1 ? '' : 's'} · {formatCurrency(totalAmount)}
           </Text>
         )}
         {usingSample && !loading ? (
@@ -127,10 +125,8 @@ const OrderSummaryBar = ({
   );
 };
 
-const OrderRow = React.memo(function OrderRow({ item }: { item: OrderItem }) {
-  const typeName = (item.ORDER_TYPE_NAME || '').trim();
-  const salesperson = (item.SALESPERSON_NAME || '').trim();
-  const dateStr = formatOrderDate(item.ORDER_DATE || item.UPDATED_DATE);
+const OrderRow = React.memo(function OrderRow({ item }: { item: OrdersRowItem }) {
+  const dateStr = formatOrderDate(item.orderDate || item.updatedDate);
 
   return (
     <View style={styles.row}>
@@ -140,26 +136,26 @@ const OrderRow = React.memo(function OrderRow({ item }: { item: OrderItem }) {
           numberOfLines={1}
           ellipsizeMode="tail"
         >
-          <Text style={styles.orderNoText}>#{item.ORDER_NO}</Text>
+          <Text style={styles.orderNoText}>#{item.orderNo}</Text>
           <Text>{' '}</Text>
-          <Text style={styles.companyText}>{item.COMPANY_NAME}</Text>
+          <Text style={styles.companyText}>{item.companyName}</Text>
         </Text>
         <Text style={styles.amountText}>
-          {formatCurrency(item.ORDER_TOTAL)}
+          {formatCurrency(item.orderTotal)}
         </Text>
       </View>
       <View style={styles.rowLine2}>
         <View style={styles.rowLine2Left}>
-          {typeName ? (
+          {item.orderTypeName ? (
             <View style={styles.tagBadge}>
               <Text style={styles.tagText} numberOfLines={1}>
-                {typeName}
+                {item.orderTypeName}
               </Text>
             </View>
           ) : null}
-          {salesperson ? (
+          {item.salespersonName ? (
             <Text style={styles.salespersonText} numberOfLines={1}>
-              {salesperson}
+              {item.salespersonName}
             </Text>
           ) : null}
         </View>
@@ -228,9 +224,9 @@ const ListHeaderComponent = React.memo(function ListHeaderComponent({
   disabled,
   error,
   onRetryTap,
-  attempts,
   usingSample,
-  data,
+  count,
+  totalAmount,
   summaryLoading,
 }: {
   period: DatePeriod;
@@ -238,9 +234,9 @@ const ListHeaderComponent = React.memo(function ListHeaderComponent({
   disabled: boolean;
   error: string | null;
   onRetryTap: () => void;
-  attempts: number;
   usingSample: boolean;
-  data: OrdersListResponse | null;
+  count: number;
+  totalAmount: number;
   summaryLoading: boolean;
 }) {
   const colors = useThemeColors();
@@ -266,12 +262,17 @@ const ListHeaderComponent = React.memo(function ListHeaderComponent({
             <Ionicons name="refresh-outline" size={13} color="#FFFFFF" />
             <Text style={styles.retryChipText}>Tap to retry</Text>
           </View>
-          {attempts > 0 && usingSample && (
+          {usingSample && (
             <Text style={styles.sampleHint}>Showing demo data below</Text>
           )}
         </TouchableOpacity>
       ) : null}
-      <OrderSummaryBar data={data} loading={summaryLoading} usingSample={usingSample} />
+      <OrderSummaryBar
+        count={count}
+        totalAmount={totalAmount}
+        loading={summaryLoading}
+        usingSample={usingSample}
+      />
       <View style={styles.dividerHairline} />
     </View>
   );
@@ -281,106 +282,110 @@ export default function OrdersListScreen() {
   const colors = useThemeColors();
   const { user } = useAuthContext();
   const [period, setPeriod] = useState<DatePeriod>('today');
-  const [data, setData] = useState<OrdersListResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [attempts, setAttempts] = useState(0);
 
-  const usingSample = data === null;
-  const activeData = data ?? SAMPLE_ORDERS;
+  const token = (user as any)?.token ?? null;
+  const {
+    items,
+    meta,
+    isLoading,
+    isError,
+    error,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+    isRefreshing,
+  } = useOrders(period, token);
 
-  const fetchOrders = useCallback(
-    async (isRefresh = false, overridePeriod?: DatePeriod) => {
-      const targetPeriod = overridePeriod ?? period;
-      const setSpin = isRefresh ? setRefreshing : setLoading;
-      try {
-        setSpin(true);
-        setError(null);
-        const token: string | null = (user as any)?.token ?? null;
-        const result = await getDashboardOrders(targetPeriod as any, { token });
-        setData(result);
-        setError(null);
-      } catch (e: any) {
-        const msg = e?.message || 'Failed to load orders';
-        setError(msg);
-        setAttempts((n) => n + 1);
-      } finally {
-        setSpin(false);
-      }
-    },
-    [period, user]
+  // Fall back to sample data when we have an error and no items loaded yet
+  const usingSample = isError && items.length === 0;
+  const sampleItems = useMemo(
+    () => SAMPLE_ORDERS.orders.map((raw) => ({
+      id: String(raw.ORDER_ID ?? raw.ORDER_NO),
+      orderNo: String(raw.ORDER_NO ?? ''),
+      companyName: String(raw.COMPANY_NAME ?? ''),
+      orderDate: raw.ORDER_DATE ?? '',
+      updatedDate: raw.UPDATED_DATE ?? '',
+      orderTypeName: (raw.ORDER_TYPE_NAME ?? '').trim(),
+      salespersonName: (raw.SALESPERSON_NAME ?? '').trim(),
+      orderTotal: Number.isFinite(raw.ORDER_TOTAL) ? raw.ORDER_TOTAL : 0,
+      orderStatus: raw.ORDER_STATUS ?? '',
+      orderCategory: raw.ORDER_CATEGORY ?? '',
+    })),
+    []
   );
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchOrders(false, period);
-    const safetyTimer = setTimeout(() => {
-      if (!cancelled) {
-        setLoading((prev) => {
-          if (prev) {
-            setError('Taking too long — pull down to retry');
-            return false;
-          }
-          return prev;
-        });
-      }
-    }, 12000);
-    return () => {
-      cancelled = true;
-      clearTimeout(safetyTimer);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period]);
+  const displayItems = usingSample ? sampleItems : items;
+  const displayCount = usingSample ? SAMPLE_ORDERS.count : (meta?.count ?? 0);
+  const displayTotal = usingSample ? SAMPLE_ORDERS.totalAmount : (meta?.totalAmount ?? 0);
 
-  const allOrders = useMemo<OrderItem[]>(() => activeData.orders ?? [], [activeData]);
+  const errorMessage = useMemo(() => {
+    if (!isError) return null;
+    return (error as Error | null)?.message ?? 'Failed to load orders';
+  }, [isError, error]);
 
-  const renderItem = useCallback(({ item }: { item: OrderItem }) => {
+  const renderItem = useCallback(({ item }: { item: OrdersRowItem }) => {
     return <OrderRow item={item} />;
   }, []);
 
-  const keyExtractor = useCallback((item: OrderItem) => {
-    return String(item.ORDER_ID ?? item.ORDER_NO);
-  }, []);
+  const keyExtractor = useCallback((item: OrdersRowItem) => item.id, []);
+
+  const onEndReached = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const listHeader = useMemo(() => (
     <ListHeaderComponent
       period={period}
       setPeriod={setPeriod}
-      disabled={loading && !data}
-      error={error}
-      onRetryTap={() => fetchOrders(false)}
-      attempts={attempts}
+      disabled={isLoading && items.length === 0}
+      error={errorMessage}
+      onRetryTap={() => refetch()}
       usingSample={usingSample}
-      data={data}
-      summaryLoading={loading && !refreshing}
+      count={displayCount}
+      totalAmount={displayTotal}
+      summaryLoading={isLoading && !isRefreshing}
     />
-  ), [period, loading, data, error, attempts, usingSample, refreshing, fetchOrders]);
+  ), [period, isLoading, items.length, errorMessage, usingSample, displayCount, displayTotal, isRefreshing, refetch]);
 
   const listEmpty = useMemo(() => {
-    if (loading && !data) return null;
+    if (isLoading && items.length === 0) return null;
     return <EmptyState period={period} usingSample={usingSample} />;
-  }, [loading, data, period, usingSample]);
+  }, [isLoading, items.length, period, usingSample]);
 
   const listFooter = useMemo(() => {
-    if (loading && !refreshing) {
+    // Initial page load spinner
+    if (isLoading && !isRefreshing && items.length === 0) {
       return (
         <View style={styles.loadingRow}>
           <ActivityIndicator size="small" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-            {data ? 'Updating…' : 'Loading orders…'}
+            Loading orders…
+          </Text>
+        </View>
+      );
+    }
+    // Pagination spinner (loading next page)
+    if (isFetchingNextPage) {
+      return (
+        <View style={styles.loadingRow}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Loading more…
           </Text>
         </View>
       );
     }
     return null;
-  }, [loading, refreshing, data, colors]);
+  }, [isLoading, isRefreshing, items.length, isFetchingNextPage, colors]);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: PAGE_BG }]} edges={['top']}>
       <Header />
       <FlatList
-        data={allOrders}
+        data={displayItems}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         ListHeaderComponent={listHeader}
@@ -392,10 +397,12 @@ export default function OrdersListScreen() {
         maxToRenderPerBatch={20}
         windowSize={9}
         removeClippedSubviews
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.4}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => fetchOrders(true)}
+            refreshing={isRefreshing}
+            onRefresh={() => refetch()}
             tintColor={colors.primary}
             colors={[colors.primary]}
           />

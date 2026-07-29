@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Text, ActivityIndicator, RefreshControl } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,13 +6,13 @@ import { Typography } from '../../constants/Typography';
 import { router, usePathname } from 'expo-router';
 import { useAuthContext } from '../../context/AuthContext';
 import {
-  getDashboardQuotes,
   QuotesDashboardResponse,
   SAMPLE_QUOTES,
   computeConversionRate,
   formatNumber,
   DashboardPeriod as DatePeriod,
 } from '../../services/api/quotes.service';
+import { useQuotes } from '../../hooks/useQuotes';
 
 const PRIMARY = '#2C2C2A';
 const MUTED = '#6F6E6A';
@@ -31,7 +31,7 @@ const Header = () => {
     <View style={styles.header}>
       <TouchableOpacity
         style={styles.headerIconWrap}
-        onPress={() => router.back()}
+        onPress={() => router.push('/' as any)}
         hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
       >
         <Ionicons name="arrow-back" size={20} color={PRIMARY} />
@@ -181,49 +181,23 @@ const BottomNav = () => {
 export default function QuotesOverviewScreen() {
   const { user } = useAuthContext();
   const [period, setPeriod] = useState<DatePeriod>('today');
-  const [data, setData] = useState<QuotesDashboardResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const usingSample = data === null;
+  const token = (user as any)?.token ?? null;
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuotes(period, token);
+
+  // Fall back to sample data when there's an error and no data loaded
+  const usingSample = isError && !data;
   const active = data ?? SAMPLE_QUOTES;
-
-  const fetchQuotes = useCallback(
-    async (isRefresh = false, overridePeriod?: DatePeriod) => {
-      const targetPeriod = overridePeriod ?? period;
-      const setSpin = isRefresh ? setRefreshing : setLoading;
-      try {
-        setSpin(true);
-        setError(null);
-        const token: string | null = (user as any)?.token ?? null;
-        const result = await getDashboardQuotes(targetPeriod as any, { token });
-        setData(result);
-      } catch (e: any) {
-        const msg = e?.message || 'Failed to load quotes';
-        setError(msg);
-      } finally {
-        setSpin(false);
-      }
-    },
-    [period, user]
+  const errorMessage = useMemo(
+    () => (isError ? (error?.message ?? 'Failed to load quotes') : null),
+    [isError, error]
   );
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchQuotes(false, period);
-    const safety = setTimeout(() => {
-      if (!cancelled) setLoading((prev) => (prev ? (setError('Loading took too long — pull down to retry'), false) : prev));
-    }, 12000);
-    return () => {
-      cancelled = true;
-      clearTimeout(safety);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period]);
+  const repsCount = active.quotesBySalesperson.length;
+  const typesCount = active.quotesByServiceType.length;
 
-  const repsCount = useMemo(() => active.quotesBySalesperson.length, [active]);
-  const typesCount = useMemo(() => active.quotesByServiceType.length, [active]);
+  const handleRefresh = useCallback(() => refetch(), [refetch]);
+  const handleRetry = useCallback(() => refetch(), [refetch]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -234,23 +208,23 @@ export default function QuotesOverviewScreen() {
         contentContainerStyle={styles.contentContainer}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => fetchQuotes(true)}
+            refreshing={isRefetching}
+            onRefresh={handleRefresh}
             tintColor={PRIMARY}
             colors={[PRIMARY]}
           />
         }
       >
-        <DateSegmentControl period={period} setPeriod={setPeriod} disabled={loading && !data} />
+        <DateSegmentControl period={period} setPeriod={setPeriod} disabled={isLoading && !data} />
 
-        {error ? (
-          <TouchableOpacity style={styles.errorBanner} activeOpacity={0.8} onPress={() => fetchQuotes(false)}>
+        {errorMessage ? (
+          <TouchableOpacity style={styles.errorBanner} activeOpacity={0.8} onPress={handleRetry}>
             <View style={styles.errorRow}>
               <Ionicons name="alert-circle-outline" size={18} color="#8A1C1C" />
               <Text style={styles.errorTitle}>Couldn't load live quotes</Text>
             </View>
             <Text style={styles.errorDetail} numberOfLines={3}>
-              {error}
+              {errorMessage}
             </Text>
             <View style={styles.retryChip}>
               <Ionicons name="refresh-outline" size={13} color={WHITE} />
@@ -260,7 +234,7 @@ export default function QuotesOverviewScreen() {
           </TouchableOpacity>
         ) : null}
 
-        {loading && !data ? (
+        {isLoading && !data ? (
           <View style={styles.loadingRow}>
             <ActivityIndicator size="small" color={PRIMARY} />
             <Text style={styles.loadingText}>Loading quotes…</Text>

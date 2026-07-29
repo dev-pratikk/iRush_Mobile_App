@@ -7,6 +7,7 @@ import {
   Text,
   RefreshControl,
   ActivityIndicator,
+  BackHandler,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -41,7 +42,7 @@ const Header = () => (
   <View style={styles.header}>
     <TouchableOpacity
       style={styles.headerIconWrap}
-      onPress={() => router.back()}
+      onPress={() => router.push('/open-orders' as any)}
       hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
     >
       <Ionicons name="arrow-back" size={20} color={PRIMARY} />
@@ -242,6 +243,15 @@ const BottomNav = () => {
 export default function PartialOrdersScreen() {
   const { user } = useAuthContext();
   const token = (user as any)?.token ?? null;
+
+  useEffect(() => {
+    const onBackPress = () => {
+      router.push('/open-orders' as any);
+      return true;
+    };
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => subscription.remove();
+  }, []);
 
   const {
     items,

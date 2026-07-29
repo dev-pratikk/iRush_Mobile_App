@@ -9,7 +9,7 @@ import {
   SAMPLE_QUOTES,
   formatQuoteDateTime,
   cleanupName,
-} from '../../services/api/quotes';
+} from '../../services/api/quotes.service';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';

@@ -1,8 +1,6 @@
-import { LoginCredentials } from '../../types/auth';
-import { MOCK_USERS } from '../../constants/mockUsers';
+import { MOCK_USERS } from '@mocks/users';
 
 export const loginWithPassword = async (email: string, password: string) => {
-  // TODO: connect to real auth endpoint
   await new Promise(resolve => setTimeout(resolve, 1000));
 
   const user = MOCK_USERS.find(
@@ -17,7 +15,6 @@ export const loginWithPassword = async (email: string, password: string) => {
 };
 
 export const loginWithMpin = async (mpin: string) => {
-  // TODO: connect to real auth endpoint
   await new Promise(resolve => setTimeout(resolve, 1000));
 
   const user = MOCK_USERS.find(u => u.mpin === mpin);

@@ -16,7 +16,7 @@ import { useAuthContext } from '../../context/AuthContext';
 import { Colors } from '../../constants/Colors';
 import { Spacing } from '../../constants/Spacing';
 import { Typography } from '../../constants/Typography';
-import { MOCK_USERS } from '../../constants/mockUsers';
+import { MOCK_USERS } from '@mocks/users';
 
 export default function LoginChooserScreen() {
   const { login } = useAuthContext();

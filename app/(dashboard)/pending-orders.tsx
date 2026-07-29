@@ -13,8 +13,8 @@ import {
   extractDaysLeft,
   extractVendorCount,
   trimStr,
-} from '../../services/api/openOrders';
-import { formatCurrencyWithCents, formatNumber, formatOrderDate } from '../../services/api/orders';
+} from '../../services/api/open-orders.service';
+import { formatCurrencyWithCents, formatNumber, formatOrderDate } from '../../services/api/orders.service';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';

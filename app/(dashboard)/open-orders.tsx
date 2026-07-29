@@ -11,8 +11,8 @@ import {
   EMPTY_OPEN_ORDERS,
   SAMPLE_OPEN_ORDERS,
   getOpenOrders,
-} from '../../services/api/openOrders';
-import { formatCurrencyWithCents, formatNumber } from '../../services/api/orders';
+} from '../../services/api/open-orders.service';
+import { formatCurrencyWithCents, formatNumber } from '../../services/api/orders.service';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';

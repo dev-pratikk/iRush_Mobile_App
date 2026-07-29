@@ -1,0 +1,124 @@
+import { apiClient, ApiClientError } from '@lib/api-client';
+import { EMPTY_OPEN_ORDERS } from '@mocks/api/open-orders';
+import type { OpenOrdersResponse, OpenOrderItem } from '../../types/api/open-orders';
+
+// Re-export types so screens can import from one place
+export type {
+  OpenOrderDetail,
+  OpenOrderShippingAddress,
+  OpenOrderCustomerContact,
+  OpenOrderVendor,
+  OpenOrderInvoice,
+  OpenOrderPackingSlip,
+  OpenOrderItem,
+  OpenOrdersResponse,
+} from '../../types/api/open-orders';
+export { SAMPLE_OPEN_ORDERS, EMPTY_OPEN_ORDERS } from '@mocks/api/open-orders';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+export const extractOrderDate = (isoDate: string | null | undefined): string => {
+  if (!isoDate) return '';
+  try {
+    const d = new Date(isoDate);
+    if (isNaN(d.getTime())) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  } catch {
+    return '';
+  }
+};
+
+export const extractDaysLeft = (item: OpenOrderItem): number => {
+  if (item.orderDetails && item.orderDetails.length > 0) {
+    const detail = item.orderDetails[0];
+    if (detail && typeof detail.DAY === 'number') {
+      return detail.DAY;
+    }
+  }
+  return 0;
+};
+
+export const extractVendorCount = (item: OpenOrderItem): { completed: number; total: number } => {
+  const total = item.orderVendors?.length ?? 0;
+  let completed = 0;
+  if (total > 0) {
+    completed = item.orderVendors.filter(
+      (v: any) => v && (v.STATUS || v.status || '').toString().toLowerCase().includes('complete')
+    ).length;
+  }
+  return { completed, total: total > 0 ? total : 0 };
+};
+
+export const getOverallStatus = (item: OpenOrderItem): 'On track' | 'Due Soon' | 'Overdue' => {
+  const d = extractDaysLeft(item);
+  const s = (item.orderStatus || '').toString().toLowerCase();
+  if (d < 0 || s.includes('overdue') || s.includes('late')) return 'Overdue';
+  if (d <= 3 || s.includes('due') || s.includes('partial')) return 'Due Soon';
+  return 'On track';
+};
+
+export const trimStr = (v: any): string => (typeof v === 'string' ? v.trim() : v == null ? '' : String(v));
+
+// ─── Service error normalisation ───────────────────────────────────────────────
+
+const toServiceError = (error: unknown) => {
+  if (!(error instanceof ApiClientError)) {
+    return error;
+  }
+  if (error.kind === 'timeout') {
+    return new Error(`${error.message} — check your connection or VPN`);
+  }
+  if (error.kind === 'network') {
+    return new Error('Network error — check internet / VPN / CORS');
+  }
+  if (error.kind === 'http' && error.status) {
+    const detail = error.details ? ` — ${error.details.slice(0, 120)}` : '';
+    return new Error(`Server error ${error.status}${detail}`);
+  }
+  return new Error(error.message);
+};
+
+// ─── Normaliser ────────────────────────────────────────────────────────────────
+
+const normalizeOpenOrdersResponse = (data: OpenOrdersResponse | null | undefined): OpenOrdersResponse => ({
+  totalOpenOrders: Number.isFinite(data?.totalOpenOrders) ? data!.totalOpenOrders : 0,
+  totalOpenOrdersAmount: Number.isFinite(data?.totalOpenOrdersAmount) ? data!.totalOpenOrdersAmount : 0,
+  totalInvoicedQty: Number.isFinite(data?.totalInvoicedQty) ? data!.totalInvoicedQty : 0,
+  totalInvoicedAmount: Number.isFinite(data?.totalInvoicedAmount) ? data!.totalInvoicedAmount : 0,
+  totalShippedAmount: Number.isFinite(data?.totalShippedAmount) ? data!.totalShippedAmount : 0,
+  totalPendingQty: Number.isFinite(data?.totalPendingQty) ? data!.totalPendingQty : 0,
+  totalPendingAmount: Number.isFinite(data?.totalPendingAmount) ? data!.totalPendingAmount : 0,
+  totalPaymentsReceived: Number.isFinite(data?.totalPaymentsReceived) ? data!.totalPaymentsReceived : 0,
+  vendorOrderAmount: Number.isFinite(data?.vendorOrderAmount) ? data!.vendorOrderAmount : 0,
+  pendingOrdersCount: Number.isFinite(data?.pendingOrdersCount) ? data!.pendingOrdersCount : 0,
+  pendingOrdersAmount: Number.isFinite(data?.pendingOrdersAmount) ? data!.pendingOrdersAmount : 0,
+  partialOrdersCount: Number.isFinite(data?.partialOrdersCount) ? data!.partialOrdersCount : 0,
+  partialOrdersAmount: Number.isFinite(data?.partialOrdersAmount) ? data!.partialOrdersAmount : 0,
+  pendingOrders: Array.isArray(data?.pendingOrders) ? data!.pendingOrders : [],
+  partialOrders: Array.isArray(data?.partialOrders) ? data!.partialOrders : [],
+});
+
+// ─── Fetch ─────────────────────────────────────────────────────────────────────
+
+export const getOpenOrders = async (
+  options?: { token?: string | null; timeoutMs?: number }
+): Promise<OpenOrdersResponse> => {
+  try {
+    const data = await apiClient.get<OpenOrdersResponse>({
+      path: '/dashboard/open-orders',
+      token: options?.token,
+      timeoutMs: options?.timeoutMs ?? 20000,
+    });
+
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid response format');
+    }
+
+    return normalizeOpenOrdersResponse(data);
+  } catch (error) {
+    throw toServiceError(error);
+  }
+};

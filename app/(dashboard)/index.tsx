@@ -3,7 +3,8 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Text, Image, ActivityIn
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KpiCard } from '../../components/dashboard/KpiCard';
-import { DASHBOARD_KPIS, DatePeriod } from '../../constants/mockDashboardData';
+import { DASHBOARD_KPIS } from '@mocks/dashboard';
+import type { DatePeriod } from '../../types/dashboard';
 import { useAuthContext } from '../../context/AuthContext';
 import { useThemeColors, useTheme } from '../../context/ThemeContext';
 import { Typography } from '../../constants/Typography';
@@ -16,7 +17,7 @@ import {
   formatCurrency,
   formatNumber,
   SAMPLE_STATS,
-} from '../../services/api/dashboard';
+} from '../../services/api/dashboard.service';
 
 const getLogo = (theme: string) => {
   return theme === 'red'

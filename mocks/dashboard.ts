@@ -1,25 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
-
-export interface TimePeriodValue {
-  today: string | number;
-  month: string | number;
-  year: string | number;
-}
-
-export interface Kpi {
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  color: string;
-  values: TimePeriodValue;
-  subtitle: string;
-  subtitleValues: {
-    today: string;
-    month: string;
-    year: string;
-  };
-}
-
-export type DatePeriod = 'today' | 'month' | 'year';
+import type { DatePeriod, Kpi, OrdersDetailList } from '../types/dashboard';
 
 export const DASHBOARD_KPIS: Kpi[] = [
   {
@@ -28,7 +7,7 @@ export const DASHBOARD_KPIS: Kpi[] = [
     color: '#7b7979ff',
     subtitle: 'Orders',
     subtitleValues: {
-      today: 'Today\'s Orders',
+      today: "Today's Orders",
       month: 'This Month',
       year: 'This Year',
     },
@@ -44,7 +23,7 @@ export const DASHBOARD_KPIS: Kpi[] = [
     color: '#7b7979ff',
     subtitle: 'Quotes',
     subtitleValues: {
-      today: 'Today\'s Quotes',
+      today: "Today's Quotes",
       month: 'This Month',
       year: 'This Year',
     },
@@ -60,7 +39,7 @@ export const DASHBOARD_KPIS: Kpi[] = [
     color: '#7b7979ff',
     subtitle: 'New Customers',
     subtitleValues: {
-      today: 'Today\'s New Customers',
+      today: "Today's New Customers",
       month: 'This Month',
       year: 'This Year',
     },
@@ -76,7 +55,7 @@ export const DASHBOARD_KPIS: Kpi[] = [
     color: '#7b7979ff',
     subtitle: 'Invoices',
     subtitleValues: {
-      today: 'Today\'s Invoices',
+      today: "Today's Invoices",
       month: 'This Month',
       year: 'This Year',
     },
@@ -93,9 +72,9 @@ export const QUOTES_KPIS: Kpi[] = [
     label: 'Quotes Today',
     icon: 'document-text-outline',
     color: '#F59E0B',
-    subtitle: 'Today\'s Quotes',
+    subtitle: "Today's Quotes",
     subtitleValues: {
-      today: 'Today\'s Quotes',
+      today: "Today's Quotes",
       month: 'This Month',
       year: 'This Year',
     },
@@ -158,23 +137,7 @@ export const OPEN_ORDERS_KPIS: Kpi[] = [
   },
 ];
 
-export interface OrderDetailItem {
-  orderNumber: string;
-  companyName: string;
-  vendorsCompleted: number;
-  vendorsTotal: number;
-  daysLeft: number;
-  amount: number;
-  pendingAmount: number;
-  orderDate: string;
-  status: 'On track' | 'Due Soon' | 'Overdue';
-}
-
-export interface OrdersDetailList {
-  count: number;
-  totalAmount: number;
-  items: OrderDetailItem[];
-}
+export const DEFAULT_DATE_PERIOD: DatePeriod = 'today';
 
 export const PENDING_ORDERS_DETAILS: OrdersDetailList = {
   count: 241,
@@ -186,8 +149,8 @@ export const PENDING_ORDERS_DETAILS: OrdersDetailList = {
       vendorsCompleted: 0,
       vendorsTotal: 3,
       daysLeft: 29,
-      amount: 7905.0,
-      pendingAmount: 7905.0,
+      amount: 7905,
+      pendingAmount: 7905,
       orderDate: '2026-07-27',
       status: 'On track',
     },
@@ -197,8 +160,8 @@ export const PENDING_ORDERS_DETAILS: OrdersDetailList = {
       vendorsCompleted: 0,
       vendorsTotal: 1,
       daysLeft: 8,
-      amount: 4400.0,
-      pendingAmount: 4400.0,
+      amount: 4400,
+      pendingAmount: 4400,
       orderDate: '2026-07-27',
       status: 'On track',
     },
@@ -241,8 +204,8 @@ export const PENDING_ORDERS_DETAILS: OrdersDetailList = {
       vendorsCompleted: 0,
       vendorsTotal: 3,
       daysLeft: 15,
-      amount: 8950.0,
-      pendingAmount: 8950.0,
+      amount: 8950,
+      pendingAmount: 8950,
       orderDate: '2026-07-27',
       status: 'On track',
     },
@@ -252,8 +215,8 @@ export const PENDING_ORDERS_DETAILS: OrdersDetailList = {
       vendorsCompleted: 0,
       vendorsTotal: 1,
       daysLeft: 15,
-      amount: 650.0,
-      pendingAmount: 650.0,
+      amount: 650,
+      pendingAmount: 650,
       orderDate: '2026-07-27',
       status: 'On track',
     },
@@ -326,7 +289,7 @@ export const PARTIAL_ORDERS_DETAILS: OrdersDetailList = {
       vendorsTotal: 1,
       daysLeft: -11,
       amount: 590.1,
-      pendingAmount: 562.0,
+      pendingAmount: 562,
       orderDate: '2026-07-08',
       status: 'Overdue',
     },

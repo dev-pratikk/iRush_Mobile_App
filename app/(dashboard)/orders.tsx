@@ -14,8 +14,8 @@ import {
   formatNumber,
   formatOrderDate,
   SAMPLE_ORDERS,
-} from '../../services/api/orders';
-import { DatePeriod } from '../../constants/mockDashboardData';
+  DashboardPeriod as DatePeriod,
+} from '../../services/api/orders.service';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';

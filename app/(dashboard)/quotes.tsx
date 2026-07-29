@@ -5,14 +5,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { router, usePathname } from 'expo-router';
 import { useAuthContext } from '../../context/AuthContext';
-import { DatePeriod } from '../../constants/mockDashboardData';
 import {
   getDashboardQuotes,
   QuotesDashboardResponse,
   SAMPLE_QUOTES,
   computeConversionRate,
   formatNumber,
-} from '../../services/api/quotes';
+  DashboardPeriod as DatePeriod,
+} from '../../services/api/quotes.service';
 
 const PRIMARY = '#2C2C2A';
 const MUTED = '#6F6E6A';

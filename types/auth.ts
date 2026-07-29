@@ -1,4 +1,4 @@
-import { MockUser } from '../constants/mockUsers';
+import { MockUser } from './mock-user';
 
 export interface LoginCredentials {
   email: string;

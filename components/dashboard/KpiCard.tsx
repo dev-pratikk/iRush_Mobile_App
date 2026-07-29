@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Kpi, DatePeriod } from '../../constants/mockDashboardData';
+import type { Kpi, DatePeriod } from '../../types/dashboard';
 import { useThemeColors } from '../../context/ThemeContext';
 import { Typography } from '../../constants/Typography';
 interface KpiCardProps {

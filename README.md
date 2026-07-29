@@ -26,31 +26,41 @@ irush-app/
 ├── app/
 │   ├── _layout.tsx
 │   ├── index.tsx
-│   └── (auth)/
-│       ├── _layout.tsx
-│       └── login.tsx
+│   ├── (auth)/
+│   └── (dashboard)/
 ├── components/
-│   ├── ui/
-│   │   ├── AppButton.tsx
-│   │   ├── TextField.tsx
-│   │   └── Checkbox.tsx
-│   └── login/
-│       ├── LoginHeader.tsx
-│       ├── LoginForm.tsx
-│       ├── LoginFooter.tsx
-│       └── CircuitDecoration.tsx
-├── constants/
-│   ├── Colors.ts
-│   ├── Typography.ts
-│   └── Spacing.ts
-├── hooks/
-│   └── useAuth.ts
+│   ├── dashboard/
+│   │   ├── cards/
+│   │   ├── controls/
+│   │   └── KpiCard.tsx
+│   ├── login/
+│   ├── navigation/
+│   └── ui/
+├── lib/
+│   ├── api-client.ts
+│   └── formatters.ts
+├── mocks/
+│   ├── api/
+│   ├── dashboard.ts
+│   └── users.ts
 ├── services/
 │   └── api/
-│       ├── client.ts
-│       └── auth.ts
+│       ├── auth.service.ts
+│       ├── dashboard.service.ts
+│       ├── open-orders.service.ts
+│       ├── orders.service.ts
+│       └── quotes.service.ts
+├── theme/
+│   ├── colors.ts
+│   ├── spacing.ts
+│   ├── typography.ts
+│   └── index.ts
 ├── types/
-│   └── auth.ts
+│   ├── api/
+│   ├── auth.ts
+│   ├── dashboard.ts
+│   └── mock-user.ts
+├── hooks/
+│   └── useAuth.ts
 └── assets/
-    └── fonts/
 ```

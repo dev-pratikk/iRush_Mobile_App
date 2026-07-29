@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { loginWithPassword, loginWithMpin } from '../services/api/auth';
+import { loginWithPassword, loginWithMpin } from '../services/api/auth.service';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
-import { MOCK_USERS } from '../constants/mockUsers';
+import { MOCK_USERS } from '@mocks/users';
 
 export const useAuth = () => {
   const [isLoading, setIsLoading] = useState(false);

@@ -174,30 +174,99 @@ export default function OpenOrdersScreen() {
     loadData(true);
   }, [loadData]);
 
+  const pendingSummary = data.pendingOrdersSummary;
+  const partialSummary = data.partialOrdersSummary;
+
   const pendingStats = [
-    { label: 'No of Orders', value: '236' },
-    { label: 'Total Pending Orders Value', value: '$3,614,422.33' },
-    { label: 'Orders Assigned To Vendors', value: '178' },
-    { label: 'Assigned Vendor Order Value', value: '$1,221,905.30' },
-    { label: 'Orders Without Vendor Assignment', value: '58' },
-    { label: 'Shipped Order Quantity Value', value: '0' },
-    { label: 'Pending Order Quantity Value', value: '$3,614,422.33' },
-    { label: 'Invoiced Order Quantity Value', value: '0' },
-    { label: 'Payment Recived', value: '0' },
-    { label: 'Advance Payment Recieved', value: '0' },
+    {
+      label: 'No of Orders',
+      value: formatNumber(pendingSummary?.totalOrders ?? data.pendingOrdersCount ?? 0),
+    },
+    {
+      label: 'Total Pending Orders Value',
+      value: formatCurrencyWithCents(pendingSummary?.totalOrderedAmount ?? data.pendingOrdersAmount ?? 0),
+    },
+    {
+      label: 'Orders Assigned To Vendors',
+      value: formatNumber(pendingSummary?.ordersWithVendorCount ?? 0),
+    },
+    {
+      label: 'Assigned Vendor Order Value',
+      value: formatCurrencyWithCents(
+        pendingSummary?.ordersWithVendorAmount ?? pendingSummary?.vendorOrderAmount ?? data.vendorOrderAmount ?? 0
+      ),
+    },
+    {
+      label: 'Orders Without Vendor Assignment',
+      value: formatNumber(pendingSummary?.ordersWithoutVendorCount ?? 0),
+    },
+    {
+      label: 'Shipped Order Quantity Value',
+      value: formatCurrencyWithCents(pendingSummary?.totalShippedAmount ?? data.totalShippedAmount ?? 0),
+    },
+    {
+      label: 'Pending Order Quantity Value',
+      value: formatCurrencyWithCents(
+        pendingSummary?.totalPendingAmount ?? data.totalPendingAmount ?? data.pendingOrdersAmount ?? 0
+      ),
+    },
+    {
+      label: 'Invoiced Order Quantity Value',
+      value: formatCurrencyWithCents(pendingSummary?.totalInvoicedAmount ?? data.totalInvoicedAmount ?? 0),
+    },
+    {
+      label: 'Payment Recived',
+      value: formatCurrencyWithCents(pendingSummary?.totalPaymentsReceived ?? data.totalPaymentsReceived ?? 0),
+    },
+    {
+      label: 'Advance Payment Recieved',
+      value: formatCurrencyWithCents(pendingSummary?.advancePaymentReceived ?? 0),
+    },
   ];
 
   const partialStats = [
-    { label: 'No of Orders', value: '66' },
-    { label: 'Total Partial Order Value', value: '$3,157,894.75' },
-    { label: 'Orders Assigned To Vendors', value: '65' },
-    { label: 'Assigned Vendor Order Value', value: '$1,020,945.56' },
-    { label: 'Orders Without Vendor Assignment', value: '1' },
-    { label: 'Shipped Order Quantity Value', value: '$2,140,192.83' },
-    { label: 'Pending Order Quantity Value', value: '$1,017,701.92' },
-    { label: 'Invoiced Order Quantity Value', value: '$2,210,717.97' },
-    { label: 'Payment Recived', value: '$1,711,314.30' },
-    { label: 'Advance Payment Recieved', value: '0' },
+    {
+      label: 'No of Orders',
+      value: formatNumber(partialSummary?.totalOrders ?? data.partialOrdersCount ?? 0),
+    },
+    {
+      label: 'Total Partial Order Value',
+      value: formatCurrencyWithCents(partialSummary?.totalOrderedAmount ?? data.partialOrdersAmount ?? 0),
+    },
+    {
+      label: 'Orders Assigned To Vendors',
+      value: formatNumber(partialSummary?.ordersWithVendorCount ?? 0),
+    },
+    {
+      label: 'Assigned Vendor Order Value',
+      value: formatCurrencyWithCents(
+        partialSummary?.ordersWithVendorAmount ?? partialSummary?.vendorOrderAmount ?? 0
+      ),
+    },
+    {
+      label: 'Orders Without Vendor Assignment',
+      value: formatNumber(partialSummary?.ordersWithoutVendorCount ?? 0),
+    },
+    {
+      label: 'Shipped Order Quantity Value',
+      value: formatCurrencyWithCents(partialSummary?.totalShippedAmount ?? 0),
+    },
+    {
+      label: 'Pending Order Quantity Value',
+      value: formatCurrencyWithCents(partialSummary?.totalPendingAmount ?? 0),
+    },
+    {
+      label: 'Invoiced Order Quantity Value',
+      value: formatCurrencyWithCents(partialSummary?.totalInvoicedAmount ?? 0),
+    },
+    {
+      label: 'Payment Recived',
+      value: formatCurrencyWithCents(partialSummary?.totalPaymentsReceived ?? 0),
+    },
+    {
+      label: 'Advance Payment Recieved',
+      value: formatCurrencyWithCents(partialSummary?.advancePaymentReceived ?? 0),
+    },
   ];
 
   return (

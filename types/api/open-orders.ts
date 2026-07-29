@@ -102,6 +102,59 @@ export interface OpenOrdersResponse {
   pendingOrdersAmount: number;
   partialOrdersCount: number;
   partialOrdersAmount: number;
+  pendingOrdersSummary?: PendingOrdersSummary | null;
+  partialOrdersSummary?: PartialOrdersSummary | null;
   pendingOrders: OpenOrderItem[];
   partialOrders: OpenOrderItem[];
+}
+
+// ─── New paginated endpoint response (filter=pending|partial) ─────────────────
+
+export interface PendingOrdersSummary {
+  totalOrders?: number;
+  totalOrderedQty?: number;
+  totalOrderedAmount?: number;
+  totalPendingQty?: number;
+  totalPendingAmount?: number;
+  totalVendorCost?: number;
+  ordersWithVendorCount?: number;
+  ordersWithoutVendorCount?: number;
+  ordersWithVendorAmount?: number;
+  ordersWithoutVendorAmount?: number;
+  vendorOrderAmount?: number;
+  totalShippedAmount?: number;
+  totalInvoicedQty?: number;
+  totalInvoicedAmount?: number;
+  totalPaymentsReceived?: number;
+  advancePaymentReceived?: number;
+  [key: string]: any; // forward-compat for new fields
+}
+
+export interface PartialOrdersSummary {
+  totalOrders?: number;
+  totalOrderedQty?: number;
+  totalOrderedAmount?: number;
+  totalPendingQty?: number;
+  totalPendingAmount?: number;
+  totalVendorCost?: number;
+  ordersWithVendorCount?: number;
+  ordersWithoutVendorCount?: number;
+  ordersWithVendorAmount?: number;
+  ordersWithoutVendorAmount?: number;
+  vendorOrderAmount?: number;
+  totalShippedAmount?: number;
+  totalInvoicedQty?: number;
+  totalInvoicedAmount?: number;
+  totalPaymentsReceived?: number;
+  advancePaymentReceived?: number;
+  [key: string]: any;
+}
+
+export interface OpenOrdersPageResponse {
+  page: number;
+  limit: number;
+  totalRecords: number;
+  data: OpenOrderItem[];
+  pendingOrdersSummary?: PendingOrdersSummary;
+  partialOrdersSummary?: PartialOrdersSummary;
 }

@@ -107,6 +107,8 @@ const normalizeOpenOrdersResponse = (data: OpenOrdersResponse | null | undefined
   pendingOrdersAmount: Number.isFinite(data?.pendingOrdersAmount) ? data!.pendingOrdersAmount : 0,
   partialOrdersCount: Number.isFinite(data?.partialOrdersCount) ? data!.partialOrdersCount : 0,
   partialOrdersAmount: Number.isFinite(data?.partialOrdersAmount) ? data!.partialOrdersAmount : 0,
+  pendingOrdersSummary: data?.pendingOrdersSummary ?? null,
+  partialOrdersSummary: data?.partialOrdersSummary ?? null,
   pendingOrders: Array.isArray(data?.pendingOrders) ? data!.pendingOrders : [],
   partialOrders: Array.isArray(data?.partialOrders) ? data!.partialOrders : [],
 });

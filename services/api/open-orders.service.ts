@@ -1,6 +1,13 @@
 import { apiClient, ApiClientError } from '@lib/api-client';
 import { EMPTY_OPEN_ORDERS } from '@mocks/api/open-orders';
-import type { OpenOrdersResponse, OpenOrderItem } from '../../types/api/open-orders';
+import type {
+  OpenOrdersResponse,
+  OpenOrderItem,
+  OpenOrdersPageResponse,
+  PendingOrdersSummary,
+  PartialOrdersSummary,
+} from '../../types/api/open-orders';
+import type { PaginatedResult } from '@hooks/useInfiniteResource';
 
 // Re-export types so screens can import from one place
 export type {
@@ -12,6 +19,9 @@ export type {
   OpenOrderPackingSlip,
   OpenOrderItem,
   OpenOrdersResponse,
+  OpenOrdersPageResponse,
+  PendingOrdersSummary,
+  PartialOrdersSummary,
 } from '../../types/api/open-orders';
 export { SAMPLE_OPEN_ORDERS, EMPTY_OPEN_ORDERS } from '@mocks/api/open-orders';
 
@@ -118,6 +128,87 @@ export const getOpenOrders = async (
     }
 
     return normalizeOpenOrdersResponse(data);
+  } catch (error) {
+    throw toServiceError(error);
+  }
+};
+
+// ─── Paginated fetcher for useInfiniteResource ──────────────────────────────
+// Separate call per filter (pending | partial), always sends limit=10 explicitly.
+// Returns PaginatedResult<OpenOrderItem> + summary objects in the extra fields.
+export type OpenOrderFilter = 'pending' | 'partial';
+export type OpenOrderSearchType = 'orderNo' | 'companyName' | 'salesperson';
+
+export interface OpenOrderSearchParam {
+  type: OpenOrderSearchType;
+  value: string;
+}
+
+export const OPEN_ORDERS_PAGE_LIMIT = 10;
+
+export const fetchOpenOrdersPage = async (
+  filter: OpenOrderFilter,
+  options: {
+    token?: string | null;
+    page?: number;
+    search?: OpenOrderSearchParam | null;
+  }
+): Promise<PaginatedResult<OpenOrderItem>> => {
+  const page = options.page ?? 1;
+  const limit = OPEN_ORDERS_PAGE_LIMIT; // ALWAYS explicit — never rely on backend default
+
+  const query: Record<string, any> = { filter, page, limit };
+
+  if (options.search && options.search.value.trim()) {
+    const val = options.search.value.trim();
+    if (options.search.type === 'orderNo') {
+      query.orderNo = val;
+    } else if (options.search.type === 'companyName') {
+      query.companyName = val;
+    } else if (options.search.type === 'salesperson') {
+      query.salespPerson = val; // Note backend typo: salespPerson
+    }
+  }
+
+  try {
+    const data = await apiClient.get<OpenOrdersPageResponse>({
+      path: '/dashboard/open-orders',
+      query,
+      token: options.token,
+      timeoutMs: 20000,
+    });
+
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid response format');
+    }
+
+    const orders: OpenOrderItem[] = Array.isArray(data.data) ? data.data : [];
+    const totalRecords = Number.isFinite(data.totalRecords) ? data.totalRecords : orders.length;
+
+    // ─── Pagination diagnostics ─────────────────────────────────────
+    if (__DEV__) {
+      const searchInfo = options.search && options.search.value.trim()
+        ? ` searchType=${options.search.type} searchVal="${options.search.value.trim()}"`
+        : '';
+      const ids = orders.map((o) => o.ORDER_ID).join(', ');
+      console.log(
+        `[OpenOrders/${filter}] page=${page} limit=${limit}${searchInfo} ` +
+        `returned=${orders.length} totalRecords=${totalRecords} ` +
+        `hasMore=${orders.length >= limit && orders.length < totalRecords}\n` +
+        `  ORDER_IDs: [${ids}]`
+      );
+    }
+
+    return {
+      page,
+      limit,
+      totalRecords,
+      data: orders,
+      // Pass summary objects through as extra metadata fields
+      // useInfiniteResource stores the full page object; meta reads page 1
+      pendingOrdersSummary: data.pendingOrdersSummary ?? null,
+      partialOrdersSummary: data.partialOrdersSummary ?? null,
+    };
   } catch (error) {
     throw toServiceError(error);
   }

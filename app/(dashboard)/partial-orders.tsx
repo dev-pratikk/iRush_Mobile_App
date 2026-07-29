@@ -5,6 +5,7 @@ import {
   FlatList,
   TouchableOpacity,
   Text,
+  TextInput,
   RefreshControl,
   ActivityIndicator,
   BackHandler,
@@ -15,7 +16,12 @@ import { Typography } from '../../constants/Typography';
 import { useAuthContext } from '../../context/AuthContext';
 import { router, usePathname } from 'expo-router';
 import { formatCurrencyWithCents, formatNumber, formatOrderDate } from '../../services/api/orders.service';
-import { SAMPLE_OPEN_ORDERS, OPEN_ORDERS_PAGE_LIMIT } from '../../services/api/open-orders.service';
+import {
+  SAMPLE_OPEN_ORDERS,
+  OPEN_ORDERS_PAGE_LIMIT,
+  type OpenOrderSearchType,
+  type OpenOrderSearchParam,
+} from '../../services/api/open-orders.service';
 import { usePartialOrders, type OpenOrderRowItem } from '../../hooks/useOpenOrders';
 import type { PartialOrdersSummary } from '../../types/api/open-orders';
 
@@ -29,6 +35,13 @@ const PENDING_ORANGE = '#E66A2C';
 const GREEN = '#27500A';
 const AMBER = '#8A5A00';
 const RED = '#8A1C1C';
+const INPUT_BG = '#F5F5F2';
+
+const SEARCH_OPTIONS: { label: string; type: OpenOrderSearchType; placeholder: string }[] = [
+  { label: 'Order No', type: 'orderNo', placeholder: 'Search by order number…' },
+  { label: 'Company', type: 'companyName', placeholder: 'Search by company name…' },
+  { label: 'Salesperson', type: 'salesperson', placeholder: 'Search by salesperson…' },
+];
 
 const getDaysColor = (days: number): string => {
   if (days < 0) return RED;
@@ -89,6 +102,78 @@ const SummaryCard = ({
   );
 };
 
+// ─── Search Bar Component ────────────────────────────────────────────────────
+
+const SearchBarSection = ({
+  searchType,
+  setSearchType,
+  inputText,
+  setInputText,
+  onClear,
+}: {
+  searchType: OpenOrderSearchType;
+  setSearchType: (type: OpenOrderSearchType) => void;
+  inputText: string;
+  setInputText: (text: string) => void;
+  onClear: () => void;
+}) => {
+  const currentOption = SEARCH_OPTIONS.find((o) => o.type === searchType) ?? SEARCH_OPTIONS[0];
+
+  const handleTypeSelect = (newType: OpenOrderSearchType) => {
+    if (newType !== searchType) {
+      setSearchType(newType);
+      onClear(); // Auto-clear input on type switch to prevent mismatch queries
+    }
+  };
+
+  return (
+    <View style={styles.searchSection}>
+      {/* Type Selector Pills */}
+      <View style={styles.pillsRow}>
+        {SEARCH_OPTIONS.map((opt) => {
+          const isActive = opt.type === searchType;
+          return (
+            <TouchableOpacity
+              key={opt.type}
+              style={[styles.pill, isActive && styles.pillActive]}
+              onPress={() => handleTypeSelect(opt.type)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.pillText, isActive && styles.pillTextActive]}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Search Input */}
+      <View style={styles.searchInputWrap}>
+        <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          value={inputText}
+          onChangeText={setInputText}
+          placeholder={currentOption.placeholder}
+          placeholderTextColor={SECONDARY}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="search"
+        />
+        {inputText.length > 0 ? (
+          <TouchableOpacity
+            onPress={onClear}
+            style={styles.clearButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="close-circle" size={18} color={SECONDARY} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    </View>
+  );
+};
+
 // ─── Order row card ───────────────────────────────────────────────────────────
 
 const OrderRow = React.memo(function OrderRow({ item }: { item: OpenOrderRowItem }) {
@@ -144,7 +229,6 @@ const PaginationFooter = ({
 }) => {
   const LIMIT = OPEN_ORDERS_PAGE_LIMIT;
   const pageStart = totalRecords === 0 ? 0 : (currentPage - 1) * LIMIT + 1;
-  // For the partial last page, pageEnd = totalRecords (e.g. 68, not 70)
   const pageEnd = Math.min(currentPage * LIMIT, totalRecords);
 
   const prevDisabled = currentPage <= 1;
@@ -191,15 +275,40 @@ const PaginationFooter = ({
   );
 };
 
-// ─── Empty / loading states ───────────────────────────────────────────────────
+// ─── Empty states ─────────────────────────────────────────────────────────────
 
-const EmptyState = () => (
+const DefaultEmptyState = () => (
   <View style={styles.emptyState}>
     <Ionicons name="cube-outline" size={36} color={SECONDARY} />
     <Text style={styles.emptyTitle}>No partial orders</Text>
     <Text style={styles.emptySubtitle}>Pull down to refresh</Text>
   </View>
 );
+
+const SearchEmptyState = ({
+  query,
+  type,
+  onClear,
+}: {
+  query: string;
+  type: OpenOrderSearchType;
+  onClear: () => void;
+}) => {
+  const typeLabel =
+    type === 'orderNo' ? 'Order No' : type === 'companyName' ? 'Company' : 'Salesperson';
+  return (
+    <View style={styles.emptyState}>
+      <Ionicons name="search-outline" size={38} color={SECONDARY} />
+      <Text style={styles.emptyTitle}>No matching partial orders</Text>
+      <Text style={styles.emptySubtitle}>
+        No results found for "{query}" in {typeLabel}
+      </Text>
+      <TouchableOpacity style={styles.clearSearchBtn} onPress={onClear} activeOpacity={0.8}>
+        <Text style={styles.clearSearchBtnText}>Clear search</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 // ─── Bottom nav ───────────────────────────────────────────────────────────────
 
@@ -236,12 +345,13 @@ const BottomNav = () => {
   );
 };
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function PartialOrdersScreen() {
   const { user } = useAuthContext();
   const token = (user as any)?.token ?? null;
 
+  // Hardware Back button handling (Android)
   useEffect(() => {
     const onBackPress = () => {
       router.push('/open-orders' as any);
@@ -251,6 +361,27 @@ export default function PartialOrdersScreen() {
     return () => subscription.remove();
   }, []);
 
+  // ── Search State & Debouncing ───────────────────────────────────────────────
+  const [searchType, setSearchType] = useState<OpenOrderSearchType>('orderNo');
+  const [inputText, setInputText] = useState('');
+  const [debouncedValue, setDebouncedValue] = useState('');
+
+  // Debounce input text by 400ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(inputText);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [inputText]);
+
+  // Construct active search param
+  const searchParam: OpenOrderSearchParam | null = useMemo(() => {
+    const trimmed = debouncedValue.trim();
+    if (!trimmed) return null;
+    return { type: searchType, value: trimmed };
+  }, [searchType, debouncedValue]);
+
+  // Fetch partial orders backed by React Query infinite resource
   const {
     items,
     rawPages,
@@ -264,11 +395,16 @@ export default function PartialOrdersScreen() {
     fetchNextPage,
     refetch,
     isRefreshing,
-  } = usePartialOrders(token);
+  } = usePartialOrders(token, searchParam);
 
-  // ── Pagination cursor ──────────────────────────────────────────────────────
+  // ── Pagination Cursor ──────────────────────────────────────────────────────
   const [currentPage, setCurrentPage] = useState(1);
   const pendingAdvanceRef = useRef(false);
+
+  // Reset to page 1 whenever searchParam changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchParam]);
 
   // When a fetch triggered by Next completes, advance the cursor
   useEffect(() => {
@@ -278,7 +414,7 @@ export default function PartialOrdersScreen() {
     }
   }, [isFetchingNextPage]);
 
-  // Reset to page 1 on pull-to-refresh
+  // Reset to page 1 when pull-to-refresh fires
   useEffect(() => {
     if (isRefreshing) {
       pendingAdvanceRef.current = false;
@@ -291,7 +427,7 @@ export default function PartialOrdersScreen() {
   const totalRecords = (meta?.totalRecords as number | undefined) ?? 0;
   const totalPages = totalRecords > 0 ? Math.ceil(totalRecords / LIMIT) : Math.max(1, rawPages.length);
 
-  // Slice to current page — purely local, no network
+  // Slice items for current page (local cursor)
   const displayItems = useMemo(
     () => items.slice((currentPage - 1) * LIMIT, currentPage * LIMIT),
     [items, currentPage, LIMIT]
@@ -303,10 +439,16 @@ export default function PartialOrdersScreen() {
     [isError, error]
   );
 
-  // ── Pagination handlers ────────────────────────────────────────────────────
+  // ── Handlers ───────────────────────────────────────────────────────────────
+
+  const handleClearSearch = useCallback(() => {
+    setInputText('');
+    setDebouncedValue('');
+    setCurrentPage(1);
+  }, []);
 
   const handlePrev = useCallback(() => {
-    setCurrentPage((p) => Math.max(1, p - 1)); // Free — data already in memory
+    setCurrentPage((p) => Math.max(1, p - 1));
   }, []);
 
   const handleNext = useCallback(() => {
@@ -314,10 +456,8 @@ export default function PartialOrdersScreen() {
     const alreadyLoaded = nextPage <= rawPages.length;
 
     if (alreadyLoaded) {
-      // Already in memory — instant, zero network
       setCurrentPage(nextPage);
     } else if (hasNextPage && !isFetchingNextPage) {
-      // Fetch from API, advance cursor once it resolves
       pendingAdvanceRef.current = true;
       fetchNextPage();
     }
@@ -338,6 +478,13 @@ export default function PartialOrdersScreen() {
     () => (
       <View>
         <SummaryCard summary={summary} loading={isLoading} usingSample={usingSample} />
+        <SearchBarSection
+          searchType={searchType}
+          setSearchType={setSearchType}
+          inputText={inputText}
+          setInputText={setInputText}
+          onClear={handleClearSearch}
+        />
         {errorMessage ? (
           <TouchableOpacity style={styles.errorRow} onPress={() => refetch()} activeOpacity={0.8}>
             <Ionicons name="warning-outline" size={16} color="#8A1C1C" />
@@ -347,7 +494,7 @@ export default function PartialOrdersScreen() {
         <View style={styles.listDivider} />
       </View>
     ),
-    [summary, isLoading, usingSample, errorMessage, refetch]
+    [summary, isLoading, usingSample, searchType, inputText, errorMessage, refetch, handleClearSearch]
   );
 
   const ListFooter = useMemo(() => {
@@ -383,7 +530,13 @@ export default function PartialOrdersScreen() {
         keyExtractor={keyExtractor}
         ListHeaderComponent={ListHeader}
         ListFooterComponent={ListFooter}
-        ListEmptyComponent={isLoading ? null : <EmptyState />}
+        ListEmptyComponent={
+          isLoading ? null : debouncedValue.trim().length > 0 ? (
+            <SearchEmptyState query={debouncedValue.trim()} type={searchType} onClear={handleClearSearch} />
+          ) : (
+            <DefaultEmptyState />
+          )
+        }
         ItemSeparatorComponent={ItemSeparator}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.flatlistContent}
@@ -391,7 +544,6 @@ export default function PartialOrdersScreen() {
         maxToRenderPerBatch={10}
         windowSize={5}
         removeClippedSubviews
-        // No onEndReached — navigation is button-driven only
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -438,7 +590,7 @@ const styles = StyleSheet.create({
   summaryCard: {
     marginTop: 12,
     marginHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 10,
     paddingHorizontal: 18,
     paddingVertical: 16,
     backgroundColor: SUMMARY_CARD_BG,
@@ -474,6 +626,58 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   demoPillText: { fontSize: 10, fontFamily: Typography.headingSemiBold, color: '#B48A00' },
+
+  // Search Section
+  searchSection: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    gap: 8,
+  },
+  pillsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  pill: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F2',
+  },
+  pillActive: {
+    backgroundColor: PRIMARY,
+  },
+  pillText: {
+    fontSize: 12,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+  },
+  pillTextActive: {
+    color: '#FFFFFF',
+    fontFamily: Typography.bodySemiBold,
+    fontWeight: '600',
+  },
+  searchInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: INPUT_BG,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 42,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: Typography.body,
+    color: PRIMARY,
+    paddingVertical: 0,
+  },
+  clearButton: {
+    padding: 2,
+    marginLeft: 6,
+  },
 
   listDivider: { height: hairline, backgroundColor: DIVIDER },
 
@@ -578,14 +782,14 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // Empty state
+  // Empty states
   emptyState: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 24, gap: 6 },
   emptyTitle: {
     fontSize: 15,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '600',
     color: SECONDARY,
-    marginTop: 10,
+    marginTop: 8,
   },
   emptySubtitle: {
     fontSize: 12,
@@ -593,6 +797,19 @@ const styles = StyleSheet.create({
     color: SECONDARY,
     opacity: 0.8,
     textAlign: 'center',
+  },
+  clearSearchBtn: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#EFEFEC',
+  },
+  clearSearchBtnText: {
+    fontSize: 12,
+    fontFamily: Typography.bodySemiBold,
+    fontWeight: '600',
+    color: PRIMARY,
   },
 
   // Pagination footer

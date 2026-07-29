@@ -6,6 +6,7 @@ import {
   extractDaysLeft,
   extractVendorCount,
   trimStr,
+  type OpenOrderSearchParam,
 } from '../services/api/open-orders.service';
 import type { OpenOrderItem, PendingOrdersSummary, PartialOrdersSummary } from '../types/api/open-orders';
 
@@ -81,14 +82,25 @@ const mapOpenOrderItem = (raw: OpenOrderItem): OpenOrderRowItem => {
  *  - isLoading, isError, error, isFetchingNextPage, hasNextPage,
  *    fetchNextPage, refetch, isRefreshing
  */
-export function usePendingOrders(token: string | null | undefined) {
+export function usePendingOrders(
+  token: string | null | undefined,
+  search?: OpenOrderSearchParam | null
+) {
+  const searchValue = search?.value?.trim() ?? '';
+  const searchType = search?.type ?? 'orderNo';
+
   const fetcher = useCallback(
-    (page: number) => fetchOpenOrdersPage('pending', { token: token ?? null, page }),
-    [token]
+    (page: number) =>
+      fetchOpenOrdersPage('pending', {
+        token: token ?? null,
+        page,
+        search: searchValue ? { type: searchType, value: searchValue } : null,
+      }),
+    [token, searchType, searchValue]
   );
 
   const result = useInfiniteResource<OpenOrderItem, OpenOrderRowItem>({
-    queryKey: ['open-orders', 'pending', token ?? null],
+    queryKey: ['open-orders', 'pending', token ?? null, searchType, searchValue],
     fetcher,
     mapItem: mapOpenOrderItem,
   });
@@ -108,14 +120,25 @@ export function usePendingOrders(token: string | null | undefined) {
  *  - isLoading, isError, error, isFetchingNextPage, hasNextPage,
  *    fetchNextPage, refetch, isRefreshing
  */
-export function usePartialOrders(token: string | null | undefined) {
+export function usePartialOrders(
+  token: string | null | undefined,
+  search?: OpenOrderSearchParam | null
+) {
+  const searchValue = search?.value?.trim() ?? '';
+  const searchType = search?.type ?? 'orderNo';
+
   const fetcher = useCallback(
-    (page: number) => fetchOpenOrdersPage('partial', { token: token ?? null, page }),
-    [token]
+    (page: number) =>
+      fetchOpenOrdersPage('partial', {
+        token: token ?? null,
+        page,
+        search: searchValue ? { type: searchType, value: searchValue } : null,
+      }),
+    [token, searchType, searchValue]
   );
 
   const result = useInfiniteResource<OpenOrderItem, OpenOrderRowItem>({
-    queryKey: ['open-orders', 'partial', token ?? null],
+    queryKey: ['open-orders', 'partial', token ?? null, searchType, searchValue],
     fetcher,
     mapItem: mapOpenOrderItem,
   });

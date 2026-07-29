@@ -23,6 +23,7 @@ import {
   type OpenOrderSearchParam,
 } from '../../services/api/open-orders.service';
 import { usePendingOrders, type OpenOrderRowItem } from '../../hooks/useOpenOrders';
+import { PaginationFooter } from '../../components/ui/PaginationFooter';
 import type { PendingOrdersSummary } from '../../types/api/open-orders';
 
 const PRIMARY = '#2C2C2A';
@@ -193,70 +194,7 @@ const OrderRow = React.memo(function OrderRow({ item }: { item: OpenOrderRowItem
   );
 });
 
-// ─── Pagination footer ────────────────────────────────────────────────────────
 
-const PaginationFooter = ({
-  currentPage,
-  totalPages,
-  totalRecords,
-  isFetchingNextPage,
-  onPrev,
-  onNext,
-}: {
-  currentPage: number;
-  totalPages: number;
-  totalRecords: number;
-  isFetchingNextPage: boolean;
-  onPrev: () => void;
-  onNext: () => void;
-}) => {
-  const LIMIT = OPEN_ORDERS_PAGE_LIMIT;
-  const pageStart = totalRecords === 0 ? 0 : (currentPage - 1) * LIMIT + 1;
-  const pageEnd = Math.min(currentPage * LIMIT, totalRecords);
-
-  const prevDisabled = currentPage <= 1;
-  const nextDisabled = currentPage >= totalPages || isFetchingNextPage;
-
-  return (
-    <View style={styles.paginationWrap}>
-      <Text style={styles.paginationSummary}>
-        {totalRecords === 0 ? 'No orders' : `Showing ${pageStart}–${pageEnd} of ${formatNumber(totalRecords)}`}
-      </Text>
-      <View style={styles.paginationControls}>
-        <TouchableOpacity
-          style={[styles.pageButton, prevDisabled && styles.pageButtonDisabled]}
-          onPress={onPrev}
-          disabled={prevDisabled}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="chevron-back" size={15} color={prevDisabled ? SECONDARY : PRIMARY} />
-          <Text style={[styles.pageButtonText, prevDisabled && styles.pageButtonTextDisabled]}>
-            Previous
-          </Text>
-        </TouchableOpacity>
-
-        <Text style={styles.pageIndicator}>
-          {isFetchingNextPage ? '…' : `${currentPage} / ${totalPages}`}
-        </Text>
-
-        <TouchableOpacity
-          style={[styles.pageButton, nextDisabled && styles.pageButtonDisabled]}
-          onPress={onNext}
-          disabled={nextDisabled}
-          activeOpacity={0.7}
-        >
-          {isFetchingNextPage ? (
-            <ActivityIndicator size="small" color={PRIMARY} style={{ marginRight: 4 }} />
-          ) : null}
-          <Text style={[styles.pageButtonText, nextDisabled && styles.pageButtonTextDisabled]}>
-            Next
-          </Text>
-          <Ionicons name="chevron-forward" size={15} color={nextDisabled ? SECONDARY : PRIMARY} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-};
 
 // ─── Empty states ─────────────────────────────────────────────────────────────
 

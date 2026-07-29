@@ -1,5 +1,15 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Text, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Text,
+  TextInput,
+  ActivityIndicator,
+  RefreshControl,
+  BackHandler,
+} from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColors } from '../../context/ThemeContext';
@@ -12,8 +22,12 @@ import {
   formatOrderDate,
   SAMPLE_ORDERS,
   DashboardPeriod as DatePeriod,
+  ORDERS_PAGE_LIMIT,
+  type OrdersSearchType,
+  type OrdersSearchParam,
 } from '../../services/api/orders.service';
 import { useOrders, type OrdersRowItem } from '../../hooks/useOrders';
+import { PaginationFooter } from '../../components/ui/PaginationFooter';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';
@@ -22,6 +36,13 @@ const PAGE_BG = '#FFFFFF';
 const SUMMARY_CARD_BG = '#3A4151';
 const SUMMARY_CARD_TEXT = '#FFFFFF';
 const TOGGLE_TRACK = '#EDEDEC';
+const INPUT_BG = '#F5F5F2';
+
+const SEARCH_OPTIONS: { label: string; type: OrdersSearchType; placeholder: string }[] = [
+  { label: 'Order No', type: 'orderNo', placeholder: 'Search by order number…' },
+  { label: 'Company', type: 'companyName', placeholder: 'Search by company name…' },
+  { label: 'Salesperson', type: 'salesperson', placeholder: 'Search by salesperson…' },
+];
 
 // ─── Header ──────────────────────────────────────────────────────────────────
 
@@ -98,6 +119,7 @@ const DateSegmentControl = ({
 };
 
 // ─── Dark/Grey KPI Summary Box ───────────────────────────────────────────────
+// Note: On Orders screen, this box UPDATES when searching to reflect filtered totals!
 
 const SummaryCard = ({
   count,
@@ -129,6 +151,78 @@ const SummaryCard = ({
         )}
       </View>
       <Text style={styles.summaryAmount}>{formatCurrencyWithCents(totalAmount)}</Text>
+    </View>
+  );
+};
+
+// ─── Search Bar Component ────────────────────────────────────────────────────
+
+const SearchBarSection = ({
+  searchType,
+  setSearchType,
+  inputText,
+  setInputText,
+  onClear,
+}: {
+  searchType: OrdersSearchType;
+  setSearchType: (type: OrdersSearchType) => void;
+  inputText: string;
+  setInputText: (text: string) => void;
+  onClear: () => void;
+}) => {
+  const currentOption = SEARCH_OPTIONS.find((o) => o.type === searchType) ?? SEARCH_OPTIONS[0];
+
+  const handleTypeSelect = (newType: OrdersSearchType) => {
+    if (newType !== searchType) {
+      setSearchType(newType);
+      onClear(); // Auto-clear input on pill switch to avoid mismatched queries
+    }
+  };
+
+  return (
+    <View style={styles.searchSection}>
+      {/* Type Selector Pills */}
+      <View style={styles.pillsRow}>
+        {SEARCH_OPTIONS.map((opt) => {
+          const isActive = opt.type === searchType;
+          return (
+            <TouchableOpacity
+              key={opt.type}
+              style={[styles.pill, isActive && styles.pillActive]}
+              onPress={() => handleTypeSelect(opt.type)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.pillText, isActive && styles.pillTextActive]}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Search Input */}
+      <View style={styles.searchInputWrap}>
+        <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          value={inputText}
+          onChangeText={setInputText}
+          placeholder={currentOption.placeholder}
+          placeholderTextColor={SECONDARY}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="search"
+        />
+        {inputText.length > 0 ? (
+          <TouchableOpacity
+            onPress={onClear}
+            style={styles.clearButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="close-circle" size={18} color={SECONDARY} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
     </View>
   );
 };
@@ -172,9 +266,9 @@ const OrderRow = React.memo(function OrderRow({ item }: { item: OrdersRowItem })
   );
 });
 
-// ─── Empty State ──────────────────────────────────────────────────────────────
+// ─── Empty States ─────────────────────────────────────────────────────────────
 
-const EmptyState = ({ period, usingSample }: { period: DatePeriod; usingSample: boolean }) => {
+const DefaultEmptyState = ({ period, usingSample }: { period: DatePeriod; usingSample: boolean }) => {
   const title = period === 'today' ? 'No orders today' : 'No orders this month';
   return (
     <View style={styles.emptyState}>
@@ -183,6 +277,31 @@ const EmptyState = ({ period, usingSample }: { period: DatePeriod; usingSample: 
         {usingSample ? 'Demo — ' + title : title}
       </Text>
       <Text style={styles.emptySubtitle}>Pull down to refresh</Text>
+    </View>
+  );
+};
+
+const SearchEmptyState = ({
+  query,
+  type,
+  onClear,
+}: {
+  query: string;
+  type: OrdersSearchType;
+  onClear: () => void;
+}) => {
+  const typeLabel =
+    type === 'orderNo' ? 'Order No' : type === 'companyName' ? 'Company' : 'Salesperson';
+  return (
+    <View style={styles.emptyState}>
+      <Ionicons name="search-outline" size={38} color={SECONDARY} />
+      <Text style={styles.emptyTitle}>No matching orders</Text>
+      <Text style={styles.emptySubtitle}>
+        No results found for "{query}" in {typeLabel}
+      </Text>
+      <TouchableOpacity style={styles.clearSearchBtn} onPress={onClear} activeOpacity={0.8}>
+        <Text style={styles.clearSearchBtnText}>Clear search</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -239,6 +358,11 @@ const ListHeaderComponent = React.memo(function ListHeaderComponent({
   count,
   totalAmount,
   summaryLoading,
+  searchType,
+  setSearchType,
+  inputText,
+  setInputText,
+  onClearSearch,
 }: {
   period: DatePeriod;
   setPeriod: (p: DatePeriod) => void;
@@ -249,6 +373,11 @@ const ListHeaderComponent = React.memo(function ListHeaderComponent({
   count: number;
   totalAmount: number;
   summaryLoading: boolean;
+  searchType: OrdersSearchType;
+  setSearchType: (type: OrdersSearchType) => void;
+  inputText: string;
+  setInputText: (text: string) => void;
+  onClearSearch: () => void;
 }) {
   const colors = useThemeColors();
   return (
@@ -259,6 +388,13 @@ const ListHeaderComponent = React.memo(function ListHeaderComponent({
         totalAmount={totalAmount}
         loading={summaryLoading}
         usingSample={usingSample}
+      />
+      <SearchBarSection
+        searchType={searchType}
+        setSearchType={setSearchType}
+        inputText={inputText}
+        setInputText={setInputText}
+        onClear={onClearSearch}
       />
       {error ? (
         <TouchableOpacity
@@ -293,9 +429,41 @@ export default function OrdersListScreen() {
   const { user } = useAuthContext();
   const [period, setPeriod] = useState<DatePeriod>('today');
 
+  // Hardware Back button listener for Android
+  useEffect(() => {
+    const onBackPress = () => {
+      router.push('/' as any);
+      return true;
+    };
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => subscription.remove();
+  }, []);
+
+  // ── Search State & Debouncing ───────────────────────────────────────────────
+  const [searchType, setSearchType] = useState<OrdersSearchType>('orderNo');
+  const [inputText, setInputText] = useState('');
+  const [debouncedValue, setDebouncedValue] = useState('');
+
+  // Debounce input text by 400ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(inputText);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [inputText]);
+
+  // Construct search param
+  const searchParam: OrdersSearchParam | null = useMemo(() => {
+    const trimmed = debouncedValue.trim();
+    if (!trimmed) return null;
+    return { type: searchType, value: trimmed };
+  }, [searchType, debouncedValue]);
+
+  // Fetch orders backed by React Query infinite resource
   const token = (user as any)?.token ?? null;
   const {
     items,
+    rawPages,
     meta,
     isLoading,
     isError,
@@ -305,9 +473,34 @@ export default function OrdersListScreen() {
     fetchNextPage,
     refetch,
     isRefreshing,
-  } = useOrders(period, token);
+  } = useOrders(period, token, searchParam);
 
-  // Fall back to sample data when we have an error and no items loaded yet
+  // ── Pagination Cursor ──────────────────────────────────────────────────────
+  const [currentPage, setCurrentPage] = useState(1);
+  const pendingAdvanceRef = useRef(false);
+
+  // Reset to page 1 whenever period or searchParam changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [period, searchParam]);
+
+  // Advance cursor when Next fetch finishes
+  useEffect(() => {
+    if (pendingAdvanceRef.current && !isFetchingNextPage) {
+      pendingAdvanceRef.current = false;
+      setCurrentPage((p) => p + 1);
+    }
+  }, [isFetchingNextPage]);
+
+  // Reset to page 1 on refresh
+  useEffect(() => {
+    if (isRefreshing) {
+      pendingAdvanceRef.current = false;
+      setCurrentPage(1);
+    }
+  }, [isRefreshing]);
+
+  // ── Derived values ─────────────────────────────────────────────────────────
   const usingSample = isError && items.length === 0;
   const sampleItems = useMemo(
     () =>
@@ -327,13 +520,51 @@ export default function OrdersListScreen() {
   );
 
   const displayItems = usingSample ? sampleItems : items;
-  const displayCount = usingSample ? SAMPLE_ORDERS.count : (meta?.count ?? 0);
+
+  // On /dashboard/orders, count & totalAmount in meta DIRECTLY reflect search filters!
+  const displayCount = usingSample ? SAMPLE_ORDERS.count : (meta?.count ?? items.length);
   const displayTotal = usingSample ? SAMPLE_ORDERS.totalAmount : (meta?.totalAmount ?? 0);
+
+  const LIMIT = ORDERS_PAGE_LIMIT; // 10
+  const totalRecords = (meta?.totalRecords as number | undefined) ?? displayCount;
+  const totalPages = totalRecords > 0 ? Math.ceil(totalRecords / LIMIT) : Math.max(1, rawPages.length);
+
+  // Slice items for current page (local cursor)
+  const pagedItems = useMemo(
+    () => displayItems.slice((currentPage - 1) * LIMIT, currentPage * LIMIT),
+    [displayItems, currentPage, LIMIT]
+  );
 
   const errorMessage = useMemo(() => {
     if (!isError) return null;
     return (error as Error | null)?.message ?? 'Failed to load orders';
   }, [isError, error]);
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
+
+  const handleClearSearch = useCallback(() => {
+    setInputText('');
+    setDebouncedValue('');
+    setCurrentPage(1);
+  }, []);
+
+  const handlePrev = useCallback(() => {
+    setCurrentPage((p) => Math.max(1, p - 1));
+  }, []);
+
+  const handleNext = useCallback(() => {
+    const nextPage = currentPage + 1;
+    const alreadyLoaded = nextPage <= rawPages.length;
+
+    if (alreadyLoaded) {
+      setCurrentPage(nextPage);
+    } else if (hasNextPage && !isFetchingNextPage) {
+      pendingAdvanceRef.current = true;
+      fetchNextPage();
+    }
+  }, [currentPage, rawPages.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // ── FlatList components ────────────────────────────────────────────────────
 
   const renderItem = useCallback(({ item }: { item: OrdersRowItem }) => {
     return <OrderRow item={item} />;
@@ -342,12 +573,6 @@ export default function OrdersListScreen() {
   const keyExtractor = useCallback((item: OrdersRowItem) => item.id, []);
 
   const ItemSeparator = useCallback(() => <View style={styles.dividerHairline} />, []);
-
-  const onEndReached = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const listHeader = useMemo(
     () => (
@@ -361,15 +586,36 @@ export default function OrdersListScreen() {
         count={displayCount}
         totalAmount={displayTotal}
         summaryLoading={isLoading && !isRefreshing}
+        searchType={searchType}
+        setSearchType={setSearchType}
+        inputText={inputText}
+        setInputText={setInputText}
+        onClearSearch={handleClearSearch}
       />
     ),
-    [period, isLoading, items.length, errorMessage, usingSample, displayCount, displayTotal, isRefreshing, refetch]
+    [
+      period,
+      isLoading,
+      items.length,
+      errorMessage,
+      usingSample,
+      displayCount,
+      displayTotal,
+      isRefreshing,
+      refetch,
+      searchType,
+      inputText,
+      handleClearSearch,
+    ]
   );
 
   const listEmpty = useMemo(() => {
     if (isLoading && items.length === 0) return null;
-    return <EmptyState period={period} usingSample={usingSample} />;
-  }, [isLoading, items.length, period, usingSample]);
+    if (debouncedValue.trim().length > 0) {
+      return <SearchEmptyState query={debouncedValue.trim()} type={searchType} onClear={handleClearSearch} />;
+    }
+    return <DefaultEmptyState period={period} usingSample={usingSample} />;
+  }, [isLoading, items.length, debouncedValue, searchType, period, usingSample, handleClearSearch]);
 
   const listFooter = useMemo(() => {
     if (isLoading && !isRefreshing && items.length === 0) {
@@ -382,24 +628,40 @@ export default function OrdersListScreen() {
         </View>
       );
     }
-    if (isFetchingNextPage) {
+    if (displayItems.length > 0 || !isLoading) {
       return (
-        <View style={styles.loadingRow}>
-          <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-            Loading more…
-          </Text>
-        </View>
+        <PaginationFooter
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalRecords={totalRecords}
+          limit={LIMIT}
+          isFetchingNextPage={isFetchingNextPage}
+          onPrev={handlePrev}
+          onNext={handleNext}
+        />
       );
     }
     return null;
-  }, [isLoading, isRefreshing, items.length, isFetchingNextPage, colors]);
+  }, [
+    isLoading,
+    isRefreshing,
+    items.length,
+    displayItems.length,
+    currentPage,
+    totalPages,
+    totalRecords,
+    LIMIT,
+    isFetchingNextPage,
+    handlePrev,
+    handleNext,
+    colors,
+  ]);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: PAGE_BG }]} edges={['top']}>
       <Header />
       <FlatList
-        data={displayItems}
+        data={pagedItems}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         ListHeaderComponent={listHeader}
@@ -408,12 +670,10 @@ export default function OrdersListScreen() {
         ItemSeparatorComponent={ItemSeparator}
         contentContainerStyle={styles.flatListContent}
         showsVerticalScrollIndicator={false}
-        initialNumToRender={20}
-        maxToRenderPerBatch={20}
-        windowSize={9}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
         removeClippedSubviews
-        onEndReached={onEndReached}
-        onEndReachedThreshold={0.4}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -534,7 +794,7 @@ const styles = StyleSheet.create({
   // Dark/Grey KPI Summary Box
   summaryCard: {
     marginHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 10,
     paddingHorizontal: 18,
     paddingVertical: 16,
     backgroundColor: SUMMARY_CARD_BG,
@@ -578,13 +838,66 @@ const styles = StyleSheet.create({
     fontFamily: Typography.headingSemiBold,
     color: '#B48A00',
   },
+
+  // Search Section
+  searchSection: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    gap: 8,
+  },
+  pillsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  pill: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F2',
+  },
+  pillActive: {
+    backgroundColor: PRIMARY,
+  },
+  pillText: {
+    fontSize: 12,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+  },
+  pillTextActive: {
+    color: '#FFFFFF',
+    fontFamily: Typography.bodySemiBold,
+    fontWeight: '600',
+  },
+  searchInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: INPUT_BG,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 42,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: Typography.body,
+    color: PRIMARY,
+    paddingVertical: 0,
+  },
+  clearButton: {
+    padding: 2,
+    marginLeft: 6,
+  },
+
   dividerHairline: {
     height: hairline,
     backgroundColor: DIVIDER,
     marginHorizontal: 16,
   },
 
-  // Order rows (2-column layout matching pending & partial orders)
+  // Order rows (2-column layout)
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -656,7 +969,7 @@ const styles = StyleSheet.create({
     fontFamily: Typography.headingSemiBold,
     fontWeight: '600',
     color: SECONDARY,
-    marginTop: 10,
+    marginTop: 8,
   },
   emptySubtitle: {
     fontSize: 12,
@@ -665,6 +978,19 @@ const styles = StyleSheet.create({
     color: SECONDARY,
     textAlign: 'center',
     opacity: 0.8,
+  },
+  clearSearchBtn: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#EFEFEC',
+  },
+  clearSearchBtnText: {
+    fontSize: 12,
+    fontFamily: Typography.bodySemiBold,
+    fontWeight: '600',
+    color: PRIMARY,
   },
 
   // Error banner

@@ -1,6 +1,7 @@
 import { apiClient, ApiClientError } from '@lib/api-client';
 import { EMPTY_ORDERS } from '@mocks/api/orders';
-import type { OrdersListResponse } from '../../types/api/orders';
+import type { OrdersListResponse, OrderItem } from '../../types/api/orders';
+import type { PaginatedResult } from '@hooks/useInfiniteResource';
 
 // Re-export types so screens can import from one place
 export type { OrdersListResponse, OrderItem } from '../../types/api/orders';
@@ -87,6 +88,81 @@ export const getDashboardOrders = async (
     }
 
     return normalizeOrdersResponse(data);
+  } catch (error) {
+    throw toServiceError(error);
+  }
+};
+
+// ─── Paginated fetcher for useInfiniteResource ──────────────────────────────
+export type OrdersSearchType = 'orderNo' | 'companyName' | 'salesperson';
+
+export interface OrdersSearchParam {
+  type: OrdersSearchType;
+  value: string;
+}
+
+export const ORDERS_PAGE_LIMIT = 10;
+
+export const fetchOrdersPage = async (
+  period: DashboardPeriod,
+  options: {
+    token?: string | null;
+    page?: number;
+    limit?: number;
+    search?: OrdersSearchParam | null;
+  }
+): Promise<PaginatedResult<OrderItem>> => {
+  const page = options.page ?? 1;
+  const limit = options.limit ?? ORDERS_PAGE_LIMIT;
+  const { startDate, endDate } = getDateRangeForPeriod(period);
+
+  const query: Record<string, any> = { startDate, endDate, page, limit };
+
+  if (options.search && options.search.value.trim()) {
+    const val = options.search.value.trim();
+    if (options.search.type === 'orderNo') {
+      query.orderNo = val;
+    } else if (options.search.type === 'companyName') {
+      query.companyName = val;
+    } else if (options.search.type === 'salesperson') {
+      query.salesPerson = val; // Note: /dashboard/orders endpoint uses salesPerson (no typo!)
+    }
+  }
+
+  try {
+    const data = await apiClient.get<OrdersListResponse & { page?: number; limit?: number; totalRecords?: number }>({
+      path: '/dashboard/orders',
+      query,
+      token: options.token,
+      timeoutMs: 15000,
+    });
+
+    const normalized = normalizeOrdersResponse(data);
+
+    // Support both paginated (totalRecords) and non-paginated (count) backends
+    const totalRecords = (data as any)?.totalRecords ?? normalized.count;
+
+    // ─── Pagination diagnostics ──────────────────────────────────────────────
+    if (__DEV__) {
+      const searchInfo = options.search && options.search.value.trim()
+        ? ` searchType=${options.search.type} searchVal="${options.search.value.trim()}"`
+        : '';
+      console.log(
+        `[Orders/${period}] page=${page} limit=${limit}${searchInfo} ` +
+        `returned=${normalized.orders.length} ` +
+        `totalRecords=${totalRecords} count=${normalized.count} totalAmount=${normalized.totalAmount} ` +
+        `hasMore=${normalized.orders.length < totalRecords && normalized.orders.length >= limit}`
+      );
+    }
+
+    return {
+      page,
+      limit,
+      totalRecords,
+      count: normalized.count,
+      totalAmount: normalized.totalAmount,
+      data: normalized.orders,
+    };
   } catch (error) {
     throw toServiceError(error);
   }

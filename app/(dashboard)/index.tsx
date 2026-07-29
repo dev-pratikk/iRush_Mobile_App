@@ -189,8 +189,10 @@ const getKpiOnPress = (label: string): (() => void) | undefined => {
       return () => router.push('/orders' as any);
     case 'Quotes':
       return () => router.push('/quotes' as any);
+    case 'New Customers':
+      return () => router.push('/new-customers' as any);
     case 'Invoices':
-      return () => router.push('/reports' as any);
+      return () => router.push('/invoices' as any);
     default:
       return undefined;
   }

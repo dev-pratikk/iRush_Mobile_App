@@ -28,6 +28,8 @@ function CustomDrawerContent(props: any) {
     { icon: 'home', label: 'Dashboard', route: '/' },
     { icon: 'cube', label: 'Open orders', route: '/open-orders' },
     { icon: 'chatbox', label: 'Quotes', route: '/quotes' },
+    { icon: 'people', label: 'New Customers', route: '/new-customers' },
+    { icon: 'receipt', label: 'Invoices', route: '/invoices' },
     { icon: 'bar-chart', label: 'Reports', route: '/reports' },
     { icon: 'settings', label: 'Settings', route: '/settings' },
   ];
@@ -167,6 +169,24 @@ export default function DashboardLayout() {
           title: 'Quotes',
           drawerIcon: ({ color, size }) => (
             <Ionicons name="chatbox-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="new-customers"
+        options={{
+          title: 'New Customers',
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="people-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="invoices"
+        options={{
+          title: 'Invoices',
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="receipt-outline" size={size} color={color} />
           ),
         }}
       />

@@ -1,6 +1,6 @@
 import React from 'react';
 import { UnderDevelopment } from '../../components/ui/UnderDevelopment';
 
-export default function SettingsScreen() {
-  return <UnderDevelopment featureName="Settings" />;
+export default function InvoicesScreen() {
+  return <UnderDevelopment featureName="Invoices" />;
 }

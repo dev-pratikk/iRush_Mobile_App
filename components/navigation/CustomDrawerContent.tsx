@@ -35,7 +35,7 @@ export function CustomDrawerContent(props: any) {
     <DrawerContentScrollView
       {...props}
       style={[styles.drawerContent, { backgroundColor: colors.card }]}
-      contentContainerStyle={{ flex: 1 }}
+      contentContainerStyle={styles.drawerScrollViewContent}
     >
       <View style={styles.drawerHeader}>
         <Image source={getLogo(theme)} style={styles.drawerLogo} resizeMode="contain" />
@@ -51,11 +51,12 @@ export function CustomDrawerContent(props: any) {
               key={item.route}
               style={styles.menuItemContainer}
               onPress={() => router.push(item.route as any)}
+              activeOpacity={0.7}
             >
               <View style={[styles.menuItem, isActive && { backgroundColor: `${colors.primary}10` }]}>
                 <Ionicons
                   name={isActive ? `${item.icon}` : `${item.icon}-outline` as any}
-                  size={24}
+                  size={22}
                   color={isActive ? colors.primary : colors.textSecondary}
                 />
                 <Text style={[styles.menuLabel, { color: isActive ? colors.primary : colors.textSecondary }]}>
@@ -76,7 +77,7 @@ export function CustomDrawerContent(props: any) {
         <DrawerItem
           label="Logout"
           labelStyle={[styles.logoutLabel, { color: colors.textSecondary }]}
-          icon={() => <Ionicons name="log-out-outline" size={24} color={colors.textSecondary} />}
+          icon={() => <Ionicons name="log-out-outline" size={22} color={colors.textSecondary} />}
           onPress={() => {
             logout();
             router.replace('/(auth)/login');
@@ -91,15 +92,22 @@ const styles = StyleSheet.create({
   drawerContent: {
     flex: 1,
   },
+  drawerScrollViewContent: {
+    flexGrow: 1,
+    paddingTop: 0,
+    paddingLeft: 0,
+    paddingRight: 0,
+  },
   drawerHeader: {
     padding: Spacing.lg,
+    paddingTop: 20,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
   drawerLogo: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
   },
   drawerTitle: {
     fontFamily: Typography.headingSemiBold,
@@ -111,8 +119,8 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
   },
   drawerItemsContainer: {
-    marginTop: Spacing.lg,
-    paddingHorizontal: 8,
+    marginTop: Spacing.md,
+    paddingHorizontal: 0,
   },
   menuItemContainer: {
     position: 'relative',
@@ -120,9 +128,9 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: Spacing.lg,
-    borderRadius: 12,
+    borderRadius: 10,
     marginHorizontal: 8,
   },
   menuLabel: {
@@ -152,7 +160,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   logoutContainer: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.xs,
   },
   logoutLabel: {
     fontFamily: Typography.bodyMedium,

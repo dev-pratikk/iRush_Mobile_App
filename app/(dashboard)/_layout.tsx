@@ -19,7 +19,7 @@ const getLogo = (theme: string) => {
 };
 
 function CustomDrawerContent(props: any) {
-  const { user, logout } = useAuthContext();
+  const { logout } = useAuthContext();
   const colors = useThemeColors();
   const { theme } = useTheme();
   const pathname = usePathname();
@@ -38,7 +38,7 @@ function CustomDrawerContent(props: any) {
     <DrawerContentScrollView
       {...props}
       style={[styles.drawerContent, { backgroundColor: colors.card }]}
-      contentContainerStyle={{ flex: 1 }}
+      contentContainerStyle={styles.drawerScrollViewContent}
     >
       <View style={styles.drawerHeader}>
         <Image source={getLogo(theme)} style={styles.drawerLogo} resizeMode="contain" />
@@ -53,6 +53,7 @@ function CustomDrawerContent(props: any) {
               key={index} 
               style={styles.menuItemContainer}
               onPress={() => router.push(item.route as any)}
+              activeOpacity={0.7}
             >
               <View
                 style={[
@@ -62,7 +63,7 @@ function CustomDrawerContent(props: any) {
               >
                 <Ionicons
                   name={isActive ? `${item.icon}` : `${item.icon}-outline` as any}
-                  size={24}
+                  size={22}
                   color={isActive ? colors.primary : colors.textSecondary}
                 />
                 <Text
@@ -100,7 +101,7 @@ function CustomDrawerContent(props: any) {
           icon={() => (
             <Ionicons
               name="log-out-outline"
-              size={24}
+              size={22}
               color={colors.textSecondary}
             />
           )}
@@ -115,7 +116,6 @@ function CustomDrawerContent(props: any) {
 }
 
 export default function DashboardLayout() {
-  const { theme, toggleTheme } = useTheme();
   const colors = useThemeColors();
 
   return (
@@ -123,6 +123,13 @@ export default function DashboardLayout() {
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={() => ({
         headerShown: false,
+        drawerStyle: {
+          backgroundColor: colors.card,
+          width: 280,
+        },
+        sceneContainerStyle: {
+          backgroundColor: colors.background,
+        },
         drawerActiveBackgroundColor: `${colors.primary}10`,
         drawerActiveTintColor: colors.primary,
         drawerInactiveTintColor: colors.textSecondary,
@@ -270,28 +277,26 @@ const styles = StyleSheet.create({
   drawerContent: {
     flex: 1,
   },
+  drawerScrollViewContent: {
+    flexGrow: 1,
+    paddingTop: 0,
+    paddingLeft: 0,
+    paddingRight: 0,
+  },
   drawerHeader: {
     padding: Spacing.lg,
+    paddingTop: 20,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
   drawerLogo: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
   },
   drawerTitle: {
     fontFamily: Typography.headingSemiBold,
     fontSize: 18,
-  },
-  profileName: {
-    fontFamily: Typography.headingSemiBold,
-    fontSize: 18,
-    marginBottom: 4,
-  },
-  profileRole: {
-    fontFamily: Typography.body,
-    fontSize: 13,
   },
   divider: {
     height: 1,
@@ -299,8 +304,8 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
   },
   drawerItemsContainer: {
-    marginTop: Spacing.lg,
-    paddingHorizontal: 8,
+    marginTop: Spacing.md,
+    paddingHorizontal: 0,
   },
   menuItemContainer: {
     position: 'relative',
@@ -308,9 +313,9 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: Spacing.lg,
-    borderRadius: 12,
+    borderRadius: 10,
     marginHorizontal: 8,
   },
   menuLabel: {
@@ -340,7 +345,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   logoutContainer: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.xs,
   },
   logoutLabel: {
     fontFamily: Typography.bodyMedium,

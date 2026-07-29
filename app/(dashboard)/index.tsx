@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Text, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Text, ActivityIndicator, RefreshControl } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KpiCard } from '../../components/dashboard/KpiCard';
 import { DASHBOARD_KPIS } from '@mocks/dashboard';
 import type { DatePeriod } from '../../types/dashboard';
 import { useAuthContext } from '../../context/AuthContext';
-import { useThemeColors, useTheme } from '../../context/ThemeContext';
+import { useThemeColors } from '../../context/ThemeContext';
 import { Typography } from '../../constants/Typography';
 import { useNavigation } from '@react-navigation/native';
 import { DrawerActions } from '@react-navigation/native';
@@ -19,15 +19,8 @@ import {
   SAMPLE_STATS,
 } from '../../services/api/dashboard.service';
 
-const getLogo = (theme: string) => {
-  return theme === 'red'
-    ? require('../../assets/logo/irush_red_logo.png')
-    : require('../../assets/logo/irush_grey_logo.png');
-};
-
 const Header = () => {
   const colors = useThemeColors();
-  const { theme } = useTheme();
   const navigation = useNavigation();
 
   return (
@@ -35,6 +28,7 @@ const Header = () => {
       <TouchableOpacity 
         style={styles.headerButton} 
         onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <Ionicons
           name="menu"
@@ -48,7 +42,7 @@ const Header = () => {
         </Text>
       </View>
       <View style={styles.headerRight}>
-        <TouchableOpacity style={styles.headerButton}>
+        <TouchableOpacity style={styles.headerButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons
             name="notifications-outline"
             size={22}
@@ -131,8 +125,6 @@ const RevenueOverview = ({
   loading: boolean;
   usingSample: boolean;
 }) => {
-  const colors = useThemeColors();
-
   const revenueValue = useMemo(() => {
     const activeStats = stats ?? SAMPLE_STATS;
     const periodKey = period === 'year' ? 'month' : period;
@@ -288,73 +280,75 @@ export default function DashboardScreen() {
   }, [fetchStats]);
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.card }]} edges={['top', 'left', 'right']}>
       <Header />
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => fetchStats(true)}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
-        }
-      >
-        <View style={styles.contentContainer}>
-          {error ? (
-            <TouchableOpacity
-              style={[styles.errorBanner, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}55` }]}
-              onPress={() => fetchStats(false)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.errorBannerIconRow}>
-                <Ionicons name="alert-circle-outline" size={20} color={colors.primary} />
-                <Text style={[styles.errorBannerTitle, { color: colors.primary }]}>
-                  Couldn't load live data
+      <View style={[styles.mainBody, { backgroundColor: colors.background }]}>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => fetchStats(true)}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
+        >
+          <View style={styles.contentContainer}>
+            {error ? (
+              <TouchableOpacity
+                style={[styles.errorBanner, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}55` }]}
+                onPress={() => fetchStats(false)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.errorBannerIconRow}>
+                  <Ionicons name="alert-circle-outline" size={20} color={colors.primary} />
+                  <Text style={[styles.errorBannerTitle, { color: colors.primary }]}>
+                    Couldn't load live data
+                  </Text>
+                </View>
+                <Text style={[styles.errorBannerDetail, { color: colors.textSecondary }]} numberOfLines={3}>
+                  {error}
                 </Text>
-              </View>
-              <Text style={[styles.errorBannerDetail, { color: colors.textSecondary }]} numberOfLines={3}>
-                {error}
-              </Text>
-              <View style={[styles.retryChip, { backgroundColor: colors.primary }]}>
-                <Ionicons name="refresh-outline" size={14} color="#FFFFFF" />
-                <Text style={styles.retryChipText}>Tap to retry</Text>
-              </View>
-              {attempts > 0 && usingSample && (
-                <Text style={[styles.sampleHint, { color: colors.textMuted }]}>
-                  ✨ Showing demo data from your example response while you retry
-                </Text>
-              )}
-            </TouchableOpacity>
-          ) : null}
+                <View style={[styles.retryChip, { backgroundColor: colors.primary }]}>
+                  <Ionicons name="refresh-outline" size={14} color="#FFFFFF" />
+                  <Text style={styles.retryChipText}>Tap to retry</Text>
+                </View>
+                {attempts > 0 && usingSample && (
+                  <Text style={[styles.sampleHint, { color: colors.textMuted }]}>
+                    ✨ Showing demo data from your example response while you retry
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ) : null}
 
-          <DateSegmentControl period={period} setPeriod={setPeriod} />
-          <RevenueOverview period={period} stats={stats} loading={loading} usingSample={usingSample} />
-          <View style={styles.kpiGrid}>
-            {DASHBOARD_KPIS.map((kpi, index) => (
-              <View key={index} style={styles.kpiCardContainer}>
-                <KpiCard
-                  kpi={kpi}
-                  period={period}
-                  value={getKpiValueFromStats(kpi.label, stats, period)}
-                  onPress={getKpiOnPress(kpi.label)}
-                />
-              </View>
-            ))}
-          </View>
-          {loading && !refreshing ? (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator size="small" color={colors.primary} />
-              <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-                Loading dashboard…
-              </Text>
+            <DateSegmentControl period={period} setPeriod={setPeriod} />
+            <RevenueOverview period={period} stats={stats} loading={loading} usingSample={usingSample} />
+            <View style={styles.kpiGrid}>
+              {DASHBOARD_KPIS.map((kpi, index) => (
+                <View key={index} style={styles.kpiCardContainer}>
+                  <KpiCard
+                    kpi={kpi}
+                    period={period}
+                    value={getKpiValueFromStats(kpi.label, stats, period)}
+                    onPress={getKpiOnPress(kpi.label)}
+                  />
+                </View>
+              ))}
             </View>
-          ) : null}
-        </View>
-      </ScrollView>
-      <BottomNav />
+            {loading && !refreshing ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+                  Loading dashboard…
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </ScrollView>
+        <BottomNav />
+      </View>
     </SafeAreaView>
   );
 }
@@ -363,19 +357,24 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+  mainBody: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
-    gap: 24,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 24,
+    gap: 16,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
@@ -383,24 +382,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  logo: {
-    width: 40,
-    height: 40,
-  },
-  userGreeting: {
-    gap: 2,
-  },
-  greetingText: {
-    fontSize: 12,
-    fontFamily: Typography.body,
-  },
   userName: {
-    fontSize: 24,
+    fontSize: 20,
     fontFamily: Typography.titleSerif,
-  },
-  overviewText: {
-    fontSize: 12,
-    fontFamily: Typography.body,
   },
   headerRight: {
     flexDirection: 'row',
@@ -425,20 +409,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   badgeText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 10,
     fontFamily: Typography.headingSemiBold,
-  },
-  avatarButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
   },
   segmentContainer: {
     width: '100%',
@@ -446,116 +419,59 @@ const styles = StyleSheet.create({
   segmentWrapper: {
     flexDirection: 'row',
     borderRadius: 12,
-    padding: 4,
-    gap: 4,
+    padding: 3,
   },
   segmentButton: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 8,
+    paddingVertical: 8,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 9,
   },
   segmentText: {
-    fontSize: 14,
+    fontSize: 13,
   },
   revenueCard: {
     backgroundColor: '#3A4151',
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
-    elevation: 6,
   },
   revenueContent: {
     gap: 8,
   },
   revenueTitleRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   revenueTitle: {
     fontSize: 14,
     fontFamily: Typography.bodyMedium,
-    color: 'rgba(255,255,255,0.85)',
+    color: 'rgba(255, 255, 255, 0.75)',
+  },
+  revenueValue: {
+    fontSize: 32,
+    fontFamily: Typography.numberHeavy,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  revenueLoader: {
+    alignSelf: 'flex-start',
+    marginVertical: 4,
   },
   sampleBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(255,212,59,0.18)',
+    backgroundColor: 'rgba(255, 212, 59, 0.15)',
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
+    paddingVertical: 3,
+    borderRadius: 12,
   },
   sampleBadgeText: {
     fontSize: 11,
-    fontFamily: Typography.headingSemiBold,
+    fontFamily: Typography.bodyMedium,
     color: '#FFD43B',
-  },
-  revenueValue: {
-    fontSize: 28,
-    fontFamily: Typography.numberHeavy,
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-    lineHeight: 34,
-  },
-  revenueLoader: {
-    marginTop: 8,
-  },
-  errorBanner: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 16,
-    gap: 10,
-  },
-  errorBannerIconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  errorBannerTitle: {
-    fontSize: 15,
-    fontFamily: Typography.headingSemiBold,
-  },
-  errorBannerDetail: {
-    fontSize: 12.5,
-    fontFamily: Typography.bodyMedium,
-    lineHeight: 18,
-  },
-  retryChip: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
-    marginTop: 2,
-  },
-  retryChipText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontFamily: Typography.headingSemiBold,
-  },
-  sampleHint: {
-    fontSize: 11.5,
-    fontFamily: Typography.body,
-    marginTop: 2,
-  },
-  loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 8,
-  },
-  loadingText: {
-    fontSize: 13,
-    fontFamily: Typography.bodyMedium,
   },
   kpiGrid: {
     flexDirection: 'row',
@@ -564,6 +480,57 @@ const styles = StyleSheet.create({
   },
   kpiCardContainer: {
     width: '48%',
+    flexGrow: 1,
+  },
+  errorBanner: {
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    gap: 6,
+  },
+  errorBannerIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  errorBannerTitle: {
+    fontSize: 13,
+    fontFamily: Typography.headingSemiBold,
+  },
+  errorBannerDetail: {
+    fontSize: 12,
+    fontFamily: Typography.body,
+  },
+  retryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    marginTop: 4,
+  },
+  retryChipText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontFamily: Typography.bodyMedium,
+  },
+  sampleHint: {
+    fontSize: 11,
+    fontFamily: Typography.body,
+    marginTop: 2,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  loadingText: {
+    fontSize: 12,
+    fontFamily: Typography.body,
   },
   bottomNav: {
     flexDirection: 'row',

@@ -99,29 +99,27 @@ const OrderRow = React.memo(function OrderRow({ item }: { item: OpenOrderRowItem
 
   return (
     <View style={styles.row}>
-      <View style={styles.rowLine1}>
+      <View style={styles.rowLeftCol}>
         <Text style={styles.orderNoText} numberOfLines={1} ellipsizeMode="tail">
           {item.orderNo}
         </Text>
-        <View style={styles.amountsCol}>
-          <Text style={styles.amountText}>{formatCurrencyWithCents(item.orderTotal)}</Text>
-          <Text style={styles.pendingLabelText}>
-            Pending{' '}
-            <Text style={styles.pendingAmountText}>{formatCurrencyWithCents(item.pendingAmount)}</Text>
-          </Text>
-        </View>
-      </View>
-      <View style={styles.rowLine2}>
         <Text style={styles.companyText} numberOfLines={1} ellipsizeMode="tail">
           {item.companyName}
         </Text>
-        <Text style={styles.dateText}>{orderDate}</Text>
-      </View>
-      <View style={styles.rowLine3}>
         <Text style={styles.vendorCountText}>
           {item.vendorCompletedCount}/{item.vendorCount} vendors
         </Text>
-        <Text style={[styles.daysText, { color: daysColor }]}>{daysLabel}</Text>
+      </View>
+      <View style={styles.rowRightCol}>
+        <Text style={styles.amountText}>{formatCurrencyWithCents(item.orderTotal)}</Text>
+        <Text style={styles.pendingLabelText}>
+          Pending{' '}
+          <Text style={styles.pendingAmountText}>{formatCurrencyWithCents(item.pendingAmount)}</Text>
+        </Text>
+        <View style={styles.dateDaysRow}>
+          {orderDate ? <Text style={styles.dateText}>{orderDate} · </Text> : null}
+          <Text style={[styles.daysText, { color: daysColor }]}>{daysLabel}</Text>
+        </View>
       </View>
     </View>
   );
@@ -506,37 +504,79 @@ const styles = StyleSheet.create({
   separator: { height: hairline, backgroundColor: DIVIDER, marginHorizontal: 16 },
 
   // Order row
-  row: { paddingVertical: 13, paddingHorizontal: 18 },
-  rowLine1: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+  },
+  rowLeftCol: {
+    flex: 1,
+    paddingRight: 12,
+    gap: 3,
+  },
+  rowRightCol: {
+    alignItems: 'flex-end',
+    flexShrink: 0,
+    gap: 3,
+  },
   orderNoText: {
     fontSize: 14,
     fontFamily: Typography.numberHeavy,
     fontWeight: '500',
     color: PRIMARY,
-    flex: 1,
-    paddingRight: 14,
-    flexShrink: 1,
+    includeFontPadding: false,
   },
-  amountsCol: { alignItems: 'flex-end', flexShrink: 0 },
-  amountText: { fontSize: 14, fontFamily: Typography.numberHeavy, fontWeight: '500', color: PRIMARY },
-  pendingLabelText: { marginTop: 2, fontSize: 12, fontFamily: Typography.body, color: SECONDARY },
+  companyText: {
+    fontSize: 13,
+    fontFamily: Typography.body,
+    fontWeight: '400',
+    color: PRIMARY,
+    includeFontPadding: false,
+  },
+  vendorCountText: {
+    fontSize: 12,
+    fontFamily: Typography.body,
+    fontWeight: '400',
+    color: SECONDARY,
+    includeFontPadding: false,
+  },
+  amountText: {
+    fontSize: 14,
+    fontFamily: Typography.numberHeavy,
+    fontWeight: '500',
+    color: PRIMARY,
+    includeFontPadding: false,
+  },
+  pendingLabelText: {
+    fontSize: 12,
+    fontFamily: Typography.body,
+    fontWeight: '400',
+    color: SECONDARY,
+    includeFontPadding: false,
+  },
   pendingAmountText: {
     fontSize: 12,
     fontFamily: Typography.bodySemiBold,
     fontWeight: '600',
     color: PENDING_ORANGE,
+    includeFontPadding: false,
   },
-  rowLine2: {
-    marginTop: 4,
+  dateDaysRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
+    alignItems: 'center',
   },
-  companyText: { fontSize: 13, fontFamily: Typography.body, color: PRIMARY, flex: 1, paddingRight: 14, flexShrink: 1 },
-  dateText: { fontSize: 12, fontFamily: Typography.body, color: SECONDARY, flexShrink: 0 },
-  rowLine3: { marginTop: 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  vendorCountText: { fontSize: 12, fontFamily: Typography.body, color: SECONDARY },
-  daysText: { fontSize: 12, fontFamily: Typography.body },
+  dateText: {
+    fontSize: 12,
+    fontFamily: Typography.body,
+    color: SECONDARY,
+    includeFontPadding: false,
+  },
+  daysText: {
+    fontSize: 12,
+    fontFamily: Typography.body,
+    includeFontPadding: false,
+  },
 
   // Empty state
   emptyState: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 24, gap: 6 },

@@ -83,27 +83,26 @@ const SummaryCard = ({
 
 const OrderRow = React.memo(function OrderRow({ item }: { item: OpenOrderRowItem }) {
   const orderDate = formatOrderDate(item.orderDate);
+  const daysLabel =
+    item.daysLeft < 0 ? `+${Math.abs(item.daysLeft)}d late` : `${item.daysLeft}d left`;
+
   return (
     <View style={styles.row}>
-      <View style={styles.rowLine1}>
+      <View style={styles.rowLeftCol}>
         <Text style={styles.orderNoText} numberOfLines={1} ellipsizeMode="tail">
           {item.orderNo}
         </Text>
-        <Text style={styles.amountText}>{formatCurrencyWithCents(item.orderTotal)}</Text>
-      </View>
-      <View style={styles.rowLine2}>
         <Text style={styles.companyText} numberOfLines={1} ellipsizeMode="tail">
           {item.companyName}
         </Text>
-        <Text style={styles.dateText}>{orderDate}</Text>
-      </View>
-      <View style={styles.rowLine3}>
         <Text style={styles.vendorCountText}>
           {item.vendorCompletedCount}/{item.vendorCount} vendors
         </Text>
-        <Text style={styles.daysText}>
-          {item.daysLeft < 0 ? `+${Math.abs(item.daysLeft)}d late` : `${item.daysLeft}d left`}
-        </Text>
+      </View>
+      <View style={styles.rowRightCol}>
+        <Text style={styles.amountText}>{formatCurrencyWithCents(item.orderTotal)}</Text>
+        <Text style={styles.dateText}>{orderDate}</Text>
+        <Text style={styles.daysText}>{daysLabel}</Text>
       </View>
     </View>
   );
@@ -493,17 +492,42 @@ const styles = StyleSheet.create({
   separator: { height: hairline, backgroundColor: DIVIDER, marginHorizontal: 16 },
 
   // Order row
-  row: { paddingVertical: 13, paddingHorizontal: 18 },
-  rowLine1: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+  },
+  rowLeftCol: {
+    flex: 1,
+    paddingRight: 12,
+    gap: 3,
+  },
+  rowRightCol: {
+    alignItems: 'flex-end',
+    flexShrink: 0,
+    gap: 3,
+  },
   orderNoText: {
     fontSize: 14,
     fontFamily: Typography.numberHeavy,
     fontWeight: '500',
     color: PRIMARY,
     includeFontPadding: false,
-    flex: 1,
-    paddingRight: 14,
-    flexShrink: 1,
+  },
+  companyText: {
+    fontSize: 13,
+    fontFamily: Typography.body,
+    fontWeight: '400',
+    color: PRIMARY,
+    includeFontPadding: false,
+  },
+  vendorCountText: {
+    fontSize: 12,
+    fontFamily: Typography.body,
+    fontWeight: '400',
+    color: SECONDARY,
+    includeFontPadding: false,
   },
   amountText: {
     fontSize: 14,
@@ -511,26 +535,19 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: PRIMARY,
     includeFontPadding: false,
-    flexShrink: 0,
   },
-  rowLine2: {
-    marginTop: 4,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-  },
-  companyText: {
-    fontSize: 13,
+  dateText: {
+    fontSize: 12,
     fontFamily: Typography.body,
-    color: PRIMARY,
-    flex: 1,
-    paddingRight: 14,
-    flexShrink: 1,
+    color: SECONDARY,
+    includeFontPadding: false,
   },
-  dateText: { fontSize: 12, fontFamily: Typography.body, color: SECONDARY, flexShrink: 0 },
-  rowLine3: { marginTop: 4, flexDirection: 'row', justifyContent: 'space-between' },
-  vendorCountText: { fontSize: 12, fontFamily: Typography.body, color: SECONDARY },
-  daysText: { fontSize: 12, fontFamily: Typography.body, color: SECONDARY },
+  daysText: {
+    fontSize: 12,
+    fontFamily: Typography.body,
+    color: SECONDARY,
+    includeFontPadding: false,
+  },
 
   // Empty state
   emptyState: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 24, gap: 6 },

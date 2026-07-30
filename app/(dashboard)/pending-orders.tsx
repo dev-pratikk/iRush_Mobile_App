@@ -231,40 +231,7 @@ const SearchEmptyState = ({
   );
 };
 
-// ─── Bottom nav ───────────────────────────────────────────────────────────────
 
-const BottomNav = () => {
-  const pathname = usePathname();
-  const tabs = [
-    { icon: 'home', label: 'Dashboard', route: '/' },
-    { icon: 'cube', label: 'Open orders', route: '/open-orders' },
-    { icon: 'chatbox', label: 'Quotes', route: '/quotes' },
-    { icon: 'bar-chart', label: 'Reports', route: '/reports' },
-  ];
-  return (
-    <View style={styles.bottomNav}>
-      {tabs.map((tab, index) => {
-        const isActive = pathname === tab.route;
-        return (
-          <TouchableOpacity
-            key={index}
-            style={styles.navTab}
-            onPress={() => router.push(tab.route as any)}
-          >
-            <Ionicons
-              name={isActive ? `${tab.icon}` : (`${tab.icon}-outline` as any)}
-              size={24}
-              color={isActive ? PRIMARY : SECONDARY}
-            />
-            <Text style={[styles.navLabel, { color: isActive ? PRIMARY : SECONDARY }]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
-};
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
@@ -474,7 +441,6 @@ export default function PendingOrdersScreen() {
           />
         }
       />
-      <BottomNav />
     </SafeAreaView>
   );
 }

@@ -81,63 +81,6 @@ const EmptyState = () => {
   );
 };
 
-const BottomNav = () => {
-  const pathname = usePathname();
-  const tabs = [
-    { icon: 'home', label: 'Dashboard', route: '/' },
-    { icon: 'cube', label: 'Open orders', route: '/open-orders' },
-    { icon: 'chatbox', label: 'Quotes', route: '/quotes' },
-    { icon: 'bar-chart', label: 'Reports', route: '/reports' },
-  ];
-  return (
-    <View style={styles.bottomNav}>
-      {tabs.map((tab, i) => {
-        const active = pathname === tab.route;
-        return (
-          <TouchableOpacity key={i} style={styles.navTab} onPress={() => router.push(tab.route as any)}>
-            <Ionicons
-              name={active ? `${tab.icon}` : `${tab.icon}-outline` as any}
-              size={24}
-              color={active ? PRIMARY : SECONDARY}
-            />
-            <Text style={[styles.navLabel, { color: active ? PRIMARY : SECONDARY }]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
-};
-
-export default function QuotesByServiceTypeScreen() {
-  const [refreshing, setRefreshing] = React.useState(false);
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 600);
-  }, []);
-
-  const items = useMemo(() => {
-    return [...(SAMPLE_QUOTES.quotesByServiceType ?? [])].sort(
-      (a, b) => (b.quoteCount || 0) - (a.quoteCount || 0)
-    );
-  }, []);
-
-  const keyExtractor = useCallback((item: QuotesByServiceType, i: number) => `${item.serviceType}-${i}`, []);
-  const renderItem = useCallback(
-    ({ item }: { item: QuotesByServiceType }) => <TypeRow item={item} />,
-    []
-  );
-  const ListHeader = useMemo(
-    () => (
-      <View>
-        <SummaryLine />
-        <View style={styles.divider} />
-      </View>
-    ),
-    []
-  );
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header />
@@ -157,7 +100,6 @@ export default function QuotesByServiceTypeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY} colors={[PRIMARY]} />
         }
       />
-      <BottomNav />
     </SafeAreaView>
   );
 }

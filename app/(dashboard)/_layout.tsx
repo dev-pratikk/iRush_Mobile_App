@@ -29,11 +29,9 @@ function CustomDrawerContent(props: any) {
 
   const menuItems = [
     { icon: 'home', label: 'Dashboard', route: '/' },
+    { icon: 'document-text', label: 'Orders', route: '/orders' },
     { icon: 'cube', label: 'Open orders', route: '/open-orders' },
     { icon: 'chatbox', label: 'Quotes', route: '/quotes' },
-    { icon: 'people', label: 'New Customers', route: '/new-customers' },
-    { icon: 'receipt', label: 'Invoices', route: '/invoices' },
-    { icon: 'bar-chart', label: 'Reports', route: '/reports' },
     { icon: 'settings', label: 'Settings', route: '/settings' },
   ];
 
@@ -52,8 +50,8 @@ function CustomDrawerContent(props: any) {
         {menuItems.map((item, index) => {
           const isActive = pathname === item.route;
           return (
-            <TouchableOpacity 
-              key={index} 
+            <TouchableOpacity
+              key={index}
               style={styles.menuItemContainer}
               onPress={() => router.push(item.route as any)}
               activeOpacity={0.7}

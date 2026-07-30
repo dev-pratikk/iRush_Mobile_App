@@ -1,9 +1,9 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Text, ActivityIndicator, RefreshControl } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
-import { router, usePathname } from 'expo-router';
+import { router, usePathname, useLocalSearchParams } from 'expo-router';
 import { useAuthContext } from '../../context/AuthContext';
 import {
   QuotesDashboardResponse,
@@ -153,9 +153,9 @@ const BottomNav = () => {
   const pathname = usePathname();
   const tabs = [
     { icon: 'home', label: 'Dashboard', route: '/' },
+    { icon: 'document-text', label: 'Orders', route: '/orders' },
     { icon: 'cube', label: 'Open orders', route: '/open-orders' },
     { icon: 'chatbox', label: 'Quotes', route: '/quotes' },
-    { icon: 'bar-chart', label: 'Reports', route: '/reports' },
   ];
   return (
     <View style={styles.bottomNav}>
@@ -180,7 +180,14 @@ const BottomNav = () => {
 
 export default function QuotesOverviewScreen() {
   const { user } = useAuthContext();
-  const [period, setPeriod] = useState<DatePeriod>('today');
+  const routeParams = useLocalSearchParams<{ period?: DatePeriod }>();
+  const [period, setPeriod] = useState<DatePeriod>(routeParams.period === 'month' ? 'month' : 'today');
+
+  useEffect(() => {
+    if (routeParams.period === 'month' || routeParams.period === 'today') {
+      setPeriod(routeParams.period);
+    }
+  }, [routeParams.period]);
 
   const token = (user as any)?.token ?? null;
   const { data, isLoading, isError, error, refetch, isRefetching } = useQuotes(period, token);

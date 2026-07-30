@@ -14,7 +14,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColors } from '../../context/ThemeContext';
 import { Typography } from '../../constants/Typography';
-import { router, usePathname } from 'expo-router';
+import { router, usePathname, useLocalSearchParams } from 'expo-router';
 import { useAuthContext } from '../../context/AuthContext';
 import {
   formatCurrencyWithCents,
@@ -313,9 +313,9 @@ const BottomNav = () => {
   const pathname = usePathname();
   const tabs = [
     { icon: 'home', label: 'Dashboard', route: '/' },
+    { icon: 'document-text', label: 'Orders', route: '/orders' },
     { icon: 'cube', label: 'Open orders', route: '/open-orders' },
     { icon: 'chatbox', label: 'Quotes', route: '/quotes' },
-    { icon: 'bar-chart', label: 'Reports', route: '/reports' },
   ];
 
   return (
@@ -427,7 +427,14 @@ const ListHeaderComponent = React.memo(function ListHeaderComponent({
 export default function OrdersListScreen() {
   const colors = useThemeColors();
   const { user } = useAuthContext();
-  const [period, setPeriod] = useState<DatePeriod>('today');
+  const routeParams = useLocalSearchParams<{ period?: DatePeriod }>();
+  const [period, setPeriod] = useState<DatePeriod>(routeParams.period === 'month' ? 'month' : 'today');
+
+  useEffect(() => {
+    if (routeParams.period === 'month' || routeParams.period === 'today') {
+      setPeriod(routeParams.period);
+    }
+  }, [routeParams.period]);
 
   // Hardware Back button listener for Android
   useEffect(() => {

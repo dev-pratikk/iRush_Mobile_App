@@ -52,9 +52,9 @@ const BottomNav = () => {
   const pathname = usePathname();
   const tabs = [
     { icon: 'home', label: 'Dashboard', route: '/' },
-    { icon: 'cube', label: 'Orders', route: '/open-orders' },
+    { icon: 'document-text', label: 'Orders', route: '/orders' },
+    { icon: 'cube', label: 'Open orders', route: '/open-orders' },
     { icon: 'chatbox', label: 'Quotes', route: '/quotes' },
-    { icon: 'bar-chart', label: 'Reports', route: '/reports' },
   ];
 
   return (

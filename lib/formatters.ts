@@ -42,13 +42,15 @@ export const formatQuoteDateTime = (iso: string | null | undefined): string => {
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) return iso;
 
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const hours24 = date.getHours();
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const meridiem = hours24 >= 12 ? 'PM' : 'AM';
-    const hours12 = hours24 % 12 || 12;
-
-    return `${months[date.getMonth()]} ${date.getDate()}, ${hours12}:${minutes} ${meridiem}`;
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Los_Angeles',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    return formatter.format(date);
   } catch {
     return iso;
   }

@@ -32,10 +32,22 @@ export const extractOrderDate = (isoDate: string | null | undefined): string => 
   try {
     const d = new Date(isoDate);
     if (isNaN(d.getTime())) return '';
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Los_Angeles',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const parts = formatter.formatToParts(d);
+    let year = '';
+    let month = '';
+    let day = '';
+    for (const p of parts) {
+      if (p.type === 'year') year = p.value;
+      if (p.type === 'month') month = p.value;
+      if (p.type === 'day') day = p.value;
+    }
+    return `${year}-${month}-${day}`;
   } catch {
     return '';
   }

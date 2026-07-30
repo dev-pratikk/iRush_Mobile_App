@@ -16,31 +16,8 @@ export {
   trimStr,
 } from '@lib/formatters';
 
-export type DashboardPeriod = 'today' | 'month';
-
-const toISODate = (d: Date): string => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-};
-
-export const getDateRangeForPeriod = (
-  period: DashboardPeriod
-): { startDate: string; endDate: string } => {
-  const now = new Date();
-
-  if (period === 'today') {
-    const iso = toISODate(now);
-    return { startDate: iso, endDate: iso };
-  }
-
-  const first = new Date(now.getFullYear(), now.getMonth(), 1);
-  return {
-    startDate: toISODate(first),
-    endDate: toISODate(now),
-  };
-};
+import { getDateRangeForPeriod, type DashboardPeriod } from '../../lib/date';
+export { getDateRangeForPeriod, type DashboardPeriod };
 
 const normalizeOrdersResponse = (data: OrdersListResponse | null | undefined): OrdersListResponse => ({
   count: Number.isFinite(data?.count) ? data!.count : 0,

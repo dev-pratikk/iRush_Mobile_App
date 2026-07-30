@@ -104,6 +104,7 @@ const SearchBarSection = ({
   selectedSalesperson,
   setSelectedSalesperson,
   availableSalespersons,
+  availableSuggestions = [],
   onClear,
 }: {
   inputText: string;
@@ -111,13 +112,36 @@ const SearchBarSection = ({
   selectedSalesperson: string | null;
   setSelectedSalesperson: (sp: string | null) => void;
   availableSalespersons: string[];
+  availableSuggestions?: { text: string; type: 'company' | 'orderNo' }[];
   onClear: () => void;
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const handleSelectSalesperson = (sp: string | null) => {
     setSelectedSalesperson(sp);
     setModalVisible(false);
+  };
+
+  // Filter top 5 matching suggestions
+  const suggestions = useMemo(() => {
+    const query = inputText.trim().toLowerCase();
+    if (!query) return [];
+    const matches = availableSuggestions.filter((item) =>
+      item.text.toLowerCase().includes(query)
+    );
+    const uniqueMap = new Map<string, { text: string; type: 'company' | 'orderNo' }>();
+    matches.forEach((m) => {
+      if (!uniqueMap.has(m.text.toLowerCase())) {
+        uniqueMap.set(m.text.toLowerCase(), m);
+      }
+    });
+    return Array.from(uniqueMap.values()).slice(0, 5);
+  }, [inputText, availableSuggestions]);
+
+  const handleSelectSuggestion = (text: string) => {
+    setInputText(text);
+    setShowSuggestions(false);
   };
 
   return (
@@ -129,7 +153,11 @@ const SearchBarSection = ({
           <TextInput
             style={styles.searchInput}
             value={inputText}
-            onChangeText={setInputText}
+            onChangeText={(txt) => {
+              setInputText(txt);
+              setShowSuggestions(true);
+            }}
+            onFocus={() => setShowSuggestions(true)}
             placeholder="Search by order no or company name…"
             placeholderTextColor={SECONDARY}
             autoCapitalize="none"
@@ -138,7 +166,10 @@ const SearchBarSection = ({
           />
           {inputText.length > 0 ? (
             <TouchableOpacity
-              onPress={onClear}
+              onPress={() => {
+                onClear();
+                setShowSuggestions(false);
+              }}
               style={styles.clearButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
@@ -150,7 +181,10 @@ const SearchBarSection = ({
         {/* Salesperson Filter Button in Same Row */}
         <TouchableOpacity
           style={[styles.filterButton, !!selectedSalesperson && styles.filterButtonActive]}
-          onPress={() => setModalVisible(true)}
+          onPress={() => {
+            setShowSuggestions(false);
+            setModalVisible(true);
+          }}
           activeOpacity={0.8}
         >
           <Ionicons
@@ -168,6 +202,36 @@ const SearchBarSection = ({
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Floating Autocomplete Suggestions Dropdown */}
+      {showSuggestions && suggestions.length > 0 ? (
+        <View style={styles.suggestionsContainer}>
+          {suggestions.map((sug, idx) => (
+            <TouchableOpacity
+              key={idx}
+              style={[
+                styles.suggestionRow,
+                idx === suggestions.length - 1 && { borderBottomWidth: 0 },
+              ]}
+              onPress={() => handleSelectSuggestion(sug.text)}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={sug.type === 'company' ? 'business-outline' : 'document-text-outline'}
+                size={16}
+                color={SECONDARY}
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.suggestionText} numberOfLines={1}>
+                {sug.text}
+              </Text>
+              <Text style={styles.suggestionTypeTag}>
+                {sug.type === 'company' ? 'Company' : 'Order'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : null}
 
       {/* Salesperson Selection Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
@@ -445,15 +509,38 @@ export default function AllOrdersScreen() {
   const keyExtractor = useCallback((item: OrdersRowItem) => item.id, []);
   const ItemSeparator = useCallback(() => <View style={styles.separator} />, []);
 
+  const availableSuggestions = useMemo(() => {
+    const list: { text: string; type: 'company' | 'orderNo' }[] = [];
+    items.forEach((it: any) => {
+      if (it.companyName && it.companyName !== 'N/A') {
+        list.push({ text: it.companyName, type: 'company' });
+      }
+      if (it.orderNo && it.orderNo !== 'N/A') {
+        list.push({ text: String(it.orderNo).replace(/^#/, ''), type: 'orderNo' });
+      }
+    });
+    const defaultCompanies = [
+      'Higher Ground, LLC',
+      'Acme Electronics',
+      'Apex Innovations',
+      'Beta Systems',
+      'Delta Aerospace',
+      'Echo Tech',
+    ];
+    defaultCompanies.forEach((c) => list.push({ text: c, type: 'company' }));
+    return list;
+  }, [items]);
+
   const ListHeader = useMemo(
     () => (
-      <View style={{ paddingTop: 12 }}>
+      <View style={{ paddingTop: 12, zIndex: 10 }}>
         <SearchBarSection
           inputText={inputText}
           setInputText={setInputText}
           selectedSalesperson={selectedSalesperson}
           setSelectedSalesperson={setSelectedSalesperson}
           availableSalespersons={availableSalespersons}
+          availableSuggestions={availableSuggestions}
           onClear={handleClearSearch}
         />
         {errorMessage ? (
@@ -469,6 +556,7 @@ export default function AllOrdersScreen() {
       inputText,
       selectedSalesperson,
       availableSalespersons,
+      availableSuggestions,
       errorMessage,
       refetch,
       handleClearSearch,
@@ -653,6 +741,47 @@ const styles = StyleSheet.create({
   filterButtonTextActive: {
     color: '#FFFFFF',
     fontFamily: Typography.headingSemiBold,
+  },
+
+  suggestionsContainer: {
+    position: 'absolute',
+    top: 48,
+    left: 16,
+    right: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E7E6E2',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5,
+    zIndex: 999,
+    overflow: 'hidden',
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: hairline,
+    borderBottomColor: '#E7E6E2',
+  },
+  suggestionText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: Typography.body,
+    color: PRIMARY,
+  },
+  suggestionTypeTag: {
+    fontSize: 10,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+    backgroundColor: '#F5F5F2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
 
   activeSalespersonCard: {

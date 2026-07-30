@@ -512,23 +512,40 @@ export default function AllOrdersScreen() {
 
   const availableSuggestions = useMemo(() => {
     const list: { text: string; type: 'company' | 'orderNo' }[] = [];
+    const companySet = new Set<string>();
+    const orderSet = new Set<string>();
+
+    const decodeHtml = (str: string | null | undefined): string => {
+      if (!str) return '';
+      return str
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .trim();
+    };
+
     items.forEach((it: any) => {
-      if (it.companyName && it.companyName !== 'N/A') {
-        list.push({ text: it.companyName, type: 'company' });
+      const rawCompany = it.companyName || it.COMPANY_NAME || it.company_name || it.company;
+      if (rawCompany && typeof rawCompany === 'string') {
+        const cleanCompany = decodeHtml(rawCompany);
+        if (cleanCompany && cleanCompany !== 'N/A' && !companySet.has(cleanCompany.toLowerCase())) {
+          companySet.add(cleanCompany.toLowerCase());
+          list.push({ text: cleanCompany, type: 'company' });
+        }
       }
-      if (it.orderNo && it.orderNo !== 'N/A') {
-        list.push({ text: String(it.orderNo).replace(/^#/, ''), type: 'orderNo' });
+
+      const rawOrderNo = it.orderNo || it.ORDER_NO || it.order_no;
+      if (rawOrderNo) {
+        const cleanOrderNo = String(rawOrderNo).replace(/^#/, '').trim();
+        if (cleanOrderNo && cleanOrderNo !== 'N/A' && !orderSet.has(cleanOrderNo.toLowerCase())) {
+          orderSet.add(cleanOrderNo.toLowerCase());
+          list.push({ text: cleanOrderNo, type: 'orderNo' });
+        }
       }
     });
-    const defaultCompanies = [
-      'Higher Ground, LLC',
-      'Acme Electronics',
-      'Apex Innovations',
-      'Beta Systems',
-      'Delta Aerospace',
-      'Echo Tech',
-    ];
-    defaultCompanies.forEach((c) => list.push({ text: c, type: 'company' }));
+
     return list;
   }, [items]);
 
@@ -756,19 +773,20 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#E7E6E2',
-    shadowColor: '#000',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 5,
-    zIndex: 999,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 12,
+    zIndex: 99999,
     overflow: 'hidden',
   },
   suggestionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: hairline,
     borderBottomColor: '#E7E6E2',
   },

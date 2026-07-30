@@ -172,17 +172,6 @@ const OrdersKpiGrid = ({
           <Text style={styles.kpiSubText}>$643.7K exposed</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Row 4: FULLY SOURCED (Full Width Card) */}
-      <TouchableOpacity style={styles.kpiCardFull} onPress={handleKpiPress} activeOpacity={0.7}>
-        <View style={styles.kpiFullRow}>
-          <View>
-            <Text style={styles.kpiHeaderLabel}>FULLY SOURCED</Text>
-            <Text style={styles.kpiValueText}>{formatNumber(fullySourcedCount)}</Text>
-          </View>
-          <Text style={styles.kpiSubText}>64% of orders</Text>
-        </View>
-      </TouchableOpacity>
     </View>
   );
 };
@@ -305,7 +294,7 @@ const styles = StyleSheet.create({
   },
   headerIconWrap: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
   headerIconInner: { position: 'relative', width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  headerCenter: { flex: 1, paddingLeft: 8 },
+  headerCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   headerTitle: {
     fontSize: 19,
     fontFamily: Typography.titleSerif,

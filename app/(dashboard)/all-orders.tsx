@@ -348,7 +348,16 @@ const OrderRow = React.memo(function OrderRow({ item }: { item: OrdersRowItem })
   const salesperson = item.salespersonName || '';
 
   return (
-    <View style={styles.row}>
+    <TouchableOpacity
+      style={styles.row}
+      onPress={() =>
+        router.push({
+          pathname: '/order-details' as any,
+          params: { orderData: JSON.stringify(item) },
+        })
+      }
+      activeOpacity={0.7}
+    >
       <View style={styles.rowLeftCol}>
         <Text style={styles.orderNoText} numberOfLines={1} ellipsizeMode="tail">
           {orderNo}
@@ -370,7 +379,7 @@ const OrderRow = React.memo(function OrderRow({ item }: { item: OrdersRowItem })
           </Text>
         ) : null}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 });
 

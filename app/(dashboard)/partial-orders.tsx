@@ -335,7 +335,16 @@ const OrderRow = React.memo(function OrderRow({ item }: { item: OpenOrderRowItem
     item.daysLeft < 0 ? `+${Math.abs(item.daysLeft)}d late` : `${item.daysLeft}d left`;
 
   return (
-    <View style={styles.row}>
+    <TouchableOpacity
+      style={styles.row}
+      onPress={() =>
+        router.push({
+          pathname: '/order-details' as any,
+          params: { orderData: JSON.stringify(item) },
+        })
+      }
+      activeOpacity={0.7}
+    >
       <View style={styles.rowLeftCol}>
         <Text style={styles.orderNoText} numberOfLines={1} ellipsizeMode="tail">
           {item.orderNo}
@@ -358,7 +367,7 @@ const OrderRow = React.memo(function OrderRow({ item }: { item: OpenOrderRowItem
           <Text style={[styles.daysText, { color: daysColor }]}>{daysLabel}</Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 });
 

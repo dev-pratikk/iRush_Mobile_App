@@ -28,7 +28,7 @@ import {
 } from '../../services/api/orders.service';
 import { useOrders, type OrdersRowItem } from '../../hooks/useOrders';
 import { PaginationFooter } from '../../components/ui/PaginationFooter';
-import { SkeletonRowItem, SkeletonSummaryCard } from '../../components/ui/SkeletonLoader';
+import { SkeletonRowItem, SkeletonSummaryCard, SkeletonKpiCard } from '../../components/ui/SkeletonLoader';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';
@@ -39,9 +39,7 @@ const DEFAULT_SALESPERSONS = ['Imran', 'John', 'Sarah', 'Alex', 'Michael', 'Davi
 
 // ─── Header Component ─────────────────────────────────────────────────────────
 
-// ─── Header Component ─────────────────────────────────────────────────────────
-
-type OrderPeriodTab = 'all' | 'today' | 'month';
+type OrderPeriodTab = 'today' | 'month';
 
 const Header = ({
   period,
@@ -63,19 +61,9 @@ const Header = ({
       {/* Left Aligned Header Title */}
       <Text style={styles.headerTitleLeft}>All orders</Text>
 
-      {/* Right Controls: All / Today / Month Toggle & Bell Icon */}
+      {/* Right Controls: Today / Month Toggle & Bell Icon */}
       <View style={styles.headerRightWrap}>
         <View style={styles.headerPillRow}>
-          <TouchableOpacity
-            style={[styles.headerPill, period === 'all' && styles.headerPillActive]}
-            onPress={() => setPeriod('all')}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.headerPillText, period === 'all' && styles.headerPillTextActive]}>
-              All
-            </Text>
-          </TouchableOpacity>
-
           <TouchableOpacity
             style={[styles.headerPill, period === 'today' && styles.headerPillActive]}
             onPress={() => setPeriod('today')}
@@ -112,7 +100,7 @@ const Header = ({
   );
 };
 
-// ─── Light Grey KPI Summary Card (Count & Revenue Overview) ──────────────────
+// ─── White KPI Summary Card (Count & Revenue Overview) ──────────────────────
 
 const SummaryOverviewCard = ({
   period,
@@ -125,31 +113,25 @@ const SummaryOverviewCard = ({
   totalAmount: number;
   loading: boolean;
 }) => {
-  const periodLabel =
-    period === 'all'
-      ? 'All Orders Overview'
-      : period === 'today'
-      ? "Today's Orders Overview"
-      : "This Month's Orders Overview";
+  const periodLabel = period === 'today' ? 'Today' : 'This month';
 
   if (loading && totalRecords === 0) {
     return (
       <View style={styles.summaryCardWrap}>
-        <SkeletonSummaryCard />
+        <SkeletonKpiCard />
       </View>
     );
   }
 
   return (
     <View style={styles.summaryCardWrap}>
-      <View style={styles.summaryCard}>
+      <View style={styles.summaryCardWhite}>
         <View style={styles.summaryRow}>
           <View style={styles.summaryColLeft}>
-            <Text style={styles.summaryCountLabel}>{periodLabel}</Text>
+            <Text style={styles.summaryPeriodLabel}>{periodLabel}</Text>
             <Text style={styles.summaryCount}>{formatNumber(totalRecords)}</Text>
           </View>
           <View style={styles.summaryColRight}>
-            <Text style={styles.summaryValueLabel}>Total Revenue</Text>
             <Text style={styles.summaryValue}>{formatCurrencyWithCents(totalAmount)}</Text>
           </View>
         </View>
@@ -387,7 +369,7 @@ export default function AllOrdersScreen() {
   const token = (user as any)?.token ?? null;
   const params = useLocalSearchParams<{ period?: string }>();
   const initialPeriod: OrderPeriodTab =
-    params.period === 'today' ? 'today' : params.period === 'month' ? 'month' : 'all';
+    params.period === 'month' ? 'month' : 'today';
 
   const [period, setPeriod] = useState<OrderPeriodTab>(initialPeriod);
 
@@ -847,39 +829,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 12,
   },
-  summaryCard: {
-    backgroundColor: '#3A4151',
+  summaryCardWhite: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E7E6E2',
     padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  summaryColLeft: { gap: 2 },
-  summaryCountLabel: {
-    fontSize: 13,
-    fontFamily: Typography.bodyMedium,
-    color: 'rgba(255, 255, 255, 0.75)',
+  summaryColLeft: { gap: 4 },
+  summaryPeriodLabel: {
+    fontSize: 12,
+    fontFamily: Typography.headingSemiBold,
+    color: '#8C94A0',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   summaryCount: {
     fontSize: 26,
     fontFamily: Typography.numberHeavy,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: '#0F172A',
   },
-  summaryColRight: { alignItems: 'flex-end', gap: 2 },
-  summaryValueLabel: {
-    fontSize: 12,
-    fontFamily: Typography.bodyMedium,
-    color: 'rgba(255, 255, 255, 0.75)',
-  },
+  summaryColRight: { alignItems: 'flex-end', justifyContent: 'center' },
   summaryValue: {
-    fontSize: 20,
+    fontSize: 22,
     fontFamily: Typography.numberHeavy,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#0F172A',
   },
 
   suggestionsContainer: {

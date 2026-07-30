@@ -59,61 +59,6 @@ const Header = () => {
   );
 };
 
-const DateSegmentControl = ({
-  period,
-  setPeriod,
-}: {
-  period: DatePeriod;
-  setPeriod: (p: DatePeriod) => void;
-}) => {
-  const colors = useThemeColors();
-
-  const options: { label: string; value: DatePeriod }[] = [
-    { label: 'Today', value: 'today' },
-    { label: 'Month', value: 'month' },
-  ];
-
-  return (
-    <View style={styles.segmentContainer}>
-      <View style={[styles.segmentWrapper, { backgroundColor: colors.border }]}>
-        {options.map((option) => (
-          <TouchableOpacity
-            key={option.value}
-            onPress={() => setPeriod(option.value)}
-            style={[
-              styles.segmentButton,
-              period === option.value && {
-                backgroundColor: colors.card,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.06,
-                shadowRadius: 8,
-                elevation: 2,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.segmentText,
-                {
-                  color:
-                    period === option.value ? colors.primary : colors.textSecondary,
-                  fontFamily:
-                    period === option.value
-                      ? Typography.headingSemiBold
-                      : Typography.bodyMedium,
-                },
-              ]}
-            >
-              {option.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-};
-
 const RevenueOverview = ({
   period,
   stats,
@@ -176,12 +121,12 @@ const getKpiValueFromStats = (
   }
 };
 
-const getKpiOnPress = (label: string): (() => void) | undefined => {
+const getKpiOnPress = (label: string, period: DatePeriod): (() => void) | undefined => {
   switch (label) {
     case 'Orders':
-      return () => router.push('/orders' as any);
+      return () => router.push({ pathname: '/orders' as any, params: { period } });
     case 'Quotes':
-      return () => router.push('/quotes' as any);
+      return () => router.push({ pathname: '/quotes' as any, params: { period } });
     case 'New Customers':
       return () => router.push('/new-customers' as any);
     case 'Invoices':
@@ -208,7 +153,7 @@ const BottomNav = () => {
         return (
           <TouchableOpacity key={index} style={styles.navTab} onPress={() => router.push(tab.route as any)}>
             <Ionicons
-              name={isActive ? `${tab.icon}` : `${tab.icon}-outline` as any}
+              name={isActive ? `${tab.icon}` : (`${tab.icon}-outline` as any)}
               size={24}
               color={isActive ? colors.primary : colors.inactive}
             />
@@ -232,7 +177,6 @@ const BottomNav = () => {
 export default function DashboardScreen() {
   const colors = useThemeColors();
   const { user } = useAuthContext();
-  const [period, setPeriod] = useState<DatePeriod>('today');
   const [stats, setStats] = useState<DashboardStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -323,20 +267,38 @@ export default function DashboardScreen() {
               </TouchableOpacity>
             ) : null}
 
-            <DateSegmentControl period={period} setPeriod={setPeriod} />
-            <RevenueOverview period={period} stats={stats} loading={loading} usingSample={usingSample} />
+            {/* Today Section */}
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Today</Text>
+            <RevenueOverview period="today" stats={stats} loading={loading} usingSample={usingSample} />
             <View style={styles.kpiGrid}>
               {DASHBOARD_KPIS.map((kpi, index) => (
-                <View key={index} style={styles.kpiCardContainer}>
+                <View key={`today-${index}`} style={styles.kpiCardContainer}>
                   <KpiCard
                     kpi={kpi}
-                    period={period}
-                    value={getKpiValueFromStats(kpi.label, stats, period)}
-                    onPress={getKpiOnPress(kpi.label)}
+                    period="today"
+                    value={getKpiValueFromStats(kpi.label, stats, 'today')}
+                    onPress={getKpiOnPress(kpi.label, 'today')}
                   />
                 </View>
               ))}
             </View>
+
+            {/* This Month Section */}
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 8 }]}>This month</Text>
+            <RevenueOverview period="month" stats={stats} loading={loading} usingSample={usingSample} />
+            <View style={styles.kpiGrid}>
+              {DASHBOARD_KPIS.map((kpi, index) => (
+                <View key={`month-${index}`} style={styles.kpiCardContainer}>
+                  <KpiCard
+                    kpi={kpi}
+                    period="month"
+                    value={getKpiValueFromStats(kpi.label, stats, 'month')}
+                    onPress={getKpiOnPress(kpi.label, 'month')}
+                  />
+                </View>
+              ))}
+            </View>
+
             {loading && !refreshing ? (
               <View style={styles.loadingRow}>
                 <ActivityIndicator size="small" color={colors.primary} />
@@ -367,7 +329,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 24,
-    gap: 16,
+    gap: 14,
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    marginBottom: -4,
   },
   header: {
     flexDirection: 'row',
@@ -413,31 +380,14 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: Typography.headingSemiBold,
   },
-  segmentContainer: {
-    width: '100%',
-  },
-  segmentWrapper: {
-    flexDirection: 'row',
-    borderRadius: 12,
-    padding: 3,
-  },
-  segmentButton: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 9,
-  },
-  segmentText: {
-    fontSize: 13,
-  },
   revenueCard: {
     backgroundColor: '#3A4151',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   revenueContent: {
-    gap: 8,
+    gap: 6,
   },
   revenueTitleRow: {
     flexDirection: 'row',
@@ -445,12 +395,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   revenueTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Typography.bodyMedium,
     color: 'rgba(255, 255, 255, 0.75)',
   },
   revenueValue: {
-    fontSize: 32,
+    fontSize: 24,
     fontFamily: Typography.numberHeavy,
     fontWeight: '800',
     color: '#FFFFFF',

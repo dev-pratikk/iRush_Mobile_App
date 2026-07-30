@@ -11,15 +11,15 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { router, useLocalSearchParams } from 'expo-router';
-import { formatCurrencyWithCents, formatNumber } from '../../services/api/orders.service';
+import { formatCurrencyWithCents } from '../../services/api/orders.service';
 
-const BG_COLOR = '#18191A';
-const CARD_BG = '#242526';
-const HEADER_CARD_BG = '#283142';
-const TEXT_PRIMARY = '#FFFFFF';
-const TEXT_MUTED = '#9A9C9E';
-const DIVIDER_COLOR = '#333436';
-const RED_TEXT = '#EF4444';
+const PRIMARY = '#2C2C2A';
+const SECONDARY = '#9C9B95';
+const PAGE_BG = '#FFFFFF';
+const SUMMARY_CARD_BG = '#3A4151';
+const CARD_BG = '#FFFFFF';
+const CARD_BORDER = '#E7E6E2';
+const RED_TEXT = '#8A1C1C';
 
 // Helper to decode HTML entities like &amp; -> &
 const decodeHtml = (str: string | null | undefined): string => {
@@ -116,9 +116,10 @@ export default function OrderDetailsScreen() {
   const contactName = `${contact.firstName || 'Darren'} ${contact.lastName || 'Reis'}`.trim();
   const contactEmail = contact.email || 'darren@higherground.earth.com';
   const rawPhone = contact.phone1 || '6507042320';
-  const formattedPhone = rawPhone.length === 10
-    ? `(${rawPhone.slice(0, 3)}) ${rawPhone.slice(3, 6)}-${rawPhone.slice(6)}`
-    : rawPhone;
+  const formattedPhone =
+    rawPhone.length === 10
+      ? `(${rawPhone.slice(0, 3)}) ${rawPhone.slice(3, 6)}-${rawPhone.slice(6)}`
+      : rawPhone;
 
   // Invoice & Shipment
   const inv = order?.invoices && order.invoices.length > 0 ? order.invoices[0] : null;
@@ -139,15 +140,15 @@ export default function OrderDetailsScreen() {
           onPress={() => router.back()}
           hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
         >
-          <Ionicons name="arrow-back" size={22} color={TEXT_PRIMARY} />
+          <Ionicons name="arrow-back" size={20} color={PRIMARY} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Order Details</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* 1. Top Slate Blue Header Card */}
-        <View style={styles.topHeaderCard}>
+        {/* 1. Top Summary Card (Matching App Grey Box Theme) */}
+        <View style={styles.topSummaryCard}>
           <View style={styles.topHeaderRow}>
             <View style={styles.topHeaderLeft}>
               <Text style={styles.orderNoTitle}>#{orderNo}</Text>
@@ -167,7 +168,7 @@ export default function OrderDetailsScreen() {
         {/* 2. Order info Card */}
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
-            <Ionicons name="document-text-outline" size={18} color={TEXT_MUTED} />
+            <Ionicons name="document-text-outline" size={18} color={SECONDARY} />
             <Text style={styles.cardTitle}>Order info</Text>
           </View>
 
@@ -194,7 +195,7 @@ export default function OrderDetailsScreen() {
         {/* 3. Line items Card */}
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
-            <Ionicons name="list-outline" size={18} color={TEXT_MUTED} />
+            <Ionicons name="list-outline" size={18} color={SECONDARY} />
             <Text style={styles.cardTitle}>Line items</Text>
           </View>
 
@@ -214,7 +215,7 @@ export default function OrderDetailsScreen() {
         {/* 4. Vendor Card */}
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
-            <Ionicons name="car-outline" size={18} color={TEXT_MUTED} />
+            <Ionicons name="car-outline" size={18} color={SECONDARY} />
             <Text style={styles.cardTitle}>Vendor</Text>
           </View>
 
@@ -232,7 +233,7 @@ export default function OrderDetailsScreen() {
         {/* 5. Shipping and contact Card */}
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
-            <Ionicons name="location-outline" size={18} color={TEXT_MUTED} />
+            <Ionicons name="location-outline" size={18} color={SECONDARY} />
             <Text style={styles.cardTitle}>Shipping and contact</Text>
           </View>
 
@@ -256,7 +257,7 @@ export default function OrderDetailsScreen() {
         {/* 6. Invoice and shipment Card */}
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
-            <Ionicons name="receipt-outline" size={18} color={TEXT_MUTED} />
+            <Ionicons name="receipt-outline" size={18} color={SECONDARY} />
             <Text style={styles.cardTitle}>Invoice and shipment</Text>
           </View>
 
@@ -278,10 +279,12 @@ export default function OrderDetailsScreen() {
   );
 }
 
+const hairline = StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5;
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: BG_COLOR,
+    backgroundColor: PAGE_BG,
   },
   header: {
     height: 52,
@@ -289,9 +292,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: DIVIDER_COLOR,
-    backgroundColor: BG_COLOR,
+    borderBottomWidth: hairline,
+    borderBottomColor: CARD_BORDER,
+    backgroundColor: PAGE_BG,
   },
   backButton: {
     width: 40,
@@ -301,8 +304,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontFamily: Typography.headingSemiBold,
-    color: TEXT_PRIMARY,
+    fontFamily: Typography.titleSerif,
+    fontWeight: '500',
+    color: PRIMARY,
   },
   scrollView: {
     flex: 1,
@@ -313,9 +317,9 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
 
-  // 1. Top Header Card
-  topHeaderCard: {
-    backgroundColor: HEADER_CARD_BG,
+  // 1. Top Summary Card (Matching App Theme)
+  topSummaryCard: {
+    backgroundColor: SUMMARY_CARD_BG,
     borderRadius: 16,
     padding: 20,
     gap: 16,
@@ -334,7 +338,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: Typography.numberHeavy,
     fontWeight: '800',
-    color: TEXT_PRIMARY,
+    color: '#FFFFFF',
   },
   companySubTitle: {
     fontSize: 14,
@@ -350,7 +354,7 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontSize: 12,
     fontFamily: Typography.headingSemiBold,
-    color: TEXT_PRIMARY,
+    color: '#FFFFFF',
   },
   topHeaderBottomRow: {
     flexDirection: 'row',
@@ -362,7 +366,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontFamily: Typography.numberHeavy,
     fontWeight: '800',
-    color: TEXT_PRIMARY,
+    color: '#FFFFFF',
   },
   orderDateText: {
     fontSize: 13,
@@ -370,14 +374,19 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.75)',
   },
 
-  // Generic Card
+  // Generic White Cards (App Light Theme)
   card: {
     backgroundColor: CARD_BG,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: DIVIDER_COLOR,
+    borderColor: CARD_BORDER,
     padding: 16,
     gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
   cardHeaderRow: {
     flexDirection: 'row',
@@ -387,7 +396,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 14,
     fontFamily: Typography.headingSemiBold,
-    color: TEXT_MUTED,
+    color: PRIMARY,
   },
 
   // Key-Value List inside Card
@@ -403,13 +412,13 @@ const styles = StyleSheet.create({
   kvKey: {
     fontSize: 14,
     fontFamily: Typography.body,
-    color: TEXT_MUTED,
+    color: SECONDARY,
   },
   kvValueBold: {
     fontSize: 14,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '600',
-    color: TEXT_PRIMARY,
+    color: PRIMARY,
   },
 
   // Section Body
@@ -426,24 +435,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '600',
-    color: TEXT_PRIMARY,
+    color: PRIMARY,
   },
   itemAmountText: {
     fontSize: 14,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '600',
-    color: TEXT_PRIMARY,
+    color: PRIMARY,
   },
   itemSubText: {
     fontSize: 13,
     fontFamily: Typography.body,
-    color: TEXT_MUTED,
+    color: SECONDARY,
     marginTop: 4,
   },
 
   cardDivider: {
-    height: 1,
-    backgroundColor: DIVIDER_COLOR,
+    height: hairline,
+    backgroundColor: CARD_BORDER,
     marginVertical: 10,
   },
 
@@ -451,12 +460,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '600',
-    color: TEXT_PRIMARY,
+    color: PRIMARY,
   },
   contactDetailText: {
     fontSize: 13,
     fontFamily: Typography.body,
-    color: TEXT_MUTED,
+    color: SECONDARY,
     marginTop: 2,
   },
 

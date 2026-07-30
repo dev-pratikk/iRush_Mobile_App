@@ -129,7 +129,7 @@ const getKpiValueFromStats = (
 const getKpiOnPress = (label: string, period: DatePeriod): (() => void) | undefined => {
   switch (label) {
     case 'Orders':
-      return () => router.push({ pathname: '/orders' as any, params: { period } });
+      return () => router.push({ pathname: '/all-orders' as any, params: { period } });
     case 'Quotes':
       return () => router.push({ pathname: '/quotes' as any, params: { period } });
     case 'New Customers':

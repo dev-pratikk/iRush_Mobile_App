@@ -19,6 +19,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useAuthContext } from '../../context/AuthContext';
 import {
   formatCurrencyWithCents,
+  formatNumber,
   formatOrderDate,
   DashboardPeriod as DatePeriod,
   ORDERS_PAGE_LIMIT,
@@ -27,7 +28,7 @@ import {
 } from '../../services/api/orders.service';
 import { useOrders, type OrdersRowItem } from '../../hooks/useOrders';
 import { PaginationFooter } from '../../components/ui/PaginationFooter';
-import { SkeletonRowItem } from '../../components/ui/SkeletonLoader';
+import { SkeletonRowItem, SkeletonSummaryCard } from '../../components/ui/SkeletonLoader';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';
@@ -38,12 +39,16 @@ const DEFAULT_SALESPERSONS = ['Imran', 'John', 'Sarah', 'Alex', 'Michael', 'Davi
 
 // ─── Header Component ─────────────────────────────────────────────────────────
 
+// ─── Header Component ─────────────────────────────────────────────────────────
+
+type OrderPeriodTab = 'all' | 'today' | 'month';
+
 const Header = ({
   period,
   setPeriod,
 }: {
-  period: DatePeriod;
-  setPeriod: (p: DatePeriod) => void;
+  period: OrderPeriodTab;
+  setPeriod: (p: OrderPeriodTab) => void;
 }) => {
   return (
     <View style={styles.header}>
@@ -58,9 +63,19 @@ const Header = ({
       {/* Left Aligned Header Title */}
       <Text style={styles.headerTitleLeft}>All orders</Text>
 
-      {/* Right Controls: Today/Month Toggle & Bell Icon */}
+      {/* Right Controls: All / Today / Month Toggle & Bell Icon */}
       <View style={styles.headerRightWrap}>
         <View style={styles.headerPillRow}>
+          <TouchableOpacity
+            style={[styles.headerPill, period === 'all' && styles.headerPillActive]}
+            onPress={() => setPeriod('all')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.headerPillText, period === 'all' && styles.headerPillTextActive]}>
+              All
+            </Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.headerPill, period === 'today' && styles.headerPillActive]}
             onPress={() => setPeriod('today')}
@@ -92,6 +107,52 @@ const Header = ({
             <Text style={styles.badgeText}>3</Text>
           </View>
         </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+// ─── Light Grey KPI Summary Card (Count & Revenue Overview) ──────────────────
+
+const SummaryOverviewCard = ({
+  period,
+  totalRecords,
+  totalAmount,
+  loading,
+}: {
+  period: OrderPeriodTab;
+  totalRecords: number;
+  totalAmount: number;
+  loading: boolean;
+}) => {
+  const periodLabel =
+    period === 'all'
+      ? 'All Orders Overview'
+      : period === 'today'
+      ? "Today's Orders Overview"
+      : "This Month's Orders Overview";
+
+  if (loading && totalRecords === 0) {
+    return (
+      <View style={styles.summaryCardWrap}>
+        <SkeletonSummaryCard />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.summaryCardWrap}>
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryColLeft}>
+            <Text style={styles.summaryCountLabel}>{periodLabel}</Text>
+            <Text style={styles.summaryCount}>{formatNumber(totalRecords)}</Text>
+          </View>
+          <View style={styles.summaryColRight}>
+            <Text style={styles.summaryValueLabel}>Total Revenue</Text>
+            <Text style={styles.summaryValue}>{formatCurrencyWithCents(totalAmount)}</Text>
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -324,24 +385,18 @@ const SearchEmptyState = ({
 export default function AllOrdersScreen() {
   const { user } = useAuthContext();
   const token = (user as any)?.token ?? null;
-  const searchParams = useLocalSearchParams<{ period?: string }>();
+  const params = useLocalSearchParams<{ period?: string }>();
+  const initialPeriod: OrderPeriodTab =
+    params.period === 'today' ? 'today' : params.period === 'month' ? 'month' : 'all';
 
-  // Hardware Back button handling (Android)
+  const [period, setPeriod] = useState<OrderPeriodTab>(initialPeriod);
+
   useEffect(() => {
-    const onBackPress = () => {
-      router.push('/orders' as any);
-      return true;
-    };
-    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-    return () => subscription.remove();
-  }, []);
+    if (params.period === 'today' || params.period === 'month') {
+      setPeriod(params.period);
+    }
+  }, [params.period]);
 
-  const initialPeriod: DatePeriod =
-    searchParams.period === 'today' || searchParams.period === 'month'
-      ? searchParams.period
-      : 'month';
-
-  const [period, setPeriod] = useState<DatePeriod>(initialPeriod);
   const [inputText, setInputText] = useState('');
   const [debouncedValue, setDebouncedValue] = useState('');
   // Suggestions overlay state (lifted to screen to avoid FlatList clipping)
@@ -349,29 +404,26 @@ export default function AllOrdersScreen() {
   const [selectedSalesperson, setSelectedSalesperson] = useState<string | null>(null);
 
   useEffect(() => {
-    if (searchParams.period === 'today' || searchParams.period === 'month') {
-      setPeriod(searchParams.period);
-    }
-  }, [searchParams.period]);
-
-  // Debounce search input by 400ms
-  useEffect(() => {
-    const timer = setTimeout(() => {
+    const handler = setTimeout(() => {
       setDebouncedValue(inputText);
-    }, 400);
-    return () => clearTimeout(timer);
+    }, 350);
+    return () => clearTimeout(handler);
   }, [inputText]);
 
-  // Construct active search param with smart searchType auto-detection
-  const searchParam: OrdersSearchParam | null = useMemo(() => {
-    if (selectedSalesperson) {
-      return { type: 'salesperson', value: selectedSalesperson };
-    }
+  const handleClearSearch = useCallback(() => {
+    setInputText('');
+    setDebouncedValue('');
+    setSelectedSalesperson(null);
+  }, []);
+
+  const searchParam = useMemo((): OrdersSearchParam | null => {
     const trimmed = debouncedValue.trim();
     if (!trimmed) return null;
     const detectedType: OrdersSearchType = /[a-zA-Z]/.test(trimmed) ? 'companyName' : 'orderNo';
     return { type: detectedType, value: trimmed };
   }, [debouncedValue, selectedSalesperson]);
+
+  const apiPeriod: DatePeriod = period;
 
   // Fetch orders from custom hook
   const {
@@ -386,7 +438,12 @@ export default function AllOrdersScreen() {
     fetchNextPage,
     refetch,
     isRefreshing,
-  } = useOrders(period, token, searchParam);
+  } = useOrders(apiPeriod, token, searchParam);
+
+  const totalAmountCalculated = useMemo(() => {
+    if (meta?.totalAmount && meta.totalAmount > 0) return meta.totalAmount;
+    return items.reduce((acc, it) => acc + (it.orderTotal || (it as any).ORDER_TOTAL || 0), 0);
+  }, [meta, items]);
 
   const summaryCount = (meta?.count as number | undefined) ?? (meta?.totalRecords as number | undefined) ?? items.length;
 
@@ -451,13 +508,6 @@ export default function AllOrdersScreen() {
     () => (isError ? (error as Error | null)?.message ?? 'Failed to load orders' : null),
     [isError, error]
   );
-
-  const handleClearSearch = useCallback(() => {
-    setInputText('');
-    setDebouncedValue('');
-    setSelectedSalesperson(null);
-    setCurrentPage(1);
-  }, []);
 
   const handlePrev = useCallback(() => {
     setCurrentPage((p) => Math.max(1, p - 1));
@@ -538,6 +588,12 @@ export default function AllOrdersScreen() {
   const ListHeader = useMemo(
     () => (
       <View style={{ paddingTop: 12 }}>
+        <SummaryOverviewCard
+          period={period}
+          totalRecords={totalRecords}
+          totalAmount={totalAmountCalculated}
+          loading={isLoading}
+        />
         <SearchBarSection
           inputText={inputText}
           setInputText={setInputText}
@@ -557,6 +613,10 @@ export default function AllOrdersScreen() {
       </View>
     ),
     [
+      period,
+      totalRecords,
+      totalAmountCalculated,
+      isLoading,
       inputText,
       selectedSalesperson,
       availableSalespersons,
@@ -782,6 +842,46 @@ const styles = StyleSheet.create({
     fontFamily: Typography.headingSemiBold,
   },
 
+  // Summary Overview Card (Light Grey / Dark Box Above Search)
+  summaryCardWrap: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  summaryCard: {
+    backgroundColor: '#3A4151',
+    borderRadius: 14,
+    padding: 16,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  summaryColLeft: { gap: 2 },
+  summaryCountLabel: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: 'rgba(255, 255, 255, 0.75)',
+  },
+  summaryCount: {
+    fontSize: 26,
+    fontFamily: Typography.numberHeavy,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  summaryColRight: { alignItems: 'flex-end', gap: 2 },
+  summaryValueLabel: {
+    fontSize: 12,
+    fontFamily: Typography.bodyMedium,
+    color: 'rgba(255, 255, 255, 0.75)',
+  },
+  summaryValue: {
+    fontSize: 20,
+    fontFamily: Typography.numberHeavy,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
   suggestionsContainer: {
     // Kept for reference but no longer used (overlay moved to screen level)
     position: 'absolute',
@@ -798,7 +898,7 @@ const styles = StyleSheet.create({
   },
   suggestionsOverlay: {
     position: 'absolute',
-    top: 118, // below SafeAreaView header (~56px) + search bar row (~62px)
+    top: 204, // below SafeAreaView header (~54px) + summary card (~106px) + search bar row (~44px)
     left: 16,
     right: 16,
     backgroundColor: '#FFFFFF',

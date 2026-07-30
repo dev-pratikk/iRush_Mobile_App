@@ -25,6 +25,7 @@ import {
   fetchOrdersPage,
   SAMPLE_ORDERS,
   type OrderItem,
+  type OrdersSearchType,
 } from '../../services/api/orders.service';
 
 const PRIMARY = '#2C2C2A';
@@ -186,24 +187,63 @@ const OrdersKpiGrid = ({
 // ─── Search Bar & Searched Orders Section ─────────────────────────────────────
 
 const SearchOrdersSection = () => {
+  const { user } = useAuthContext();
+  const token = (user as any)?.token ?? null;
   const [query, setQuery] = useState('');
+  const [apiResults, setApiResults] = useState<OrderItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // Search items pool (combines mock data with full list)
-  const allOrdersPool: OrderItem[] = useMemo(() => {
-    return SAMPLE_ORDERS.orders ?? [];
-  }, []);
+  // Debounced API search overall
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) {
+      setApiResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const detectedType: OrdersSearchType = /[a-zA-Z]/.test(q) ? 'companyName' : 'orderNo';
+        const res = await fetchOrdersPage('all', {
+          token: token ?? null,
+          page: 1,
+          limit: 10,
+          search: { type: detectedType, value: q },
+        });
+        setApiResults(res.data ?? []);
+      } catch {
+        setApiResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query, token]);
 
   const searchResults = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
 
-    return allOrdersPool.filter((item: any) => {
+    const mockMatches = (SAMPLE_ORDERS.orders ?? []).filter((item: any) => {
       const orderNoStr = String(item.orderNo || item.ORDER_NO || '').toLowerCase();
       const companyStr = decodeHtml(item.companyName || item.COMPANY_NAME || '').toLowerCase();
       return orderNoStr.includes(q) || companyStr.includes(q);
     });
-  }, [query, allOrdersPool]);
+
+    const combined = [...mockMatches, ...apiResults];
+    const uniqueMap = new Map<string, OrderItem>();
+    combined.forEach((item: any) => {
+      const key = String(item.ORDER_ID || item.ORDER_NO || item.id || item.orderNo);
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, item);
+      }
+    });
+
+    return Array.from(uniqueMap.values());
+  }, [query, apiResults]);
 
   const handleOrderPress = (item: OrderItem) => {
     router.push({
@@ -259,6 +299,11 @@ const SearchOrdersSection = () => {
           <Text style={styles.searchPromptSub}>
             Results will appear here automatically when you start searching.
           </Text>
+        </View>
+      ) : isSearching ? (
+        <View style={{ paddingTop: 8 }}>
+          <SkeletonRowItem />
+          <SkeletonRowItem />
         </View>
       ) : searchResults.length > 0 ? (
         <View style={styles.resultsContainer}>

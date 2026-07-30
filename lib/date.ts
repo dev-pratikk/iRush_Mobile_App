@@ -54,10 +54,10 @@ export const getLosAngelesFirstOfMonthISODate = (date: Date = new Date()): strin
   return `${year}-${m}-01`;
 };
 
-export type DashboardPeriod = 'today' | 'month';
+export type DashboardPeriod = 'today' | 'month' | 'all';
 
 /**
- * Calculates start and end date parameters (YYYY-MM-DD) for 'today' or 'month'
+ * Calculates start and end date parameters (YYYY-MM-DD) for 'today', 'month', or 'all'
  * defaulting strictly to Los Angeles (Pacific Time).
  */
 export const getDateRangeForPeriod = (
@@ -68,6 +68,10 @@ export const getDateRangeForPeriod = (
 
   if (period === 'today') {
     return { startDate: todayISO, endDate: todayISO };
+  }
+
+  if (period === 'all') {
+    return { startDate: '2000-01-01', endDate: todayISO };
   }
 
   const firstOfMonthISO = getLosAngelesFirstOfMonthISODate(referenceDate);

@@ -407,15 +407,16 @@ export default function AllOrdersScreen() {
     return () => clearTimeout(timer);
   }, [inputText]);
 
-  // Construct active search param
+  // Construct active search param with smart searchType auto-detection
   const searchParam: OrdersSearchParam | null = useMemo(() => {
     if (selectedSalesperson) {
       return { type: 'salesperson', value: selectedSalesperson };
     }
     const trimmed = debouncedValue.trim();
     if (!trimmed) return null;
-    return { type: searchType, value: trimmed };
-  }, [searchType, debouncedValue, selectedSalesperson]);
+    const detectedType: OrdersSearchType = /[a-zA-Z]/.test(trimmed) ? 'companyName' : 'orderNo';
+    return { type: detectedType, value: trimmed };
+  }, [debouncedValue, selectedSalesperson]);
 
   // Fetch orders from custom hook
   const {
@@ -468,10 +469,27 @@ export default function AllOrdersScreen() {
   const totalRecords = meta?.totalRecords ?? summaryCount;
   const totalPages = totalRecords > 0 ? Math.ceil(totalRecords / LIMIT) : Math.max(1, rawPages.length);
 
-  const displayItems = useMemo(
-    () => items.slice((currentPage - 1) * LIMIT, currentPage * LIMIT),
-    [items, currentPage, LIMIT]
-  );
+  const displayItems = useMemo(() => {
+    let filtered = items;
+
+    if (selectedSalesperson) {
+      const spLower = selectedSalesperson.toLowerCase();
+      filtered = filtered.filter(
+        (it: any) => (it.salespersonName || it.salesPersonName || '').toLowerCase() === spLower
+      );
+    }
+
+    const query = debouncedValue.trim().toLowerCase();
+    if (query) {
+      filtered = filtered.filter((it: any) => {
+        const cName = (it.companyName || it.COMPANY_NAME || '').toLowerCase();
+        const oNo = String(it.orderNo || it.ORDER_NO || '').toLowerCase();
+        return cName.includes(query) || oNo.includes(query);
+      });
+    }
+
+    return filtered.slice((currentPage - 1) * LIMIT, currentPage * LIMIT);
+  }, [items, selectedSalesperson, debouncedValue, currentPage, LIMIT]);
 
   const usingSample = isError && items.length === 0;
   const errorMessage = useMemo(

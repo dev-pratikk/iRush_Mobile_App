@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type { Kpi, DatePeriod } from '../../types/dashboard';
 import { useThemeColors } from '../../context/ThemeContext';
 import { Typography } from '../../constants/Typography';
+
 interface KpiCardProps {
   kpi: Kpi;
   period: DatePeriod;
@@ -13,21 +14,14 @@ interface KpiCardProps {
 
 export const KpiCard: React.FC<KpiCardProps> = ({ kpi, period, value, onPress }) => {
   const colors = useThemeColors();
-  const [pressed, setPressed] = React.useState(false);
-
   const displayValue = value !== undefined ? value : kpi.values[period];
 
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={1}
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}
+    <View
       style={[
         styles.card,
         {
           backgroundColor: colors.card,
-          transform: [{ scale: pressed ? 0.98 : 1 }],
         },
       ]}
     >
@@ -35,8 +29,24 @@ export const KpiCard: React.FC<KpiCardProps> = ({ kpi, period, value, onPress })
         <Text style={[styles.label, { color: colors.textSecondary }]}>{kpi.label}</Text>
         <Text style={[styles.value, { color: colors.textPrimary }]}>{displayValue}</Text>
       </View>
-      <Ionicons name="arrow-forward-outline" size={20} color={colors.textSecondary} style={styles.arrow} />
-    </TouchableOpacity>
+
+      {onPress ? (
+        <TouchableOpacity
+          onPress={onPress}
+          activeOpacity={0.7}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          style={[styles.arrowButton, { backgroundColor: `${colors.primary}12` }]}
+          accessibilityLabel={`Navigate to ${kpi.label}`}
+          accessibilityRole="button"
+        >
+          <Ionicons name="arrow-forward" size={16} color={colors.primary} />
+        </TouchableOpacity>
+      ) : (
+        <View style={[styles.arrowButton, { backgroundColor: colors.background, opacity: 0.5 }]}>
+          <Ionicons name="arrow-forward" size={16} color={colors.textSecondary} />
+        </View>
+      )}
+    </View>
   );
 };
 
@@ -45,27 +55,33 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: 'center',
   },
   content: {
-    gap: 8,
+    gap: 6,
+    flex: 1,
   },
   label: {
     fontFamily: Typography.bodyMedium,
-    fontSize: 14,
-    textDecorationLine: 'underline',
+    fontSize: 13,
   },
   value: {
     fontFamily: Typography.numberHeavy,
-    fontSize: 21,
+    fontSize: 22,
   },
-  arrow: {
-    alignSelf: 'flex-end',
+  arrowButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
   },
 });
+

@@ -99,8 +99,6 @@ const Header = ({
 // ─── Search Bar & Salesperson Filter Section ──────────────────────────────────
 
 const SearchBarSection = ({
-  searchType,
-  setSearchType,
   inputText,
   setInputText,
   selectedSalesperson,
@@ -108,8 +106,6 @@ const SearchBarSection = ({
   availableSalespersons,
   onClear,
 }: {
-  searchType: OrdersSearchType;
-  setSearchType: (type: OrdersSearchType) => void;
   inputText: string;
   setInputText: (text: string) => void;
   selectedSalesperson: string | null;
@@ -119,88 +115,22 @@ const SearchBarSection = ({
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
 
-  const handleTypeSelect = (type: OrdersSearchType) => {
-    if (type === 'salesperson') {
-      setModalVisible(true);
-    } else {
-      setSearchType(type);
-      setSelectedSalesperson(null);
-      onClear();
-    }
-  };
-
   const handleSelectSalesperson = (sp: string | null) => {
     setSelectedSalesperson(sp);
-    if (sp) {
-      setSearchType('salesperson');
-      setInputText('');
-    } else {
-      setSearchType('orderNo');
-    }
     setModalVisible(false);
   };
 
   return (
     <View style={styles.searchSection}>
-      {/* Search Type Pills */}
-      <View style={styles.pillsRow}>
-        <TouchableOpacity
-          style={[styles.pill, searchType === 'orderNo' && !selectedSalesperson && styles.pillActive]}
-          onPress={() => handleTypeSelect('orderNo')}
-          activeOpacity={0.7}
-        >
-          <Text
-            style={[styles.pillText, searchType === 'orderNo' && !selectedSalesperson && styles.pillTextActive]}
-          >
-            Order No
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.pill, searchType === 'companyName' && !selectedSalesperson && styles.pillActive]}
-          onPress={() => handleTypeSelect('companyName')}
-          activeOpacity={0.7}
-        >
-          <Text
-            style={[styles.pillText, searchType === 'companyName' && !selectedSalesperson && styles.pillTextActive]}
-          >
-            Company
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.pill, (searchType === 'salesperson' || !!selectedSalesperson) && styles.pillActive]}
-          onPress={() => handleTypeSelect('salesperson')}
-          activeOpacity={0.7}
-        >
-          <Ionicons
-            name="funnel-outline"
-            size={12}
-            color={searchType === 'salesperson' || !!selectedSalesperson ? '#FFFFFF' : SECONDARY}
-            style={{ marginRight: 4 }}
-          />
-          <Text
-            style={[
-              styles.pillText,
-              (searchType === 'salesperson' || !!selectedSalesperson) && styles.pillTextActive,
-            ]}
-          >
-            {selectedSalesperson ? `Rep: ${selectedSalesperson}` : 'Salesperson'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Input or Active Salesperson Badge */}
-      {!selectedSalesperson ? (
+      <View style={styles.searchRow}>
+        {/* Unified Search Input */}
         <View style={styles.searchInputWrap}>
           <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             value={inputText}
             onChangeText={setInputText}
-            placeholder={
-              searchType === 'companyName' ? 'Search by company name…' : 'Search by order number…'
-            }
+            placeholder="Search by order no or company name…"
             placeholderTextColor={SECONDARY}
             autoCapitalize="none"
             autoCorrect={false}
@@ -216,38 +146,39 @@ const SearchBarSection = ({
             </TouchableOpacity>
           ) : null}
         </View>
-      ) : (
-        <View style={styles.activeSalespersonCard}>
-          <View style={styles.salespersonChipInfo}>
-            <Ionicons name="person-circle-outline" size={20} color={PRIMARY} />
-            <Text style={styles.salespersonChipText}>
-              Filtering Salesperson: <Text style={{ fontWeight: '700' }}>{selectedSalesperson}</Text>
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.changeSalespersonBtn}
-            onPress={() => setModalVisible(true)}
-            activeOpacity={0.7}
+
+        {/* Salesperson Filter Button in Same Row */}
+        <TouchableOpacity
+          style={[styles.filterButton, !!selectedSalesperson && styles.filterButtonActive]}
+          onPress={() => setModalVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="funnel-outline"
+            size={14}
+            color={selectedSalesperson ? '#FFFFFF' : PRIMARY}
+            style={{ marginRight: 4 }}
+          />
+          <Text
+            style={[styles.filterButtonText, !!selectedSalesperson && styles.filterButtonTextActive]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
           >
-            <Text style={styles.changeSalespersonBtnText}>Change</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.clearSalespersonBtn}
-            onPress={() => handleSelectSalesperson(null)}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="close-circle" size={18} color={SECONDARY} />
-          </TouchableOpacity>
-        </View>
-      )}
+            {selectedSalesperson ? selectedSalesperson : 'Filter'}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Salesperson Selection Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Salesperson</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={styles.modalTitle}>Filter by Salesperson</Text>
+              <TouchableOpacity
+                onPress={() => setModalVisible(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
                 <Ionicons name="close" size={24} color={PRIMARY} />
               </TouchableOpacity>
             </View>
@@ -518,8 +449,6 @@ export default function AllOrdersScreen() {
     () => (
       <View style={{ paddingTop: 12 }}>
         <SearchBarSection
-          searchType={searchType}
-          setSearchType={setSearchType}
           inputText={inputText}
           setInputText={setInputText}
           selectedSalesperson={selectedSalesperson}
@@ -537,7 +466,6 @@ export default function AllOrdersScreen() {
       </View>
     ),
     [
-      searchType,
       inputText,
       selectedSalesperson,
       availableSalespersons,
@@ -679,35 +607,15 @@ const styles = StyleSheet.create({
   // Search Section
   searchSection: {
     paddingHorizontal: 16,
-    gap: 10,
     marginBottom: 12,
   },
-  pillsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  pill: {
+  searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: INPUT_BG,
+    gap: 8,
   },
-  pillActive: {
-    backgroundColor: PRIMARY,
-  },
-  pillText: {
-    fontSize: 12,
-    fontFamily: Typography.bodyMedium,
-    color: SECONDARY,
-  },
-  pillTextActive: {
-    color: '#FFFFFF',
-    fontFamily: Typography.headingSemiBold,
-  },
-
   searchInputWrap: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: INPUT_BG,
@@ -715,15 +623,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 42,
   },
-  searchIcon: { marginRight: 8 },
+  searchIcon: { marginRight: 6 },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Typography.body,
     color: PRIMARY,
     height: '100%',
   },
   clearButton: { padding: 4 },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: INPUT_BG,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 42,
+    minWidth: 80,
+  },
+  filterButtonActive: {
+    backgroundColor: PRIMARY,
+  },
+  filterButtonText: {
+    fontSize: 12,
+    fontFamily: Typography.bodyMedium,
+    color: PRIMARY,
+  },
+  filterButtonTextActive: {
+    color: '#FFFFFF',
+    fontFamily: Typography.headingSemiBold,
+  },
 
   activeSalespersonCard: {
     flexDirection: 'row',

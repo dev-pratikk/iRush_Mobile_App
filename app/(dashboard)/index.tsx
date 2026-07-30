@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Text, ActivityIndicator
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KpiCard } from '../../components/dashboard/KpiCard';
-import { SkeletonSummaryCard } from '../../components/ui/SkeletonLoader';
+import { SkeletonSummaryCard, SkeletonKpiCard } from '../../components/ui/SkeletonLoader';
 import { DASHBOARD_KPIS } from '@mocks/dashboard';
 import type { DatePeriod } from '../../types/dashboard';
 import { useAuthContext } from '../../context/AuthContext';
@@ -276,42 +276,45 @@ export default function DashboardScreen() {
             <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Today</Text>
             <RevenueOverview period="today" stats={stats} loading={loading} usingSample={usingSample} />
             <View style={styles.kpiGrid}>
-              {DASHBOARD_KPIS.map((kpi, index) => (
-                <View key={`today-${index}`} style={styles.kpiCardContainer}>
-                  <KpiCard
-                    kpi={kpi}
-                    period="today"
-                    value={getKpiValueFromStats(kpi.label, stats, 'today')}
-                    onPress={getKpiOnPress(kpi.label, 'today')}
-                  />
-                </View>
-              ))}
+              {loading && !stats
+                ? [1, 2, 3, 4].map((i) => (
+                    <View key={`today-skel-${i}`} style={styles.kpiCardContainer}>
+                      <SkeletonKpiCard />
+                    </View>
+                  ))
+                : DASHBOARD_KPIS.map((kpi, index) => (
+                    <View key={`today-${index}`} style={styles.kpiCardContainer}>
+                      <KpiCard
+                        kpi={kpi}
+                        period="today"
+                        value={getKpiValueFromStats(kpi.label, stats, 'today')}
+                        onPress={getKpiOnPress(kpi.label, 'today')}
+                      />
+                    </View>
+                  ))}
             </View>
 
             {/* This Month Section */}
             <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 8 }]}>This month</Text>
             <RevenueOverview period="month" stats={stats} loading={loading} usingSample={usingSample} />
             <View style={styles.kpiGrid}>
-              {DASHBOARD_KPIS.map((kpi, index) => (
-                <View key={`month-${index}`} style={styles.kpiCardContainer}>
-                  <KpiCard
-                    kpi={kpi}
-                    period="month"
-                    value={getKpiValueFromStats(kpi.label, stats, 'month')}
-                    onPress={getKpiOnPress(kpi.label, 'month')}
-                  />
-                </View>
-              ))}
+              {loading && !stats
+                ? [1, 2, 3, 4].map((i) => (
+                    <View key={`month-skel-${i}`} style={styles.kpiCardContainer}>
+                      <SkeletonKpiCard />
+                    </View>
+                  ))
+                : DASHBOARD_KPIS.map((kpi, index) => (
+                    <View key={`month-${index}`} style={styles.kpiCardContainer}>
+                      <KpiCard
+                        kpi={kpi}
+                        period="month"
+                        value={getKpiValueFromStats(kpi.label, stats, 'month')}
+                        onPress={getKpiOnPress(kpi.label, 'month')}
+                      />
+                    </View>
+                  ))}
             </View>
-
-            {loading && !refreshing ? (
-              <View style={styles.loadingRow}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-                  Loading dashboard…
-                </Text>
-              </View>
-            ) : null}
           </View>
         </ScrollView>
         <BottomNav />

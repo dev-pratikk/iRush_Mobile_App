@@ -13,6 +13,7 @@ import {
   DashboardPeriod as DatePeriod,
 } from '../../services/api/quotes.service';
 import { useQuotes } from '../../hooks/useQuotes';
+import { SkeletonSummaryCard, SkeletonRowItem } from '../../components/ui/SkeletonLoader';
 
 const PRIMARY = '#2C2C2A';
 const MUTED = '#6F6E6A';
@@ -246,9 +247,11 @@ export default function QuotesOverviewScreen() {
         ) : null}
 
         {isLoading && !data ? (
-          <View style={styles.loadingRow}>
-            <ActivityIndicator size="small" color={PRIMARY} />
-            <Text style={styles.loadingText}>Loading quotes…</Text>
+          <View style={{ gap: 12, paddingTop: 8 }}>
+            <SkeletonSummaryCard />
+            <SkeletonRowItem />
+            <SkeletonRowItem />
+            <SkeletonRowItem />
           </View>
         ) : (
           <>

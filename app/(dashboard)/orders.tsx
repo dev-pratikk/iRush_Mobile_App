@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { useThemeColors } from '../../context/ThemeContext';
 import { useAuthContext } from '../../context/AuthContext';
-import { SkeletonSummaryCard } from '../../components/ui/SkeletonLoader';
+import { SkeletonSummaryCard, SkeletonKpiCard } from '../../components/ui/SkeletonLoader';
 import { router, usePathname } from 'expo-router';
 import {
   formatCurrencyWithCents,
@@ -102,10 +102,30 @@ const SummaryCard = ({
 const OrdersKpiGrid = ({
   totalCount,
   totalAmount,
+  loading = false,
 }: {
   totalCount: number;
   totalAmount: number;
+  loading?: boolean;
 }) => {
+  if (loading) {
+    return (
+      <View style={styles.kpiContainer}>
+        <View style={styles.kpiRow}>
+          <SkeletonKpiCard />
+          <SkeletonKpiCard />
+        </View>
+        <View style={styles.kpiRow}>
+          <SkeletonKpiCard />
+          <SkeletonKpiCard />
+        </View>
+        <View style={styles.kpiRow}>
+          <SkeletonKpiCard />
+          <SkeletonKpiCard />
+        </View>
+      </View>
+    );
+  }
   const openCount = Math.round(totalCount * 0.77) || 214;
   const openAmount = totalAmount * 0.75 || 1940000;
 
@@ -260,7 +280,7 @@ export default function OrdersScreen() {
       >
         <View style={styles.contentContainer}>
           <SummaryCard count={totalCount} totalAmount={totalAmount} loading={loading} />
-          <OrdersKpiGrid totalCount={totalCount} totalAmount={totalAmount} />
+          <OrdersKpiGrid totalCount={totalCount} totalAmount={totalAmount} loading={loading} />
         </View>
       </ScrollView>
       <BottomNav />

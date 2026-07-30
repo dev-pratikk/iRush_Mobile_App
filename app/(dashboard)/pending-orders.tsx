@@ -27,7 +27,7 @@ import {
 import { usePendingOrders, type OpenOrderRowItem } from '../../hooks/useOpenOrders';
 import { PaginationFooter } from '../../components/ui/PaginationFooter';
 import type { PendingOrdersSummary } from '../../types/api/open-orders';
-import { SkeletonRowItem } from '../../components/ui/SkeletonLoader';
+import { SkeletonRowItem, SkeletonSummaryCard } from '../../components/ui/SkeletonLoader';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';
@@ -69,11 +69,7 @@ const SummaryBreakdownCard = ({
   const [expanded, setExpanded] = useState(false);
 
   if (loading && !summary) {
-    return (
-      <View style={[styles.summaryCard, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="small" color={SUMMARY_CARD_TEXT} />
-      </View>
-    );
+    return <SkeletonSummaryCard />;
   }
 
   const count = summary?.totalOrders ?? SAMPLE_OPEN_ORDERS.pendingOrdersCount;

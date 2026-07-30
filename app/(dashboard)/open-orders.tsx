@@ -13,6 +13,7 @@ import {
   getOpenOrders,
 } from '../../services/api/open-orders.service';
 import { formatCurrencyWithCents, formatNumber } from '../../services/api/orders.service';
+import { SkeletonSummaryCard, SkeletonKpiCard } from '../../components/ui/SkeletonLoader';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';
@@ -174,9 +175,21 @@ export default function OpenOrdersScreen() {
         }
       >
         <View style={styles.contentContainer}>
-          <SummaryCard data={data} />
-          <PendingAndPartialKpiGrid data={data} />
-          {!!error && (
+          {loading ? (
+            <>
+              <SkeletonSummaryCard />
+              <View style={styles.kpiRow}>
+                <SkeletonKpiCard />
+                <SkeletonKpiCard />
+              </View>
+            </>
+          ) : (
+            <>
+              <SummaryCard data={data} />
+              <PendingAndPartialKpiGrid data={data} />
+            </>
+          )}
+          {!!error && !loading && (
             <View style={styles.errorCard}>
               <Ionicons name="warning-outline" size={18} color="#8A1C1C" />
               <Text style={styles.errorText}>{error} — showing sample data</Text>

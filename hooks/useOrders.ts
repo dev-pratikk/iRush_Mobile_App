@@ -3,7 +3,7 @@ import { useInfiniteResource } from './useInfiniteResource';
 import { fetchOrdersPage, type DashboardPeriod, type OrdersSearchParam } from '../services/api/orders.service';
 import type { OrderItem } from '../types/api/orders';
 
-export interface OrdersRowItem {
+export interface OrdersRowItem extends OrderItem {
   id: string;
   orderNo: string;
   companyName: string;
@@ -17,6 +17,7 @@ export interface OrdersRowItem {
 }
 
 const mapOrderItem = (raw: OrderItem): OrdersRowItem => ({
+  ...raw,
   id: String(raw.ORDER_ID ?? raw.ORDER_NO),
   orderNo: String(raw.ORDER_NO ?? ''),
   companyName: String(raw.COMPANY_NAME ?? ''),

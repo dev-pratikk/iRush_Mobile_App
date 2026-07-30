@@ -15,7 +15,7 @@ import type { OpenOrderItem, PendingOrdersSummary, PartialOrdersSummary } from '
 // orderPackingSlips, customerContact, shippingAddress). We strip all of that
 // and pass only primitive display fields into the FlatList.
 
-export interface OpenOrderRowItem {
+export interface OpenOrderRowItem extends OpenOrderItem {
   id: string;
   orderNo: string;
   companyName: string;
@@ -49,6 +49,7 @@ const mapOpenOrderItem = (raw: OpenOrderItem): OpenOrderRowItem => {
     'N/A';
 
   return {
+    ...raw,
     id: String(raw.ORDER_ID ?? raw.ORDER_NO ?? Math.random()),
     orderNo,
     companyName: company,
@@ -57,14 +58,16 @@ const mapOpenOrderItem = (raw: OpenOrderItem): OpenOrderRowItem => {
       ? raw.ORDER_TOTALCOST_AF_DISCCHRG
       : Number.isFinite((raw as any).totalAmount)
       ? (raw as any).totalAmount
+      : Number.isFinite((raw as any).ORDER_TOTAL)
+      ? (raw as any).ORDER_TOTAL
       : 0,
     pendingAmount: Number.isFinite(raw.pendingAmount)
       ? raw.pendingAmount
       : Number.isFinite((raw as any).pending_amount)
       ? (raw as any).pending_amount
       : 0,
-    orderType: trimStr(raw.orderType || (raw as any).order_type),
-    orderStatus: trimStr(raw.orderStatus || (raw as any).order_status),
+    orderType: trimStr(raw.orderType || (raw as any).order_type || (raw as any).ORDER_TYPE_NAME),
+    orderStatus: trimStr(raw.orderStatus || (raw as any).order_status || (raw as any).ORDER_STATUS),
     vendorCount: vendors.total,
     vendorCompletedCount: vendors.completed,
     daysLeft: extractDaysLeft(raw),

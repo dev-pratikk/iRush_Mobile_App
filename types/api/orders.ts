@@ -1,20 +1,36 @@
+import type {
+  OpenOrderDetail,
+  OpenOrderShippingAddress,
+  OpenOrderCustomerContact,
+  OpenOrderInvoice,
+  OpenOrderPackingSlip,
+  OpenOrderVendor,
+} from './open-orders';
+
 export interface OrderItem {
-  ORDER_ID: number;
+  ORDER_ID: number | string;
   ORDER_NO: string;
   COMPANY_NAME: string;
   COMPANY_CODE: string;
   ORDER_DATE: string;
   UPDATED_DATE: string;
   ORDER_TYPE_NAME: string;
-  CUSTOMERID: number;
+  CUSTOMERID: number | string;
   ORDER_TOTAL: number;
   ORDER_CATEGORY: string;
   ORDER_STATUS: string;
-  QUOTE_ID: number | null;
-  QUOTE_NO: string | null;
-  QUOTE_DATE: string | null;
+  QUOTE_ID?: number | string | null;
+  QUOTE_NO?: string | null;
+  QUOTE_DATE?: string | null;
   SALESPERSON_NAME: string;
-  CUSTOMER_STATUS: string;
+  CUSTOMER_STATUS?: string;
+  orderDetails?: OpenOrderDetail[];
+  shippingAddress?: OpenOrderShippingAddress;
+  customerContact?: OpenOrderCustomerContact;
+  invoices?: OpenOrderInvoice[];
+  orderPackingSlips?: OpenOrderPackingSlip[];
+  orderVendors?: OpenOrderVendor[];
+  [key: string]: any;
 }
 
 export interface OrdersListResponse {

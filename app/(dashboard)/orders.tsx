@@ -60,15 +60,7 @@ const Header = () => {
         <Text style={styles.headerTitle}>Orders</Text>
       </View>
 
-      <View style={styles.headerRightGroup}>
-        <TouchableOpacity
-          style={styles.viewAllHeaderBtn}
-          onPress={() => router.push('/all-orders' as any)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.viewAllHeaderText}>All Orders</Text>
-        </TouchableOpacity>
-
+      <View style={styles.headerIconWrap}>
         <TouchableOpacity
           style={styles.headerIconInner}
           onPress={() => router.push('/notifications' as any)}

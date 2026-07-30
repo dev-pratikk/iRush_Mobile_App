@@ -42,7 +42,11 @@ const Header = () => {
         </Text>
       </View>
       <View style={styles.headerRight}>
-        <TouchableOpacity style={styles.headerButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => router.push('/notifications' as any)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons
             name="notifications-outline"
             size={22}

@@ -40,7 +40,11 @@ const Header = () => {
         <Text style={styles.headerTitle}>Quotes</Text>
       </View>
       <View style={styles.headerIconWrap}>
-        <TouchableOpacity style={styles.headerIconInner} hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}>
+        <TouchableOpacity
+          style={styles.headerIconInner}
+          onPress={() => router.push('/notifications' as any)}
+          hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
+        >
           <Ionicons name="notifications-outline" size={20} color={PRIMARY} />
           <View style={styles.badge} pointerEvents="none">
             <Text style={styles.badgeText}>3</Text>

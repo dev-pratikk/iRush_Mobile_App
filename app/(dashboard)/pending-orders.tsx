@@ -65,7 +65,7 @@ const SummaryBreakdownCard = ({
   loading: boolean;
   usingSample: boolean;
 }) => {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   if (loading && !summary) {
     return (

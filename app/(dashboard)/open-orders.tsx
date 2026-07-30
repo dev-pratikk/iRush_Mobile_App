@@ -16,12 +16,6 @@ import { formatCurrencyWithCents, formatNumber } from '../../services/api/orders
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';
-const DIVIDER = '#E7E6E2';
-const SUMMARY_CARD_BG = '#3A4151';
-const SUMMARY_CARD_TEXT = '#FFFFFF';
-const CARD_BG = '#FFFFFF';
-const MUTED_LABEL = '#9C9B95';
-
 const DEFAULT_TIMEOUT_MS = 20000;
 
 const Header = () => {
@@ -68,40 +62,34 @@ const SummaryCard = ({ data }: { data: OpenOrdersResponse }) => {
   );
 };
 
-const OrderSectionCard = ({
-  title,
-  sectionStats,
-  navigateTo,
-}: {
-  title: string;
-  sectionStats: { label: string; value: string }[];
-  navigateTo: string;
-}) => {
-  const colors = useThemeColors();
+const PendingAndPartialKpiGrid = ({ data }: { data: OpenOrdersResponse }) => {
+  const pendingCount = data.pendingOrdersCount ?? data.pendingOrdersSummary?.totalOrders ?? 0;
+  const pendingAmount = data.pendingOrdersAmount ?? data.pendingOrdersSummary?.totalOrderedAmount ?? 0;
+
+  const partialCount = data.partialOrdersCount ?? data.partialOrdersSummary?.totalOrders ?? 0;
+  const partialAmount = data.partialOrdersAmount ?? data.partialOrdersSummary?.totalOrderedAmount ?? 0;
+
   return (
-    <View style={[styles.card, { backgroundColor: CARD_BG }]}>
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitleWrap}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{title}</Text>
-        </View>
-        <TouchableOpacity
-          onPress={() => router.push(navigateTo as any)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="chevron-forward" size={20} color={SECONDARY} />
-        </TouchableOpacity>
-      </View>
-      <View style={styles.sectionContent}>
-        {sectionStats.map((item, index) => (
-          <View
-            key={index}
-            style={[styles.sectionRow, index < sectionStats.length - 1 && styles.sectionRowBorder]}
-          >
-            <Text style={[styles.rowLabel, { color: MUTED_LABEL }]}>{item.label}</Text>
-            <Text style={[styles.rowValue, { color: colors.textPrimary }]}>{item.value}</Text>
-          </View>
-        ))}
-      </View>
+    <View style={styles.kpiRow}>
+      <TouchableOpacity
+        style={styles.whiteKpiCard}
+        onPress={() => router.push('/pending-orders' as any)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.kpiHeaderLabel}>PENDING ORDERS</Text>
+        <Text style={styles.kpiCountText}>{formatNumber(pendingCount)}</Text>
+        <Text style={styles.kpiAmountText}>{formatCurrencyWithCents(pendingAmount)}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.whiteKpiCard}
+        onPress={() => router.push('/partial-orders' as any)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.kpiHeaderLabel}>PARTIAL ORDERS</Text>
+        <Text style={styles.kpiCountText}>{formatNumber(partialCount)}</Text>
+        <Text style={styles.kpiAmountText}>{formatCurrencyWithCents(partialAmount)}</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -122,7 +110,7 @@ const BottomNav = () => {
         return (
           <TouchableOpacity key={index} style={styles.navTab} onPress={() => router.push(tab.route as any)}>
             <Ionicons
-              name={isActive ? `${tab.icon}` : `${tab.icon}-outline` as any}
+              name={isActive ? `${tab.icon}` : (`${tab.icon}-outline` as any)}
               size={24}
               color={isActive ? colors.primary : colors.inactive}
             />
@@ -174,101 +162,6 @@ export default function OpenOrdersScreen() {
     loadData(true);
   }, [loadData]);
 
-  const pendingSummary = data.pendingOrdersSummary;
-  const partialSummary = data.partialOrdersSummary;
-
-  const pendingStats = [
-    {
-      label: 'No of Orders',
-      value: formatNumber(pendingSummary?.totalOrders ?? data.pendingOrdersCount ?? 0),
-    },
-    {
-      label: 'Total Pending Orders Value',
-      value: formatCurrencyWithCents(pendingSummary?.totalOrderedAmount ?? data.pendingOrdersAmount ?? 0),
-    },
-    {
-      label: 'Orders Assigned To Vendors',
-      value: formatNumber(pendingSummary?.ordersWithVendorCount ?? 0),
-    },
-    {
-      label: 'Assigned Vendor Order Value',
-      value: formatCurrencyWithCents(
-        pendingSummary?.ordersWithVendorAmount ?? pendingSummary?.vendorOrderAmount ?? data.vendorOrderAmount ?? 0
-      ),
-    },
-    {
-      label: 'Orders Without Vendor Assignment',
-      value: formatNumber(pendingSummary?.ordersWithoutVendorCount ?? 0),
-    },
-    {
-      label: 'Shipped Order Quantity Value',
-      value: formatCurrencyWithCents(pendingSummary?.totalShippedAmount ?? data.totalShippedAmount ?? 0),
-    },
-    {
-      label: 'Pending Order Quantity Value',
-      value: formatCurrencyWithCents(
-        pendingSummary?.totalPendingAmount ?? data.totalPendingAmount ?? data.pendingOrdersAmount ?? 0
-      ),
-    },
-    {
-      label: 'Invoiced Order Quantity Value',
-      value: formatCurrencyWithCents(pendingSummary?.totalInvoicedAmount ?? data.totalInvoicedAmount ?? 0),
-    },
-    {
-      label: 'Payment Recived',
-      value: formatCurrencyWithCents(pendingSummary?.totalPaymentsReceived ?? data.totalPaymentsReceived ?? 0),
-    },
-    {
-      label: 'Advance Payment Recieved',
-      value: formatCurrencyWithCents(pendingSummary?.advancePaymentReceived ?? 0),
-    },
-  ];
-
-  const partialStats = [
-    {
-      label: 'No of Orders',
-      value: formatNumber(partialSummary?.totalOrders ?? data.partialOrdersCount ?? 0),
-    },
-    {
-      label: 'Total Partial Order Value',
-      value: formatCurrencyWithCents(partialSummary?.totalOrderedAmount ?? data.partialOrdersAmount ?? 0),
-    },
-    {
-      label: 'Orders Assigned To Vendors',
-      value: formatNumber(partialSummary?.ordersWithVendorCount ?? 0),
-    },
-    {
-      label: 'Assigned Vendor Order Value',
-      value: formatCurrencyWithCents(
-        partialSummary?.ordersWithVendorAmount ?? partialSummary?.vendorOrderAmount ?? 0
-      ),
-    },
-    {
-      label: 'Orders Without Vendor Assignment',
-      value: formatNumber(partialSummary?.ordersWithoutVendorCount ?? 0),
-    },
-    {
-      label: 'Shipped Order Quantity Value',
-      value: formatCurrencyWithCents(partialSummary?.totalShippedAmount ?? 0),
-    },
-    {
-      label: 'Pending Order Quantity Value',
-      value: formatCurrencyWithCents(partialSummary?.totalPendingAmount ?? 0),
-    },
-    {
-      label: 'Invoiced Order Quantity Value',
-      value: formatCurrencyWithCents(partialSummary?.totalInvoicedAmount ?? 0),
-    },
-    {
-      label: 'Payment Recived',
-      value: formatCurrencyWithCents(partialSummary?.totalPaymentsReceived ?? 0),
-    },
-    {
-      label: 'Advance Payment Recieved',
-      value: formatCurrencyWithCents(partialSummary?.advancePaymentReceived ?? 0),
-    },
-  ];
-
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
       <Header />
@@ -282,16 +175,7 @@ export default function OpenOrdersScreen() {
       >
         <View style={styles.contentContainer}>
           <SummaryCard data={data} />
-          <OrderSectionCard
-            title="Pending orders"
-            sectionStats={pendingStats}
-            navigateTo="/pending-orders"
-          />
-          <OrderSectionCard
-            title="Partial orders"
-            sectionStats={partialStats}
-            navigateTo="/partial-orders"
-          />
+          <PendingAndPartialKpiGrid data={data} />
           {!!error && (
             <View style={styles.errorCard}>
               <Ionicons name="warning-outline" size={18} color="#8A1C1C" />
@@ -305,8 +189,6 @@ export default function OpenOrdersScreen() {
   );
 }
 
-const hairline = StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5;
-
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   scrollView: { flex: 1 },
@@ -318,112 +200,111 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  headerButton: {
+    position: 'relative',
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle: { fontSize: 24, fontFamily: Typography.titleSerif },
+  headerTitle: { fontSize: 20, fontFamily: Typography.titleSerif },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerButton: { position: 'relative', width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   badge: {
-    position: 'absolute', top: 4, right: 4,
-    width: 16, height: 16, borderRadius: 8,
-    justifyContent: 'center', alignItems: 'center',
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  badgeText: { color: 'white', fontSize: 10, fontFamily: Typography.headingSemiBold },
+  badgeText: { color: '#FFFFFF', fontSize: 10, fontFamily: Typography.headingSemiBold },
 
   summaryCard: {
-    borderRadius: 12,
-    padding: 16,
-    backgroundColor: SUMMARY_CARD_BG,
+    backgroundColor: '#3A4151',
+    borderRadius: 16,
+    padding: 20,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: 'center',
   },
-  summaryColLeft: { flex: 1, paddingRight: 12 },
-  summaryColRight: { alignItems: 'flex-end', flexShrink: 0 },
+  summaryColLeft: { gap: 4 },
   summaryCountLabel: {
-    fontSize: 12,
-    fontFamily: Typography.body,
-    color: 'rgba(255,255,255,0.75)',
-    includeFontPadding: false,
-    marginBottom: 4,
+    fontSize: 14,
+    fontFamily: Typography.bodyMedium,
+    color: 'rgba(255, 255, 255, 0.75)',
   },
   summaryCount: {
-    fontSize: 34,
-    lineHeight: 38,
+    fontSize: 32,
     fontFamily: Typography.numberHeavy,
     fontWeight: '800',
-    color: SUMMARY_CARD_TEXT,
-    includeFontPadding: false,
+    color: '#FFFFFF',
   },
-  summaryAmountLabel: {
-    fontSize: 12,
-    fontFamily: Typography.body,
-    color: 'rgba(255,255,255,0.75)',
-    includeFontPadding: false,
-    marginBottom: 4,
-  },
+  summaryColRight: { alignItems: 'flex-end' },
   summaryValue: {
-    fontSize: 18,
-    lineHeight: 22,
+    fontSize: 22,
     fontFamily: Typography.numberHeavy,
-    fontWeight: '800',
-    color: SUMMARY_CARD_TEXT,
-    includeFontPadding: false,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 
-  card: {
-    borderRadius: 14,
+  kpiRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  whiteKpiCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E7E6E2',
+    padding: 16,
+    gap: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
-    elevation: 1,
-    padding: 16,
+    elevation: 2,
   },
-
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  kpiHeaderLabel: {
+    fontSize: 11,
+    fontFamily: Typography.headingSemiBold,
+    color: '#8C94A0',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  sectionTitleWrap: { flex: 1 },
-  sectionTitle: { fontSize: 16, fontFamily: Typography.headingSemiBold, fontWeight: '600' },
-  sectionContent: {
-    marginTop: 10,
-    paddingTop: 12,
-    borderTopWidth: hairline,
-    borderTopColor: DIVIDER,
+  kpiCountText: {
+    fontSize: 26,
+    fontFamily: Typography.numberHeavy,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginVertical: 2,
   },
-  sectionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
+  kpiAmountText: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: '#64748B',
   },
-  sectionRowBorder: {
-    borderBottomWidth: hairline,
-    borderBottomColor: DIVIDER,
-  },
-  rowLabel: { fontSize: 13, fontFamily: Typography.body, fontWeight: '400' },
-  rowValue: { fontSize: 13, fontFamily: Typography.bodySemiBold, fontWeight: '600' },
 
   errorCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#FBEAEA',
+    backgroundColor: '#FDF2F2',
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#F8B4B4',
   },
-  errorText: {
-    flex: 1,
-    fontSize: 12,
-    fontFamily: Typography.body,
-    color: '#8A1C1C',
-  },
+  errorText: { fontSize: 12, color: '#8A1C1C', flex: 1 },
 
   bottomNav: {
     flexDirection: 'row',
@@ -431,7 +312,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     paddingHorizontal: 16,
     justifyContent: 'space-between',
-    borderTopWidth: hairline,
+    borderTopWidth: 1,
   },
   navTab: { alignItems: 'center', paddingVertical: 4 },
   navLabel: { fontSize: 11, fontFamily: Typography.bodyMedium, marginTop: 4 },

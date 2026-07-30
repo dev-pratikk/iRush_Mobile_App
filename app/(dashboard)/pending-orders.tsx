@@ -9,12 +9,14 @@ import {
   RefreshControl,
   ActivityIndicator,
   BackHandler,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { useAuthContext } from '../../context/AuthContext';
-import { router, usePathname } from 'expo-router';
+import { router } from 'expo-router';
 import { formatCurrencyWithCents, formatNumber, formatOrderDate } from '../../services/api/orders.service';
 import {
   SAMPLE_OPEN_ORDERS,
@@ -28,17 +30,11 @@ import type { PendingOrdersSummary } from '../../types/api/open-orders';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';
-const DIVIDER = '#E7E6E2';
 const PAGE_BG = '#FFFFFF';
-const SUMMARY_CARD_BG = '#3A4151';
 const SUMMARY_CARD_TEXT = '#FFFFFF';
 const INPUT_BG = '#F5F5F2';
 
-const SEARCH_OPTIONS: { label: string; type: OpenOrderSearchType; placeholder: string }[] = [
-  { label: 'Order No', type: 'orderNo', placeholder: 'Search by order number…' },
-  { label: 'Company', type: 'companyName', placeholder: 'Search by company name…' },
-  { label: 'Salesperson', type: 'salesperson', placeholder: 'Search by salesperson…' },
-];
+const DEFAULT_SALESPERSONS = ['Imran', 'John', 'Sarah', 'Alex', 'Michael', 'David'];
 
 // ─── Header ──────────────────────────────────────────────────────────────────
 
@@ -58,9 +54,9 @@ const Header = () => (
   </View>
 );
 
-// ─── KPI Summary Card ─────────────────────────────────────────────────────────
+// ─── Detailed Summary Breakdown Card ──────────────────────────────────────────
 
-const SummaryCard = ({
+const SummaryBreakdownCard = ({
   summary,
   loading,
   usingSample,
@@ -69,6 +65,8 @@ const SummaryCard = ({
   loading: boolean;
   usingSample: boolean;
 }) => {
+  const [expanded, setExpanded] = useState(true);
+
   if (loading && !summary) {
     return (
       <View style={[styles.summaryCard, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -76,96 +74,250 @@ const SummaryCard = ({
       </View>
     );
   }
+
   const count = summary?.totalOrders ?? SAMPLE_OPEN_ORDERS.pendingOrdersCount;
   const amount = summary?.totalOrderedAmount ?? SAMPLE_OPEN_ORDERS.pendingOrdersAmount;
+
+  const statRows = [
+    { label: 'No of Orders', value: formatNumber(count) },
+    { label: 'Total Pending Orders Value', value: formatCurrencyWithCents(amount) },
+    { label: 'Orders Assigned To Vendors', value: formatNumber(summary?.ordersWithVendorCount ?? 0) },
+    {
+      label: 'Assigned Vendor Order Value',
+      value: formatCurrencyWithCents(summary?.ordersWithVendorAmount ?? summary?.vendorOrderAmount ?? 0),
+    },
+    { label: 'Orders Without Vendor Assignment', value: formatNumber(summary?.ordersWithoutVendorCount ?? 0) },
+    { label: 'Shipped Order Quantity Value', value: formatCurrencyWithCents(summary?.totalShippedAmount ?? 0) },
+    { label: 'Pending Order Quantity Value', value: formatCurrencyWithCents(summary?.totalPendingAmount ?? amount) },
+    { label: 'Invoiced Order Quantity Value', value: formatCurrencyWithCents(summary?.totalInvoicedAmount ?? 0) },
+    { label: 'Payment Received', value: formatCurrencyWithCents(summary?.totalPaymentsReceived ?? 0) },
+    { label: 'Advance Payment Received', value: formatCurrencyWithCents(summary?.advancePaymentReceived ?? 0) },
+  ];
+
   return (
-    <View style={styles.summaryCard}>
-      <View style={styles.summaryLeft}>
-        <Text style={styles.summaryCount}>{formatNumber(count)}</Text>
-        {usingSample && (
-          <View style={styles.demoPill}>
-            <Text style={styles.demoPillText}>Demo</Text>
-          </View>
-        )}
-      </View>
-      <Text style={styles.summaryAmount}>{formatCurrencyWithCents(amount)}</Text>
+    <View style={styles.breakdownCard}>
+      <TouchableOpacity
+        style={styles.breakdownHeader}
+        onPress={() => setExpanded(!expanded)}
+        activeOpacity={0.85}
+      >
+        <View style={styles.breakdownTitleRow}>
+          <Text style={styles.breakdownTitle}>Pending Orders Summary</Text>
+          <Text style={styles.breakdownSubtitle}>
+            {formatNumber(count)} orders · {formatCurrencyWithCents(amount)}
+          </Text>
+        </View>
+        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color="#FFFFFF" />
+      </TouchableOpacity>
+
+      {expanded && (
+        <View style={styles.breakdownContent}>
+          {statRows.map((row, index) => (
+            <View
+              key={index}
+              style={[styles.breakdownRow, index < statRows.length - 1 && styles.breakdownRowBorder]}
+            >
+              <Text style={styles.breakdownRowLabel}>{row.label}</Text>
+              <Text style={styles.breakdownRowValue}>{row.value}</Text>
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 };
 
-// ─── Search Bar Component ────────────────────────────────────────────────────
+// ─── Search Bar & Salesperson Filter Section ──────────────────────────────────
 
 const SearchBarSection = ({
   searchType,
   setSearchType,
   inputText,
   setInputText,
+  selectedSalesperson,
+  setSelectedSalesperson,
+  availableSalespersons,
   onClear,
 }: {
   searchType: OpenOrderSearchType;
   setSearchType: (type: OpenOrderSearchType) => void;
   inputText: string;
   setInputText: (text: string) => void;
+  selectedSalesperson: string | null;
+  setSelectedSalesperson: (sp: string | null) => void;
+  availableSalespersons: string[];
   onClear: () => void;
 }) => {
-  const currentOption = SEARCH_OPTIONS.find((o) => o.type === searchType) ?? SEARCH_OPTIONS[0];
+  const [modalVisible, setModalVisible] = useState(false);
 
-  const handleTypeSelect = (newType: OpenOrderSearchType) => {
-    if (newType !== searchType) {
-      setSearchType(newType);
-      onClear(); // Auto-clear text when switching type to avoid cross-query mismatches
+  const handleTypeSelect = (type: OpenOrderSearchType) => {
+    if (type === 'salesperson') {
+      setModalVisible(true);
+    } else {
+      setSearchType(type);
+      setSelectedSalesperson(null);
+      onClear();
     }
+  };
+
+  const handleSelectSalesperson = (sp: string | null) => {
+    setSelectedSalesperson(sp);
+    if (sp) {
+      setSearchType('salesperson');
+      setInputText('');
+    } else {
+      setSearchType('orderNo');
+    }
+    setModalVisible(false);
   };
 
   return (
     <View style={styles.searchSection}>
-      {/* Type Selector Pills */}
+      {/* Pills row */}
       <View style={styles.pillsRow}>
-        {SEARCH_OPTIONS.map((opt) => {
-          const isActive = opt.type === searchType;
-          return (
-            <TouchableOpacity
-              key={opt.type}
-              style={[styles.pill, isActive && styles.pillActive]}
-              onPress={() => handleTypeSelect(opt.type)}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.pillText, isActive && styles.pillTextActive]}>
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+        <TouchableOpacity
+          style={[styles.pill, searchType === 'orderNo' && !selectedSalesperson && styles.pillActive]}
+          onPress={() => handleTypeSelect('orderNo')}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[styles.pillText, searchType === 'orderNo' && !selectedSalesperson && styles.pillTextActive]}
+          >
+            Order No
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.pill, searchType === 'companyName' && !selectedSalesperson && styles.pillActive]}
+          onPress={() => handleTypeSelect('companyName')}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[styles.pillText, searchType === 'companyName' && !selectedSalesperson && styles.pillTextActive]}
+          >
+            Company
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.pill, (searchType === 'salesperson' || !!selectedSalesperson) && styles.pillActive]}
+          onPress={() => handleTypeSelect('salesperson')}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name="funnel-outline"
+            size={12}
+            color={searchType === 'salesperson' || !!selectedSalesperson ? '#FFFFFF' : SECONDARY}
+            style={{ marginRight: 4 }}
+          />
+          <Text
+            style={[
+              styles.pillText,
+              (searchType === 'salesperson' || !!selectedSalesperson) && styles.pillTextActive,
+            ]}
+          >
+            {selectedSalesperson ? `Rep: ${selectedSalesperson}` : 'Salesperson'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Search Input */}
-      <View style={styles.searchInputWrap}>
-        <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          value={inputText}
-          onChangeText={setInputText}
-          placeholder={currentOption.placeholder}
-          placeholderTextColor={SECONDARY}
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="search"
-        />
-        {inputText.length > 0 ? (
+      {/* Input or Active Salesperson Badge */}
+      {!selectedSalesperson ? (
+        <View style={styles.searchInputWrap}>
+          <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder={
+              searchType === 'companyName' ? 'Search by company name…' : 'Search by order number…'
+            }
+            placeholderTextColor={SECONDARY}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+          />
+          {inputText.length > 0 ? (
+            <TouchableOpacity
+              onPress={onClear}
+              style={styles.clearButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close-circle" size={18} color={SECONDARY} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : (
+        <View style={styles.activeSalespersonCard}>
+          <View style={styles.salespersonChipInfo}>
+            <Ionicons name="person-circle-outline" size={20} color={PRIMARY} />
+            <Text style={styles.salespersonChipText}>
+              Filtering Salesperson: <Text style={{ fontWeight: '700' }}>{selectedSalesperson}</Text>
+            </Text>
+          </View>
           <TouchableOpacity
-            onPress={onClear}
-            style={styles.clearButton}
+            style={styles.changeSalespersonBtn}
+            onPress={() => setModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.changeSalespersonBtnText}>Change</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.clearSalespersonBtn}
+            onPress={() => handleSelectSalesperson(null)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="close-circle" size={18} color={SECONDARY} />
           </TouchableOpacity>
-        ) : null}
-      </View>
+        </View>
+      )}
+
+      {/* Salesperson Picker Modal */}
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Salesperson</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={24} color={PRIMARY} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+              <TouchableOpacity
+                style={[styles.modalItem, !selectedSalesperson && styles.modalItemActive]}
+                onPress={() => handleSelectSalesperson(null)}
+              >
+                <Text style={[styles.modalItemText, !selectedSalesperson && styles.modalItemTextActive]}>
+                  All Salespersons (No filter)
+                </Text>
+                {!selectedSalesperson && <Ionicons name="checkmark" size={18} color={PRIMARY} />}
+              </TouchableOpacity>
+
+              {availableSalespersons.map((sp, idx) => {
+                const isActive = selectedSalesperson === sp;
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    style={[styles.modalItem, isActive && styles.modalItemActive]}
+                    onPress={() => handleSelectSalesperson(sp)}
+                  >
+                    <Text style={[styles.modalItemText, isActive && styles.modalItemTextActive]}>
+                      {sp}
+                    </Text>
+                    {isActive && <Ionicons name="checkmark" size={18} color={PRIMARY} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
 
-// ─── Order row card ───────────────────────────────────────────────────────────
+// ─── Order Row Component ──────────────────────────────────────────────────────
 
 const OrderRow = React.memo(function OrderRow({ item }: { item: OpenOrderRowItem }) {
   const orderDate = formatOrderDate(item.orderDate);
@@ -194,9 +346,7 @@ const OrderRow = React.memo(function OrderRow({ item }: { item: OpenOrderRowItem
   );
 });
 
-
-
-// ─── Empty states ─────────────────────────────────────────────────────────────
+// ─── Empty States ─────────────────────────────────────────────────────────────
 
 const DefaultEmptyState = () => (
   <View style={styles.emptyState}>
@@ -231,9 +381,7 @@ const SearchEmptyState = ({
   );
 };
 
-
-
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+// ─── Main Screen Component ────────────────────────────────────────────────────
 
 export default function PendingOrdersScreen() {
   const { user } = useAuthContext();
@@ -249,10 +397,11 @@ export default function PendingOrdersScreen() {
     return () => subscription.remove();
   }, []);
 
-  // ── Search State & Debouncing ───────────────────────────────────────────────
+  // Search & Filter State
   const [searchType, setSearchType] = useState<OpenOrderSearchType>('orderNo');
   const [inputText, setInputText] = useState('');
   const [debouncedValue, setDebouncedValue] = useState('');
+  const [selectedSalesperson, setSelectedSalesperson] = useState<string | null>(null);
 
   // Debounce input text by 400ms
   useEffect(() => {
@@ -264,12 +413,15 @@ export default function PendingOrdersScreen() {
 
   // Construct active search param
   const searchParam: OpenOrderSearchParam | null = useMemo(() => {
+    if (selectedSalesperson) {
+      return { type: 'salesperson', value: selectedSalesperson };
+    }
     const trimmed = debouncedValue.trim();
     if (!trimmed) return null;
     return { type: searchType, value: trimmed };
-  }, [searchType, debouncedValue]);
+  }, [searchType, debouncedValue, selectedSalesperson]);
 
-  // Fetch pending orders backed by React Query infinite resource
+  // Fetch pending orders
   const {
     items,
     rawPages,
@@ -285,16 +437,22 @@ export default function PendingOrdersScreen() {
     isRefreshing,
   } = usePendingOrders(token, searchParam);
 
-  // ── Pagination Cursor ──────────────────────────────────────────────────────
+  const availableSalespersons = useMemo(() => {
+    const fromItems = items
+      .map((it: any) => it.salespersonName || it.salesPersonName)
+      .filter((n: any) => typeof n === 'string' && n.trim().length > 0);
+    const combined = Array.from(new Set([...DEFAULT_SALESPERSONS, ...fromItems]));
+    return combined.sort();
+  }, [items]);
+
+  // Pagination Cursor
   const [currentPage, setCurrentPage] = useState(1);
   const pendingAdvanceRef = useRef(false);
 
-  // Reset to page 1 whenever searchParam changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchParam]);
 
-  // When a fetch triggered by Next completes, advance the cursor
   useEffect(() => {
     if (pendingAdvanceRef.current && !isFetchingNextPage) {
       pendingAdvanceRef.current = false;
@@ -302,7 +460,6 @@ export default function PendingOrdersScreen() {
     }
   }, [isFetchingNextPage]);
 
-  // Reset to page 1 when pull-to-refresh fires
   useEffect(() => {
     if (isRefreshing) {
       pendingAdvanceRef.current = false;
@@ -310,12 +467,10 @@ export default function PendingOrdersScreen() {
     }
   }, [isRefreshing]);
 
-  // ── Derived pagination values ───────────────────────────────────────────────
   const LIMIT = OPEN_ORDERS_PAGE_LIMIT;
   const totalRecords = (meta?.totalRecords as number | undefined) ?? 0;
   const totalPages = totalRecords > 0 ? Math.ceil(totalRecords / LIMIT) : Math.max(1, rawPages.length);
 
-  // Slice items for current page (local cursor)
   const displayItems = useMemo(
     () => items.slice((currentPage - 1) * LIMIT, currentPage * LIMIT),
     [items, currentPage, LIMIT]
@@ -327,11 +482,10 @@ export default function PendingOrdersScreen() {
     [isError, error]
   );
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
-
   const handleClearSearch = useCallback(() => {
     setInputText('');
     setDebouncedValue('');
+    setSelectedSalesperson(null);
     setCurrentPage(1);
   }, []);
 
@@ -351,26 +505,26 @@ export default function PendingOrdersScreen() {
     }
   }, [currentPage, rawPages.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // ── FlatList components ────────────────────────────────────────────────────
-
   const renderItem = useCallback(
     ({ item }: { item: OpenOrderRowItem }) => <OrderRow item={item} />,
     []
   );
 
   const keyExtractor = useCallback((item: OpenOrderRowItem) => item.id, []);
-
   const ItemSeparator = useCallback(() => <View style={styles.separator} />, []);
 
   const ListHeader = useMemo(
     () => (
       <View>
-        <SummaryCard summary={summary} loading={isLoading} usingSample={usingSample} />
+        <SummaryBreakdownCard summary={summary} loading={isLoading} usingSample={usingSample} />
         <SearchBarSection
           searchType={searchType}
           setSearchType={setSearchType}
           inputText={inputText}
           setInputText={setInputText}
+          selectedSalesperson={selectedSalesperson}
+          setSelectedSalesperson={setSelectedSalesperson}
+          availableSalespersons={availableSalespersons}
           onClear={handleClearSearch}
         />
         {errorMessage ? (
@@ -382,7 +536,18 @@ export default function PendingOrdersScreen() {
         <View style={styles.listDivider} />
       </View>
     ),
-    [summary, isLoading, usingSample, searchType, inputText, errorMessage, refetch, handleClearSearch]
+    [
+      summary,
+      isLoading,
+      usingSample,
+      searchType,
+      inputText,
+      selectedSalesperson,
+      availableSalespersons,
+      errorMessage,
+      refetch,
+      handleClearSearch,
+    ]
   );
 
   const ListFooter = useMemo(() => {
@@ -419,8 +584,12 @@ export default function PendingOrdersScreen() {
         ListHeaderComponent={ListHeader}
         ListFooterComponent={ListFooter}
         ListEmptyComponent={
-          isLoading ? null : debouncedValue.trim().length > 0 ? (
-            <SearchEmptyState query={debouncedValue.trim()} type={searchType} onClear={handleClearSearch} />
+          isLoading ? null : selectedSalesperson || debouncedValue.trim().length > 0 ? (
+            <SearchEmptyState
+              query={selectedSalesperson || debouncedValue.trim()}
+              type={selectedSalesperson ? 'salesperson' : searchType}
+              onClear={handleClearSearch}
+            />
           ) : (
             <DefaultEmptyState />
           )
@@ -453,7 +622,6 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: PAGE_BG },
   flatlistContent: { paddingBottom: 24, flexGrow: 1 },
 
-  // Header
   header: {
     height: 54,
     flexDirection: 'row',
@@ -469,66 +637,92 @@ const styles = StyleSheet.create({
     fontFamily: Typography.titleSerif,
     fontWeight: '500',
     color: PRIMARY,
-    includeFontPadding: false,
   },
   headerSpacer: { width: 40, height: 40 },
 
-  // KPI summary card
+  // Summary breakdown card
   summaryCard: {
     marginTop: 12,
     marginHorizontal: 16,
     marginBottom: 10,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    backgroundColor: SUMMARY_CARD_BG,
-    borderRadius: 12,
+    backgroundColor: '#3A4151',
+    borderRadius: 14,
+    padding: 16,
+  },
+
+  breakdownCard: {
+    marginTop: 12,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E7E6E2',
+    overflow: 'hidden',
+  },
+  breakdownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#3A4151',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  breakdownTitleRow: { gap: 2 },
+  breakdownTitle: {
+    fontSize: 14,
+    fontFamily: Typography.headingSemiBold,
+    color: '#FFFFFF',
+  },
+  breakdownSubtitle: {
+    fontSize: 12,
+    fontFamily: Typography.body,
+    color: 'rgba(255, 255, 255, 0.75)',
+  },
+  breakdownContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  breakdownRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
-    minHeight: 72,
+    alignItems: 'center',
+    paddingVertical: 8,
   },
-  summaryLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  summaryCount: {
-    fontSize: 34,
-    lineHeight: 38,
-    fontFamily: Typography.numberHeavy,
-    fontWeight: '800',
-    color: SUMMARY_CARD_TEXT,
-    includeFontPadding: false,
+  breakdownRowBorder: {
+    borderBottomWidth: hairline,
+    borderBottomColor: '#E7E6E2',
   },
-  summaryAmount: {
-    fontSize: 18,
-    lineHeight: 22,
-    fontFamily: Typography.numberHeavy,
-    fontWeight: '800',
-    color: SUMMARY_CARD_TEXT,
-    includeFontPadding: false,
-    flexShrink: 1,
-    textAlign: 'right',
+  breakdownRowLabel: {
+    fontSize: 12,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+    flex: 1,
   },
-  demoPill: {
-    backgroundColor: 'rgba(255,212,59,0.18)',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 999,
+  breakdownRowValue: {
+    fontSize: 13,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
   },
-  demoPillText: { fontSize: 10, fontFamily: Typography.headingSemiBold, color: '#B48A00' },
 
   // Search Section
   searchSection: {
     paddingHorizontal: 16,
+    gap: 10,
     marginBottom: 12,
-    gap: 8,
   },
   pillsRow: {
     flexDirection: 'row',
     gap: 8,
   },
   pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: '#F5F5F2',
+    backgroundColor: INPUT_BG,
   },
   pillActive: {
     backgroundColor: PRIMARY,
@@ -540,9 +734,9 @@ const styles = StyleSheet.create({
   },
   pillTextActive: {
     color: '#FFFFFF',
-    fontFamily: Typography.bodySemiBold,
-    fontWeight: '600',
+    fontFamily: Typography.headingSemiBold,
   },
+
   searchInputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -551,198 +745,141 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 42,
   },
-  searchIcon: {
-    marginRight: 8,
-  },
+  searchIcon: { marginRight: 8 },
   searchInput: {
     flex: 1,
+    fontSize: 14,
+    fontFamily: Typography.body,
+    color: PRIMARY,
+    height: '100%',
+  },
+  clearButton: { padding: 4 },
+
+  activeSalespersonCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F0F4F8',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  salespersonChipInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  salespersonChipText: {
     fontSize: 13,
     fontFamily: Typography.body,
     color: PRIMARY,
-    paddingVertical: 0,
   },
-  clearButton: {
-    padding: 2,
-    marginLeft: 6,
+  changeSalespersonBtn: {
+    backgroundColor: PRIMARY,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginRight: 8,
   },
-
-  listDivider: { height: hairline, backgroundColor: DIVIDER },
-
-  // Error banner
-  errorRow: {
-    marginHorizontal: 16,
-    marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: '#FBEAEA',
+  changeSalespersonBtnText: {
+    fontSize: 11,
+    fontFamily: Typography.headingSemiBold,
+    color: '#FFFFFF',
   },
-  errorRowText: { flex: 1, fontSize: 12, fontFamily: Typography.body, color: '#8A1C1C' },
+  clearSalespersonBtn: { padding: 2 },
 
-  // Loading
-  loadingWrap: {
+  // Modal
+  modalOverlay: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    paddingVertical: 60,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
   },
-  loadingText: { fontSize: 13, fontFamily: Typography.body, color: SECONDARY },
+  modalCard: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '60%',
+    paddingBottom: 24,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E7E6E2',
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
+  },
+  modalList: {
+    paddingHorizontal: 20,
+  },
+  modalItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: hairline,
+    borderBottomColor: '#E7E6E2',
+  },
+  modalItemActive: {
+    backgroundColor: '#F8FAFC',
+  },
+  modalItemText: {
+    fontSize: 14,
+    fontFamily: Typography.body,
+    color: PRIMARY,
+  },
+  modalItemTextActive: {
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
+  },
 
-  // Separator
-  separator: { height: hairline, backgroundColor: DIVIDER, marginHorizontal: 16 },
-
-  // Order row
+  // List rows
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-  },
-  rowLeftCol: {
-    flex: 1,
-    paddingRight: 12,
-    gap: 3,
-  },
-  rowRightCol: {
-    alignItems: 'flex-end',
-    flexShrink: 0,
-    gap: 3,
-  },
-  orderNoText: {
-    fontSize: 14,
-    fontFamily: Typography.numberHeavy,
-    fontWeight: '500',
-    color: PRIMARY,
-    includeFontPadding: false,
-  },
-  companyText: {
-    fontSize: 13,
-    fontFamily: Typography.body,
-    fontWeight: '400',
-    color: PRIMARY,
-    includeFontPadding: false,
-  },
-  vendorCountText: {
-    fontSize: 12,
-    fontFamily: Typography.body,
-    fontWeight: '400',
-    color: SECONDARY,
-    includeFontPadding: false,
-  },
-  amountText: {
-    fontSize: 14,
-    fontFamily: Typography.numberHeavy,
-    fontWeight: '500',
-    color: PRIMARY,
-    includeFontPadding: false,
-  },
-  dateText: {
-    fontSize: 12,
-    fontFamily: Typography.body,
-    color: SECONDARY,
-    includeFontPadding: false,
-  },
-  daysText: {
-    fontSize: 12,
-    fontFamily: Typography.body,
-    color: SECONDARY,
-    includeFontPadding: false,
-  },
-
-  // Empty states
-  emptyState: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 24, gap: 6 },
-  emptyTitle: {
-    fontSize: 15,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '600',
-    color: SECONDARY,
-    marginTop: 8,
-  },
-  emptySubtitle: {
-    fontSize: 12,
-    fontFamily: Typography.body,
-    color: SECONDARY,
-    opacity: 0.8,
-    textAlign: 'center',
-  },
-  clearSearchBtn: {
-    marginTop: 12,
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#EFEFEC',
+    paddingVertical: 12,
   },
-  clearSearchBtnText: {
-    fontSize: 12,
-    fontFamily: Typography.bodySemiBold,
-    fontWeight: '600',
-    color: PRIMARY,
-  },
+  rowLeftCol: { flex: 1, paddingRight: 12, gap: 2 },
+  rowRightCol: { alignItems: 'flex-end', gap: 2 },
+  orderNoText: { fontSize: 14, fontFamily: Typography.headingSemiBold, color: PRIMARY },
+  companyText: { fontSize: 13, fontFamily: Typography.body, color: SECONDARY },
+  vendorCountText: { fontSize: 12, fontFamily: Typography.bodyMedium, color: SECONDARY },
+  amountText: { fontSize: 14, fontFamily: Typography.headingSemiBold, color: PRIMARY },
+  dateText: { fontSize: 12, fontFamily: Typography.body, color: SECONDARY },
+  daysText: { fontSize: 12, fontFamily: Typography.bodyMedium, color: SECONDARY },
 
-  // Pagination footer
-  paginationWrap: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    gap: 12,
-    borderTopWidth: hairline,
-    borderTopColor: DIVIDER,
-    backgroundColor: '#FAFAF8',
-    marginTop: 4,
-  },
-  paginationSummary: {
-    fontSize: 12,
-    fontFamily: Typography.body,
-    color: SECONDARY,
-    textAlign: 'center',
-  },
-  paginationControls: {
+  separator: { height: hairline, backgroundColor: '#E7E6E2', marginHorizontal: 16 },
+  listDivider: { height: 1, backgroundColor: '#E7E6E2' },
+
+  errorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 6,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 8,
+    backgroundColor: '#FDF2F2',
+    borderRadius: 6,
   },
-  pageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    minWidth: 96,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#EFEFEC',
-    justifyContent: 'center',
-  },
-  pageButtonDisabled: { backgroundColor: '#F5F5F2' },
-  pageButtonText: {
-    fontSize: 13,
-    fontFamily: Typography.bodySemiBold,
-    fontWeight: '600',
-    color: PRIMARY,
-  },
-  pageButtonTextDisabled: { color: SECONDARY },
-  pageIndicator: {
-    fontSize: 13,
-    fontFamily: Typography.bodySemiBold,
-    fontWeight: '600',
-    color: PRIMARY,
-    minWidth: 64,
-    textAlign: 'center',
-  },
+  errorRowText: { fontSize: 12, color: '#8A1C1C', flex: 1 },
 
-  // Bottom nav
-  bottomNav: {
-    flexDirection: 'row',
-    paddingTop: 8,
-    paddingBottom: 24,
-    paddingHorizontal: 16,
-    justifyContent: 'space-between',
-    borderTopWidth: hairline,
-    borderTopColor: DIVIDER,
-    backgroundColor: PAGE_BG,
-  },
-  navTab: { alignItems: 'center', paddingVertical: 4 },
-  navLabel: { fontSize: 11, fontFamily: Typography.bodyMedium, marginTop: 4 },
+  loadingWrap: { paddingVertical: 24, alignItems: 'center', gap: 8 },
+  loadingText: { fontSize: 13, fontFamily: Typography.body, color: SECONDARY },
+
+  emptyState: { paddingVertical: 40, alignItems: 'center', gap: 8 },
+  emptyTitle: { fontSize: 16, fontFamily: Typography.headingSemiBold, color: PRIMARY },
+  emptySubtitle: { fontSize: 13, fontFamily: Typography.body, color: SECONDARY },
+  clearSearchBtn: { marginTop: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: PRIMARY, borderRadius: 8 },
+  clearSearchBtnText: { color: '#FFFFFF', fontSize: 13, fontFamily: Typography.headingSemiBold },
 });

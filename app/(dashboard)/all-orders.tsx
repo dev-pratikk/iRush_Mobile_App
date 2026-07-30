@@ -353,7 +353,7 @@ const OrderRow = React.memo(function OrderRow({ item }: { item: OrdersRowItem })
       onPress={() =>
         router.push({
           pathname: '/order-details' as any,
-          params: { orderData: JSON.stringify(item) },
+          params: { orderData: JSON.stringify(item), from: '/all-orders' },
         })
       }
       activeOpacity={0.7}

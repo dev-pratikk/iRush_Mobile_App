@@ -50,17 +50,25 @@ const formatDateFormatted = (dateStr: string | null | undefined, includeYear = t
 };
 
 export default function OrderDetailsScreen() {
-  const params = useLocalSearchParams<{ orderData?: string }>();
+  const params = useLocalSearchParams<{ orderData?: string; from?: string }>();
+
+  const handleBack = React.useCallback(() => {
+    if (params.from) {
+      router.push(params.from as any);
+    } else {
+      router.push('/all-orders' as any);
+    }
+  }, [params.from]);
 
   // Hardware Back button handling (Android)
   React.useEffect(() => {
     const onBackPress = () => {
-      router.back();
+      handleBack();
       return true;
     };
     const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
     return () => subscription.remove();
-  }, []);
+  }, [handleBack]);
 
   // Parse raw order payload or fallback to sample structure provided by user
   const order = useMemo(() => {
@@ -137,7 +145,7 @@ export default function OrderDetailsScreen() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={handleBack}
           hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
         >
           <Ionicons name="arrow-back" size={20} color={PRIMARY} />

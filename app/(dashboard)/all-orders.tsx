@@ -98,6 +98,8 @@ const Header = ({
 };
 
 // ─── Search Bar & Salesperson Filter Section ──────────────────────────────────
+// NOTE: Suggestions dropdown is rendered at screen-level, not here, to avoid
+// FlatList clipping the absolute overlay.
 
 const SearchBarSection = ({
   inputText,
@@ -105,7 +107,7 @@ const SearchBarSection = ({
   selectedSalesperson,
   setSelectedSalesperson,
   availableSalespersons,
-  availableSuggestions = [],
+  onFocusChange,
   onClear,
 }: {
   inputText: string;
@@ -113,36 +115,14 @@ const SearchBarSection = ({
   selectedSalesperson: string | null;
   setSelectedSalesperson: (sp: string | null) => void;
   availableSalespersons: string[];
-  availableSuggestions?: { text: string; type: 'company' | 'orderNo' }[];
+  onFocusChange: (focused: boolean) => void;
   onClear: () => void;
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const handleSelectSalesperson = (sp: string | null) => {
     setSelectedSalesperson(sp);
     setModalVisible(false);
-  };
-
-  // Filter top 5 matching suggestions
-  const suggestions = useMemo(() => {
-    const query = inputText.trim().toLowerCase();
-    if (!query) return [];
-    const matches = availableSuggestions.filter((item) =>
-      item.text.toLowerCase().includes(query)
-    );
-    const uniqueMap = new Map<string, { text: string; type: 'company' | 'orderNo' }>();
-    matches.forEach((m) => {
-      if (!uniqueMap.has(m.text.toLowerCase())) {
-        uniqueMap.set(m.text.toLowerCase(), m);
-      }
-    });
-    return Array.from(uniqueMap.values()).slice(0, 5);
-  }, [inputText, availableSuggestions]);
-
-  const handleSelectSuggestion = (text: string) => {
-    setInputText(text);
-    setShowSuggestions(false);
   };
 
   return (
@@ -156,9 +136,13 @@ const SearchBarSection = ({
             value={inputText}
             onChangeText={(txt) => {
               setInputText(txt);
-              setShowSuggestions(true);
+              onFocusChange(true);
             }}
-            onFocus={() => setShowSuggestions(true)}
+            onFocus={() => onFocusChange(true)}
+            onBlur={() => {
+              // Small delay so tap on suggestion registers before hiding
+              setTimeout(() => onFocusChange(false), 200);
+            }}
             placeholder="Search by order no or company name…"
             placeholderTextColor={SECONDARY}
             autoCapitalize="none"
@@ -169,7 +153,7 @@ const SearchBarSection = ({
             <TouchableOpacity
               onPress={() => {
                 onClear();
-                setShowSuggestions(false);
+                onFocusChange(false);
               }}
               style={styles.clearButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -183,7 +167,7 @@ const SearchBarSection = ({
         <TouchableOpacity
           style={[styles.filterButton, !!selectedSalesperson && styles.filterButtonActive]}
           onPress={() => {
-            setShowSuggestions(false);
+            onFocusChange(false);
             setModalVisible(true);
           }}
           activeOpacity={0.8}
@@ -203,36 +187,6 @@ const SearchBarSection = ({
           </Text>
         </TouchableOpacity>
       </View>
-
-      {/* Floating Autocomplete Suggestions Dropdown */}
-      {showSuggestions && suggestions.length > 0 ? (
-        <View style={styles.suggestionsContainer}>
-          {suggestions.map((sug, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={[
-                styles.suggestionRow,
-                idx === suggestions.length - 1 && { borderBottomWidth: 0 },
-              ]}
-              onPress={() => handleSelectSuggestion(sug.text)}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={sug.type === 'company' ? 'business-outline' : 'document-text-outline'}
-                size={16}
-                color={SECONDARY}
-                style={{ marginRight: 8 }}
-              />
-              <Text style={styles.suggestionText} numberOfLines={1}>
-                {sug.text}
-              </Text>
-              <Text style={styles.suggestionTypeTag}>
-                {sug.type === 'company' ? 'Company' : 'Order'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      ) : null}
 
       {/* Salesperson Selection Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
@@ -388,9 +342,10 @@ export default function AllOrdersScreen() {
       : 'month';
 
   const [period, setPeriod] = useState<DatePeriod>(initialPeriod);
-  const [searchType, setSearchType] = useState<OrdersSearchType>('orderNo');
   const [inputText, setInputText] = useState('');
   const [debouncedValue, setDebouncedValue] = useState('');
+  // Suggestions overlay state (lifted to screen to avoid FlatList clipping)
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSalesperson, setSelectedSalesperson] = useState<string | null>(null);
 
   useEffect(() => {
@@ -567,16 +522,29 @@ export default function AllOrdersScreen() {
     return list;
   }, [items]);
 
+  // Compute live suggestions at screen level (lifted from SearchBarSection)
+  const screenSuggestions = useMemo(() => {
+    const query = inputText.trim().toLowerCase();
+    if (!query || !showSuggestions) return [];
+    const uniqueMap = new Map<string, { text: string; type: 'company' | 'orderNo' }>();
+    availableSuggestions.forEach((item) => {
+      if (item.text.toLowerCase().includes(query) && !uniqueMap.has(item.text.toLowerCase())) {
+        uniqueMap.set(item.text.toLowerCase(), item);
+      }
+    });
+    return Array.from(uniqueMap.values()).slice(0, 5);
+  }, [inputText, showSuggestions, availableSuggestions]);
+
   const ListHeader = useMemo(
     () => (
-      <View style={{ paddingTop: 12, zIndex: 10 }}>
+      <View style={{ paddingTop: 12 }}>
         <SearchBarSection
           inputText={inputText}
           setInputText={setInputText}
           selectedSalesperson={selectedSalesperson}
           setSelectedSalesperson={setSelectedSalesperson}
           availableSalespersons={availableSalespersons}
-          availableSuggestions={availableSuggestions}
+          onFocusChange={setShowSuggestions}
           onClear={handleClearSearch}
         />
         {errorMessage ? (
@@ -592,7 +560,6 @@ export default function AllOrdersScreen() {
       inputText,
       selectedSalesperson,
       availableSalespersons,
-      availableSuggestions,
       errorMessage,
       refetch,
       handleClearSearch,
@@ -602,6 +569,39 @@ export default function AllOrdersScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header period={period} setPeriod={setPeriod} />
+
+      {/* Screen-level suggestions overlay — rendered OUTSIDE FlatList to avoid clipping */}
+      {showSuggestions && screenSuggestions.length > 0 ? (
+        <View style={styles.suggestionsOverlay} pointerEvents="box-none">
+          {screenSuggestions.map((sug, idx) => (
+            <TouchableOpacity
+              key={idx}
+              style={[
+                styles.suggestionRow,
+                idx === screenSuggestions.length - 1 && { borderBottomWidth: 0 },
+              ]}
+              onPress={() => {
+                setInputText(sug.text);
+                setShowSuggestions(false);
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={sug.type === 'company' ? 'business-outline' : 'document-text-outline'}
+                size={16}
+                color={SECONDARY}
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.suggestionText} numberOfLines={1}>
+                {sug.text}
+              </Text>
+              <Text style={styles.suggestionTypeTag}>
+                {sug.type === 'company' ? 'Company' : 'Order'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : null}
 
       {/* Main Content Area: FlatList + Fixed Bottom PaginationFooter */}
       <View style={styles.mainContainer}>
@@ -622,7 +622,7 @@ export default function AllOrdersScreen() {
             ) : selectedSalesperson || debouncedValue.trim().length > 0 ? (
               <SearchEmptyState
                 query={selectedSalesperson || debouncedValue.trim()}
-                type={selectedSalesperson ? 'salesperson' : searchType}
+                type={selectedSalesperson ? 'salesperson' : /[a-zA-Z]/.test(debouncedValue.trim()) ? 'companyName' : 'orderNo'}
                 onClear={handleClearSearch}
               />
             ) : (
@@ -783,6 +783,7 @@ const styles = StyleSheet.create({
   },
 
   suggestionsContainer: {
+    // Kept for reference but no longer used (overlay moved to screen level)
     position: 'absolute',
     top: 48,
     left: 16,
@@ -791,11 +792,24 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#E7E6E2',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
     elevation: 12,
+    zIndex: 99999,
+    overflow: 'hidden',
+  },
+  suggestionsOverlay: {
+    position: 'absolute',
+    top: 118, // below SafeAreaView header (~56px) + search bar row (~62px)
+    left: 16,
+    right: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 20,
     zIndex: 99999,
     overflow: 'hidden',
   },

@@ -145,7 +145,7 @@ const SearchBarSection = ({
   selectedSalesperson,
   setSelectedSalesperson,
   availableSalespersons,
-  availableSuggestions = [],
+  onFocusChange,
   onClear,
 }: {
   inputText: string;
@@ -153,52 +153,27 @@ const SearchBarSection = ({
   selectedSalesperson: string | null;
   setSelectedSalesperson: (sp: string | null) => void;
   availableSalespersons: string[];
-  availableSuggestions?: { text: string; type: 'company' | 'orderNo' }[];
+  onFocusChange: (focused: boolean) => void;
   onClear: () => void;
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const handleSelectSalesperson = (sp: string | null) => {
     setSelectedSalesperson(sp);
     setModalVisible(false);
   };
 
-  // Filter top 5 matching suggestions
-  const suggestions = useMemo(() => {
-    const query = inputText.trim().toLowerCase();
-    if (!query) return [];
-    const matches = availableSuggestions.filter((item) =>
-      item.text.toLowerCase().includes(query)
-    );
-    const uniqueMap = new Map<string, { text: string; type: 'company' | 'orderNo' }>();
-    matches.forEach((m) => {
-      if (!uniqueMap.has(m.text.toLowerCase())) {
-        uniqueMap.set(m.text.toLowerCase(), m);
-      }
-    });
-    return Array.from(uniqueMap.values()).slice(0, 5);
-  }, [inputText, availableSuggestions]);
-
-  const handleSelectSuggestion = (text: string) => {
-    setInputText(text);
-    setShowSuggestions(false);
-  };
-
   return (
     <View style={styles.searchSection}>
       <View style={styles.searchRow}>
-        {/* Unified Search Input */}
         <View style={styles.searchInputWrap}>
           <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             value={inputText}
-            onChangeText={(txt) => {
-              setInputText(txt);
-              setShowSuggestions(true);
-            }}
-            onFocus={() => setShowSuggestions(true)}
+            onChangeText={(txt) => { setInputText(txt); onFocusChange(true); }}
+            onFocus={() => onFocusChange(true)}
+            onBlur={() => { setTimeout(() => onFocusChange(false), 200); }}
             placeholder="Search by order no or company name…"
             placeholderTextColor={SECONDARY}
             autoCapitalize="none"
@@ -206,110 +181,37 @@ const SearchBarSection = ({
             returnKeyType="search"
           />
           {inputText.length > 0 ? (
-            <TouchableOpacity
-              onPress={() => {
-                onClear();
-                setShowSuggestions(false);
-              }}
-              style={styles.clearButton}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
+            <TouchableOpacity onPress={() => { onClear(); onFocusChange(false); }} style={styles.clearButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Ionicons name="close-circle" size={18} color={SECONDARY} />
             </TouchableOpacity>
           ) : null}
         </View>
-
-        {/* Salesperson Filter Button in Same Row */}
-        <TouchableOpacity
-          style={[styles.filterButton, !!selectedSalesperson && styles.filterButtonActive]}
-          onPress={() => {
-            setShowSuggestions(false);
-            setModalVisible(true);
-          }}
-          activeOpacity={0.8}
-        >
-          <Ionicons
-            name="funnel-outline"
-            size={14}
-            color={selectedSalesperson ? '#FFFFFF' : PRIMARY}
-            style={{ marginRight: 4 }}
-          />
-          <Text
-            style={[styles.filterButtonText, !!selectedSalesperson && styles.filterButtonTextActive]}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
+        <TouchableOpacity style={[styles.filterButton, !!selectedSalesperson && styles.filterButtonActive]} onPress={() => { onFocusChange(false); setModalVisible(true); }} activeOpacity={0.8}>
+          <Ionicons name="funnel-outline" size={14} color={selectedSalesperson ? '#FFFFFF' : PRIMARY} style={{ marginRight: 4 }} />
+          <Text style={[styles.filterButtonText, !!selectedSalesperson && styles.filterButtonTextActive]} numberOfLines={1} ellipsizeMode="tail">
             {selectedSalesperson ? selectedSalesperson : 'Filter'}
           </Text>
         </TouchableOpacity>
       </View>
-
-      {/* Floating Autocomplete Suggestions Dropdown */}
-      {showSuggestions && suggestions.length > 0 ? (
-        <View style={styles.suggestionsContainer}>
-          {suggestions.map((sug, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={[
-                styles.suggestionRow,
-                idx === suggestions.length - 1 && { borderBottomWidth: 0 },
-              ]}
-              onPress={() => handleSelectSuggestion(sug.text)}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={sug.type === 'company' ? 'business-outline' : 'document-text-outline'}
-                size={16}
-                color={SECONDARY}
-                style={{ marginRight: 8 }}
-              />
-              <Text style={styles.suggestionText} numberOfLines={1}>
-                {sug.text}
-              </Text>
-              <Text style={styles.suggestionTypeTag}>
-                {sug.type === 'company' ? 'Company' : 'Order'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      ) : null}
-
-      {/* Salesperson Selection Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filter by Salesperson</Text>
-              <TouchableOpacity
-                onPress={() => setModalVisible(false)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
+              <TouchableOpacity onPress={() => setModalVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Ionicons name="close" size={24} color={PRIMARY} />
               </TouchableOpacity>
             </View>
-
             <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
-              <TouchableOpacity
-                style={[styles.modalItem, !selectedSalesperson && styles.modalItemActive]}
-                onPress={() => handleSelectSalesperson(null)}
-              >
-                <Text style={[styles.modalItemText, !selectedSalesperson && styles.modalItemTextActive]}>
-                  All Salespersons (No filter)
-                </Text>
+              <TouchableOpacity style={[styles.modalItem, !selectedSalesperson && styles.modalItemActive]} onPress={() => handleSelectSalesperson(null)}>
+                <Text style={[styles.modalItemText, !selectedSalesperson && styles.modalItemTextActive]}>All Salespersons (No filter)</Text>
                 {!selectedSalesperson && <Ionicons name="checkmark" size={18} color={PRIMARY} />}
               </TouchableOpacity>
-
               {availableSalespersons.map((sp, idx) => {
                 const isActive = selectedSalesperson === sp;
                 return (
-                  <TouchableOpacity
-                    key={idx}
-                    style={[styles.modalItem, isActive && styles.modalItemActive]}
-                    onPress={() => handleSelectSalesperson(sp)}
-                  >
-                    <Text style={[styles.modalItemText, isActive && styles.modalItemTextActive]}>
-                      {sp}
-                    </Text>
+                  <TouchableOpacity key={idx} style={[styles.modalItem, isActive && styles.modalItemActive]} onPress={() => handleSelectSalesperson(sp)}>
+                    <Text style={[styles.modalItemText, isActive && styles.modalItemTextActive]}>{sp}</Text>
                     {isActive && <Ionicons name="checkmark" size={18} color={PRIMARY} />}
                   </TouchableOpacity>
                 );
@@ -419,9 +321,9 @@ export default function PartialOrdersScreen() {
   }, []);
 
   // Search & Filter State
-  const [searchType, setSearchType] = useState<OpenOrderSearchType>('orderNo');
   const [inputText, setInputText] = useState('');
   const [debouncedValue, setDebouncedValue] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSalesperson, setSelectedSalesperson] = useState<string | null>(null);
 
   // Debounce input text by 400ms
@@ -591,9 +493,21 @@ export default function PartialOrdersScreen() {
     return list;
   }, [items]);
 
+  const screenSuggestions = useMemo(() => {
+    const query = inputText.trim().toLowerCase();
+    if (!query || !showSuggestions) return [];
+    const uniqueMap = new Map<string, { text: string; type: 'company' | 'orderNo' }>();
+    availableSuggestions.forEach((item) => {
+      if (item.text.toLowerCase().includes(query) && !uniqueMap.has(item.text.toLowerCase())) {
+        uniqueMap.set(item.text.toLowerCase(), item);
+      }
+    });
+    return Array.from(uniqueMap.values()).slice(0, 5);
+  }, [inputText, showSuggestions, availableSuggestions]);
+
   const ListHeader = useMemo(
     () => (
-      <View style={{ paddingTop: 12, zIndex: 10 }}>
+      <View style={{ paddingTop: 12 }}>
         <SummaryBreakdownCard summary={summary} loading={isLoading} usingSample={usingSample} />
         <SearchBarSection
           inputText={inputText}
@@ -601,7 +515,7 @@ export default function PartialOrdersScreen() {
           selectedSalesperson={selectedSalesperson}
           setSelectedSalesperson={setSelectedSalesperson}
           availableSalespersons={availableSalespersons}
-          availableSuggestions={availableSuggestions}
+          onFocusChange={setShowSuggestions}
           onClear={handleClearSearch}
         />
         {errorMessage ? (
@@ -614,16 +528,8 @@ export default function PartialOrdersScreen() {
       </View>
     ),
     [
-      summary,
-      isLoading,
-      usingSample,
-      inputText,
-      selectedSalesperson,
-      availableSalespersons,
-      availableSuggestions,
-      errorMessage,
-      refetch,
-      handleClearSearch,
+      summary, isLoading, usingSample, inputText, selectedSalesperson,
+      availableSalespersons, errorMessage, refetch, handleClearSearch,
     ]
   );
 
@@ -654,6 +560,22 @@ export default function PartialOrdersScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header />
+      {showSuggestions && screenSuggestions.length > 0 ? (
+        <View style={styles.suggestionsOverlay}>
+          {screenSuggestions.map((sug, idx) => (
+            <TouchableOpacity
+              key={idx}
+              style={[styles.suggestionRow, idx === screenSuggestions.length - 1 && { borderBottomWidth: 0 }]}
+              onPress={() => { setInputText(sug.text); setShowSuggestions(false); }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name={sug.type === 'company' ? 'business-outline' : 'document-text-outline'} size={16} color={SECONDARY} style={{ marginRight: 8 }} />
+              <Text style={styles.suggestionText} numberOfLines={1}>{sug.text}</Text>
+              <Text style={styles.suggestionTypeTag}>{sug.type === 'company' ? 'Company' : 'Order'}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : null}
       <FlatList
         data={displayItems}
         renderItem={renderItem}
@@ -672,7 +594,7 @@ export default function PartialOrdersScreen() {
           ) : selectedSalesperson || debouncedValue.trim().length > 0 ? (
             <SearchEmptyState
               query={selectedSalesperson || debouncedValue.trim()}
-              type={selectedSalesperson ? 'salesperson' : searchType}
+              type={selectedSalesperson ? 'salesperson' : /[a-zA-Z]/.test(debouncedValue.trim()) ? 'companyName' : 'orderNo'}
               onClear={handleClearSearch}
             />
           ) : (
@@ -907,6 +829,24 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   clearSalespersonBtn: { padding: 2 },
+
+  suggestionsOverlay: {
+    position: 'absolute',
+    top: 118,
+    left: 16,
+    right: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 20,
+    zIndex: 99999,
+    overflow: 'hidden',
+  },
 
   // Modal
   modalOverlay: {

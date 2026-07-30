@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Text, ActivityIndicator
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KpiCard } from '../../components/dashboard/KpiCard';
+import { SkeletonSummaryCard } from '../../components/ui/SkeletonLoader';
 import { DASHBOARD_KPIS } from '@mocks/dashboard';
 import type { DatePeriod } from '../../types/dashboard';
 import { useAuthContext } from '../../context/AuthContext';
@@ -80,6 +81,10 @@ const RevenueOverview = ({
     return formatCurrency(activeStats[periodKey].revenue);
   }, [stats, period]);
 
+  if (loading && !stats) {
+    return <SkeletonSummaryCard />;
+  }
+
   return (
     <View style={styles.revenueCard}>
       <View style={styles.revenueContent}>
@@ -92,11 +97,7 @@ const RevenueOverview = ({
             </View>
           ) : null}
         </View>
-        {loading ? (
-          <ActivityIndicator size="small" color="#FFFFFF" style={styles.revenueLoader} />
-        ) : (
-          <Text style={styles.revenueValue}>{revenueValue}</Text>
-        )}
+        <Text style={styles.revenueValue}>{revenueValue}</Text>
       </View>
     </View>
   );

@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { useThemeColors } from '../../context/ThemeContext';
 import { useAuthContext } from '../../context/AuthContext';
+import { SkeletonSummaryCard } from '../../components/ui/SkeletonLoader';
 import { router, usePathname } from 'expo-router';
 import {
   formatCurrencyWithCents,
@@ -71,11 +72,7 @@ const SummaryCard = ({
   loading: boolean;
 }) => {
   if (loading && count === 0 && totalAmount === 0) {
-    return (
-      <View style={[styles.summaryCard, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="small" color="#FFFFFF" />
-      </View>
-    );
+    return <SkeletonSummaryCard />;
   }
 
   return (

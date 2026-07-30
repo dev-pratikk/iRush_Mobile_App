@@ -27,6 +27,7 @@ import {
 } from '../../services/api/orders.service';
 import { useOrders, type OrdersRowItem } from '../../hooks/useOrders';
 import { PaginationFooter } from '../../components/ui/PaginationFooter';
+import { SkeletonRowItem } from '../../components/ui/SkeletonLoader';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';
@@ -576,9 +577,12 @@ export default function AllOrdersScreen() {
           ListHeaderComponent={ListHeader}
           ListEmptyComponent={
             isLoading ? (
-              <View style={styles.loadingWrap}>
-                <ActivityIndicator size="large" color={PRIMARY} />
-                <Text style={styles.loadingText}>Loading orders…</Text>
+              <View style={{ paddingTop: 4 }}>
+                <SkeletonRowItem />
+                <SkeletonRowItem />
+                <SkeletonRowItem />
+                <SkeletonRowItem />
+                <SkeletonRowItem />
               </View>
             ) : selectedSalesperson || debouncedValue.trim().length > 0 ? (
               <SearchEmptyState

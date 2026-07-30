@@ -27,6 +27,7 @@ import {
 import { usePartialOrders, type OpenOrderRowItem } from '../../hooks/useOpenOrders';
 import { PaginationFooter } from '../../components/ui/PaginationFooter';
 import type { PartialOrdersSummary } from '../../types/api/open-orders';
+import { SkeletonRowItem } from '../../components/ui/SkeletonLoader';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';
@@ -625,7 +626,15 @@ export default function PartialOrdersScreen() {
         ListHeaderComponent={ListHeader}
         ListFooterComponent={ListFooter}
         ListEmptyComponent={
-          isLoading ? null : selectedSalesperson || debouncedValue.trim().length > 0 ? (
+          isLoading ? (
+            <View style={{ paddingTop: 4 }}>
+              <SkeletonRowItem />
+              <SkeletonRowItem />
+              <SkeletonRowItem />
+              <SkeletonRowItem />
+              <SkeletonRowItem />
+            </View>
+          ) : selectedSalesperson || debouncedValue.trim().length > 0 ? (
             <SearchEmptyState
               query={selectedSalesperson || debouncedValue.trim()}
               type={selectedSalesperson ? 'salesperson' : searchType}

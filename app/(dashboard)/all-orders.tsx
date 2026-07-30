@@ -19,7 +19,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useAuthContext } from '../../context/AuthContext';
 import {
   formatCurrencyWithCents,
-  formatNumber,
   formatOrderDate,
   DashboardPeriod as DatePeriod,
   ORDERS_PAGE_LIMIT,
@@ -32,15 +31,19 @@ import { PaginationFooter } from '../../components/ui/PaginationFooter';
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';
 const PAGE_BG = '#FFFFFF';
-const SUMMARY_CARD_BG = '#3A4151';
-const SUMMARY_CARD_TEXT = '#FFFFFF';
 const INPUT_BG = '#F5F5F2';
 
 const DEFAULT_SALESPERSONS = ['Imran', 'John', 'Sarah', 'Alex', 'Michael', 'David'];
 
 // ─── Header Component ─────────────────────────────────────────────────────────
 
-const Header = () => {
+const Header = ({
+  period,
+  setPeriod,
+}: {
+  period: DatePeriod;
+  setPeriod: (p: DatePeriod) => void;
+}) => {
   return (
     <View style={styles.header}>
       <TouchableOpacity
@@ -51,11 +54,33 @@ const Header = () => {
         <Ionicons name="arrow-back" size={20} color={PRIMARY} />
       </TouchableOpacity>
 
-      <View style={styles.headerCenter}>
-        <Text style={styles.headerTitle}>All Orders</Text>
-      </View>
+      {/* Left Aligned Header Title */}
+      <Text style={styles.headerTitleLeft}>All orders</Text>
 
-      <View style={styles.headerIconWrap}>
+      {/* Right Controls: Today/Month Toggle & Bell Icon */}
+      <View style={styles.headerRightWrap}>
+        <View style={styles.headerPillRow}>
+          <TouchableOpacity
+            style={[styles.headerPill, period === 'today' && styles.headerPillActive]}
+            onPress={() => setPeriod('today')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.headerPillText, period === 'today' && styles.headerPillTextActive]}>
+              Today
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.headerPill, period === 'month' && styles.headerPillActive]}
+            onPress={() => setPeriod('month')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.headerPillText, period === 'month' && styles.headerPillTextActive]}>
+              Month
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity
           style={styles.headerIconInner}
           onPress={() => router.push('/notifications' as any)}
@@ -66,83 +91,6 @@ const Header = () => {
             <Text style={styles.badgeText}>3</Text>
           </View>
         </TouchableOpacity>
-      </View>
-    </View>
-  );
-};
-
-// ─── Today / Month Segment Control ────────────────────────────────────────────
-
-const DateSegmentControl = ({
-  period,
-  setPeriod,
-}: {
-  period: DatePeriod;
-  setPeriod: (p: DatePeriod) => void;
-}) => {
-  return (
-    <View style={styles.segmentContainer}>
-      <View style={styles.segmentWrapper}>
-        <TouchableOpacity
-          style={[styles.segmentButton, period === 'today' && styles.segmentButtonActive]}
-          onPress={() => setPeriod('today')}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.segmentText, period === 'today' && styles.segmentTextActive]}>
-            Today
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.segmentButton, period === 'month' && styles.segmentButtonActive]}
-          onPress={() => setPeriod('month')}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.segmentText, period === 'month' && styles.segmentTextActive]}>
-            This month
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-};
-
-// ─── Top Grey Summary Card ────────────────────────────────────────────────────
-
-const SummaryCard = ({
-  count,
-  totalAmount,
-  loading,
-  usingSample,
-}: {
-  count: number;
-  totalAmount: number;
-  loading: boolean;
-  usingSample: boolean;
-}) => {
-  if (loading && count === 0 && totalAmount === 0) {
-    return (
-      <View style={[styles.summaryCard, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="small" color={SUMMARY_CARD_TEXT} />
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.summaryCard}>
-      <View style={styles.summaryRow}>
-        <View style={styles.summaryColLeft}>
-          <Text style={styles.summaryCountLabel}>Total orders</Text>
-          <Text style={styles.summaryCount}>{formatNumber(count)}</Text>
-        </View>
-        <View style={styles.summaryColRight}>
-          <Text style={styles.summaryValue}>{formatCurrencyWithCents(totalAmount)}</Text>
-          {usingSample && (
-            <View style={styles.demoPill}>
-              <Text style={styles.demoPillText}>Demo</Text>
-            </View>
-          )}
-        </View>
       </View>
     </View>
   );
@@ -489,7 +437,6 @@ export default function AllOrdersScreen() {
   } = useOrders(period, token, searchParam);
 
   const summaryCount = (meta?.count as number | undefined) ?? (meta?.totalRecords as number | undefined) ?? items.length;
-  const summaryTotalAmount = (meta?.totalAmount as number | undefined) ?? 0;
 
   const availableSalespersons = useMemo(() => {
     const fromItems = items
@@ -569,14 +516,7 @@ export default function AllOrdersScreen() {
 
   const ListHeader = useMemo(
     () => (
-      <View>
-        <DateSegmentControl period={period} setPeriod={setPeriod} />
-        <SummaryCard
-          count={summaryCount}
-          totalAmount={summaryTotalAmount}
-          loading={isLoading}
-          usingSample={usingSample}
-        />
+      <View style={{ paddingTop: 12 }}>
         <SearchBarSection
           searchType={searchType}
           setSearchType={setSearchType}
@@ -597,11 +537,6 @@ export default function AllOrdersScreen() {
       </View>
     ),
     [
-      period,
-      summaryCount,
-      summaryTotalAmount,
-      isLoading,
-      usingSample,
       searchType,
       inputText,
       selectedSalesperson,
@@ -612,17 +547,51 @@ export default function AllOrdersScreen() {
     ]
   );
 
-  const ListFooter = useMemo(() => {
-    if (isLoading && items.length === 0) {
-      return (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={PRIMARY} />
-          <Text style={styles.loadingText}>Loading orders…</Text>
-        </View>
-      );
-    }
-    if (items.length > 0 || !isLoading) {
-      return (
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <Header period={period} setPeriod={setPeriod} />
+
+      {/* Main Content Area: FlatList + Fixed Bottom PaginationFooter */}
+      <View style={styles.mainContainer}>
+        <FlatList
+          data={displayItems}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          ListHeaderComponent={ListHeader}
+          ListEmptyComponent={
+            isLoading ? (
+              <View style={styles.loadingWrap}>
+                <ActivityIndicator size="large" color={PRIMARY} />
+                <Text style={styles.loadingText}>Loading orders…</Text>
+              </View>
+            ) : selectedSalesperson || debouncedValue.trim().length > 0 ? (
+              <SearchEmptyState
+                query={selectedSalesperson || debouncedValue.trim()}
+                type={selectedSalesperson ? 'salesperson' : searchType}
+                onClear={handleClearSearch}
+              />
+            ) : (
+              <DefaultEmptyState period={period} usingSample={usingSample} />
+            )
+          }
+          ItemSeparatorComponent={ItemSeparator}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.flatlistContent}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => refetch()}
+              tintColor={PRIMARY}
+              colors={[PRIMARY]}
+            />
+          }
+        />
+
+        {/* Pinned Bottom Pagination Footer */}
         <PaginationFooter
           currentPage={currentPage}
           totalPages={totalPages}
@@ -631,47 +600,7 @@ export default function AllOrdersScreen() {
           onPrev={handlePrev}
           onNext={handleNext}
         />
-      );
-    }
-    return null;
-  }, [isLoading, items.length, currentPage, totalPages, totalRecords, isFetchingNextPage, handlePrev, handleNext]);
-
-  return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <Header />
-      <FlatList
-        data={displayItems}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        ListHeaderComponent={ListHeader}
-        ListFooterComponent={ListFooter}
-        ListEmptyComponent={
-          isLoading ? null : selectedSalesperson || debouncedValue.trim().length > 0 ? (
-            <SearchEmptyState
-              query={selectedSalesperson || debouncedValue.trim()}
-              type={selectedSalesperson ? 'salesperson' : searchType}
-              onClear={handleClearSearch}
-            />
-          ) : (
-            <DefaultEmptyState period={period} usingSample={usingSample} />
-          )
-        }
-        ItemSeparatorComponent={ItemSeparator}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.flatlistContent}
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
-        windowSize={5}
-        removeClippedSubviews
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={() => refetch()}
-            tintColor={PRIMARY}
-            colors={[PRIMARY]}
-          />
-        }
-      />
+      </View>
     </SafeAreaView>
   );
 }
@@ -682,7 +611,8 @@ const hairline = StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5;
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: PAGE_BG },
-  flatlistContent: { paddingBottom: 24, flexGrow: 1 },
+  mainContainer: { flex: 1, justifyContent: 'space-between' },
+  flatlistContent: { paddingBottom: 16, flexGrow: 1 },
 
   // Header
   header: {
@@ -692,15 +622,46 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     backgroundColor: PAGE_BG,
+    borderBottomWidth: hairline,
+    borderBottomColor: '#E7E6E2',
   },
   headerIconWrap: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
   headerIconInner: { position: 'relative', width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle: {
+  headerTitleLeft: {
     fontSize: 19,
     fontFamily: Typography.titleSerif,
     fontWeight: '500',
     color: PRIMARY,
+    marginLeft: 4,
+    flex: 1,
+  },
+  headerRightWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerPillRow: {
+    flexDirection: 'row',
+    backgroundColor: INPUT_BG,
+    borderRadius: 16,
+    padding: 2,
+  },
+  headerPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 14,
+  },
+  headerPillActive: {
+    backgroundColor: PRIMARY,
+  },
+  headerPillText: {
+    fontSize: 11,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+  },
+  headerPillTextActive: {
+    color: '#FFFFFF',
+    fontFamily: Typography.headingSemiBold,
   },
   badge: {
     position: 'absolute',
@@ -714,73 +675,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   badgeText: { color: '#FFFFFF', fontSize: 10, fontFamily: Typography.headingSemiBold },
-
-  // Segment Control (Today / Month)
-  segmentContainer: {
-    paddingHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 10,
-  },
-  segmentWrapper: {
-    flexDirection: 'row',
-    backgroundColor: INPUT_BG,
-    borderRadius: 12,
-    padding: 3,
-  },
-  segmentButton: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-  },
-  segmentButtonActive: {
-    backgroundColor: PRIMARY,
-  },
-  segmentText: {
-    fontSize: 13,
-    fontFamily: Typography.bodyMedium,
-    color: SECONDARY,
-  },
-  segmentTextActive: {
-    color: '#FFFFFF',
-    fontFamily: Typography.headingSemiBold,
-  },
-
-  // Summary Card (Top Grey Box)
-  summaryCard: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    backgroundColor: SUMMARY_CARD_BG,
-    borderRadius: 16,
-    padding: 20,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  summaryColLeft: { gap: 4 },
-  summaryCountLabel: {
-    fontSize: 14,
-    fontFamily: Typography.bodyMedium,
-    color: 'rgba(255, 255, 255, 0.75)',
-  },
-  summaryCount: {
-    fontSize: 32,
-    fontFamily: Typography.numberHeavy,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  summaryColRight: { alignItems: 'flex-end', gap: 4 },
-  summaryValue: {
-    fontSize: 22,
-    fontFamily: Typography.numberHeavy,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  demoPill: { backgroundColor: '#4A5568', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  demoPillText: { color: '#FFFFFF', fontSize: 10, fontFamily: Typography.headingSemiBold },
 
   // Search Section
   searchSection: {
@@ -950,7 +844,7 @@ const styles = StyleSheet.create({
   },
   errorRowText: { fontSize: 12, color: '#8A1C1C', flex: 1 },
 
-  loadingWrap: { paddingVertical: 24, alignItems: 'center', gap: 8 },
+  loadingWrap: { paddingVertical: 40, alignItems: 'center', gap: 8 },
   loadingText: { fontSize: 13, fontFamily: Typography.body, color: SECONDARY },
 
   emptyState: { paddingVertical: 40, alignItems: 'center', gap: 8 },

@@ -1,12 +1,8 @@
 import React from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { Typography } from '../../constants/Typography';
+import { useThemeColors } from '../../context/ThemeContext';
 import { formatNumber } from '../../services/api/orders.service';
-
-const PRIMARY = '#2C2C2A';
-const SECONDARY = '#9C9B95';
-const DIVIDER = '#E7E6E2';
 
 interface PaginationFooterProps {
   currentPage: number;
@@ -17,6 +13,7 @@ interface PaginationFooterProps {
   onPrev: () => void;
   onNext: () => void;
   style?: any;
+  recordLabel?: string;
 }
 
 export const PaginationFooter: React.FC<PaginationFooterProps> = ({
@@ -28,7 +25,9 @@ export const PaginationFooter: React.FC<PaginationFooterProps> = ({
   onPrev,
   onNext,
   style,
+  recordLabel = 'orders',
 }) => {
+  const colors = useThemeColors();
   const pageStart = totalRecords === 0 ? 0 : (currentPage - 1) * limit + 1;
   const pageEnd = Math.min(currentPage * limit, totalRecords);
 
@@ -36,40 +35,55 @@ export const PaginationFooter: React.FC<PaginationFooterProps> = ({
   const nextDisabled = currentPage >= totalPages || isFetchingNextPage;
 
   return (
-    <View style={[styles.paginationWrap, style]}>
-      <Text style={styles.paginationSummary}>
-        {totalRecords === 0 ? 'No orders' : `Showing ${pageStart}–${pageEnd} of ${formatNumber(totalRecords)}`}
+    <View style={[styles.container, { borderTopColor: colors.border }, style]}>
+      <Text style={[styles.summaryText, { color: colors.textSecondary }]}>
+        {totalRecords === 0
+          ? `No ${recordLabel}`
+          : `Showing ${pageStart}–${pageEnd} of ${formatNumber(totalRecords)}`}
       </Text>
-      <View style={styles.paginationControls}>
+
+      <View style={styles.buttonsRow}>
         <TouchableOpacity
-          style={[styles.pageButton, prevDisabled && styles.pageButtonDisabled]}
+          style={[
+            styles.button,
+            { borderColor: colors.border, backgroundColor: colors.card },
+            prevDisabled && styles.buttonDisabled,
+          ]}
           onPress={onPrev}
           disabled={prevDisabled}
           activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back" size={15} color={prevDisabled ? SECONDARY : PRIMARY} />
-          <Text style={[styles.pageButtonText, prevDisabled && styles.pageButtonTextDisabled]}>
+          <Text
+            style={[
+              styles.buttonText,
+              { color: prevDisabled ? colors.textMuted : colors.textPrimary },
+            ]}
+          >
             Previous
           </Text>
         </TouchableOpacity>
 
-        <Text style={styles.pageIndicator}>
-          {isFetchingNextPage ? '…' : `${currentPage} / ${totalPages}`}
-        </Text>
-
         <TouchableOpacity
-          style={[styles.pageButton, nextDisabled && styles.pageButtonDisabled]}
+          style={[
+            styles.button,
+            { borderColor: colors.border, backgroundColor: colors.card },
+            nextDisabled && styles.buttonDisabled,
+          ]}
           onPress={onNext}
           disabled={nextDisabled}
           activeOpacity={0.7}
         >
           {isFetchingNextPage ? (
-            <ActivityIndicator size="small" color={PRIMARY} style={{ marginRight: 4 }} />
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: 4 }} />
           ) : null}
-          <Text style={[styles.pageButtonText, nextDisabled && styles.pageButtonTextDisabled]}>
+          <Text
+            style={[
+              styles.buttonText,
+              { color: nextDisabled ? colors.textMuted : colors.textPrimary },
+            ]}
+          >
             Next
           </Text>
-          <Ionicons name="chevron-forward" size={15} color={nextDisabled ? SECONDARY : PRIMARY} />
         </TouchableOpacity>
       </View>
     </View>
@@ -79,52 +93,39 @@ export const PaginationFooter: React.FC<PaginationFooterProps> = ({
 const hairline = StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5;
 
 const styles = StyleSheet.create({
-  paginationWrap: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    gap: 12,
-    borderTopWidth: hairline,
-    borderTopColor: DIVIDER,
-    backgroundColor: '#FAFAF8',
-    marginTop: 4,
-  },
-  paginationSummary: {
-    fontSize: 12,
-    fontFamily: Typography.body,
-    color: SECONDARY,
-    textAlign: 'center',
-  },
-  paginationControls: {
+  container: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderTopWidth: hairline,
+    marginTop: 8,
   },
-  pageButton: {
+  summaryText: {
+    fontSize: 13,
+    fontFamily: Typography.body,
+  },
+  buttonsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    minWidth: 96,
+    gap: 8,
+  },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#EFEFEC',
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
     justifyContent: 'center',
   },
-  pageButtonDisabled: { backgroundColor: '#F5F5F2' },
-  pageButtonText: {
-    fontSize: 13,
-    fontFamily: Typography.bodySemiBold,
-    fontWeight: '600',
-    color: PRIMARY,
+  buttonDisabled: {
+    opacity: 0.45,
   },
-  pageButtonTextDisabled: { color: SECONDARY },
-  pageIndicator: {
+  buttonText: {
     fontSize: 13,
-    fontFamily: Typography.bodySemiBold,
+    fontFamily: Typography.headingSemiBold,
     fontWeight: '600',
-    color: PRIMARY,
-    minWidth: 64,
-    textAlign: 'center',
   },
 });

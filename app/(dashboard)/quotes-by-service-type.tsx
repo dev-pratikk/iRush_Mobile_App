@@ -81,6 +81,34 @@ const EmptyState = () => {
   );
 };
 
+export default function QuotesByServiceTypeScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 600);
+  }, []);
+
+  const items = useMemo(() => {
+    return [...(SAMPLE_QUOTES.quotesByServiceType ?? [])].sort(
+      (a, b) => (b.quoteCount || 0) - (a.quoteCount || 0)
+    );
+  }, []);
+
+  const keyExtractor = useCallback((item: QuotesByServiceType, i: number) => `${item.serviceType}-${i}`, []);
+  const renderItem = useCallback(
+    ({ item }: { item: QuotesByServiceType }) => <TypeRow item={item} />,
+    []
+  );
+  const ListHeader = useMemo(
+    () => (
+      <View>
+        <SummaryLine />
+        <View style={styles.divider} />
+      </View>
+    ),
+    []
+  );
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header />

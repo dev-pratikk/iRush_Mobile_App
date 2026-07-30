@@ -81,6 +81,37 @@ const EmptyState = () => {
   );
 };
 
+export default function QuotesBySalespersonScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 600);
+  }, []);
+
+  const items = useMemo(() => {
+    return [...(SAMPLE_QUOTES.quotesBySalesperson ?? [])].sort(
+      (a, b) => (b.quoteCount || 0) - (a.quoteCount || 0)
+    );
+  }, []);
+
+  const keyExtractor = useCallback(
+    (item: QuotesBySalesperson, i: number) => `${item.salespersonId ?? i}-${i}`,
+    []
+  );
+  const renderItem = useCallback(
+    ({ item }: { item: QuotesBySalesperson }) => <RepRow item={item} />,
+    []
+  );
+  const ListHeader = useMemo(
+    () => (
+      <View>
+        <SummaryLine />
+        <View style={styles.divider} />
+      </View>
+    ),
+    []
+  );
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header />

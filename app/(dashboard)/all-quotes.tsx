@@ -85,6 +85,26 @@ const EmptyState = () => {
   );
 };
 
+export default function AllQuotesScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 600);
+  }, []);
+
+  const items = useMemo(() => SAMPLE_QUOTES.quotes ?? [], []);
+  const keyExtractor = useCallback((item: QuoteItem, i: number) => `${item.quoteNo}-${i}`, []);
+  const renderItem = useCallback(({ item }: { item: QuoteItem }) => <QuoteRow item={item} />, []);
+  const ListHeader = useMemo(
+    () => (
+      <View>
+        <SummaryLine />
+        <View style={styles.divider} />
+      </View>
+    ),
+    []
+  );
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header />

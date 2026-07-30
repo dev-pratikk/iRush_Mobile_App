@@ -106,6 +106,92 @@ const emptyStateList: SectionItem[] = [
   { kind: 'divider', id: 'empty-divider' },
 ];
 
+export default function QuotesToOrdersScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 600);
+  }, []);
+
+  const sections: SectionItem[] = useMemo(() => {
+    const items: SectionItem[] = [{ kind: 'summary', id: 'summary' }, { kind: 'divider', id: 'divider' }];
+
+    const salesList = SAMPLE_QUOTES.quotesToOrdersBySalesperson ?? [];
+    if (salesList.length > 0) {
+      items.push({ kind: 'label', id: 'sl', title: 'By salesperson' });
+      items.push({ kind: 'cardTop', id: 'sct', boxId: 'sales' });
+      salesList.forEach((it, i) => items.push({ kind: 'sales', item: it, id: `s-${it.salespersonId ?? i}` }));
+      items.push({ kind: 'cardBottom', id: 'scb', boxId: 'sales' });
+    }
+
+    const svcList = SAMPLE_QUOTES.quotesToOrdersByServiceType ?? [];
+    if (svcList.length > 0) {
+      items.push({ kind: 'label', id: 'tl', title: 'By service type' });
+      items.push({ kind: 'cardTop', id: 'tct', boxId: 'service' });
+      svcList.forEach((it, i) => items.push({ kind: 'service', item: it, id: `t-${i}-${it.serviceTypeName}` }));
+      items.push({ kind: 'cardBottom', id: 'tcb', boxId: 'service' });
+    }
+
+    return items;
+  }, []);
+
+  const hasAnySalesOrService = useMemo(
+    () =>
+      (SAMPLE_QUOTES.quotesToOrdersBySalesperson?.length ?? 0) +
+        (SAMPLE_QUOTES.quotesToOrdersByServiceType?.length ?? 0) >
+      0,
+    []
+  );
+
+  const keyExtractor = useCallback((it: SectionItem) => it.id || it.kind, []);
+
+  const renderItem = useCallback(({ item }: { item: SectionItem }) => {
+    switch (item.kind) {
+      case 'summary':
+        return <SummaryLine />;
+      case 'divider':
+        return <View style={styles.divider} />;
+      case 'label':
+        return <SectionHeader title={item.title} />;
+      case 'cardTop':
+        return (
+          <View
+            style={[
+              styles.boxTop,
+              styles.boxBorder,
+              styles.boxRadiusTop,
+              styles.boxBg,
+            ]}
+          />
+        );
+      case 'cardBottom':
+        return (
+          <View
+            style={[
+              styles.boxBottom,
+              styles.boxBorder,
+              styles.boxRadiusBottom,
+              styles.boxBg,
+              styles.boxMarginBottom,
+            ]}
+          />
+        );
+      case 'sales': {
+        return (
+          <View style={[styles.boxRowWrap, styles.boxBg, styles.boxBorderLeft, styles.boxBorderRight]}>
+            <SalesRow item={item.item} />
+          </View>
+        );
+      }
+      case 'service':
+        return (
+          <View style={[styles.boxRowWrap, styles.boxBg, styles.boxBorderLeft, styles.boxBorderRight]}>
+            <ServiceRow item={item.item} />
+          </View>
+        );
+    }
+  }, []);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header />

@@ -59,7 +59,15 @@ const Header = () => {
         <Text style={styles.headerTitle}>Orders</Text>
       </View>
 
-      <View style={styles.headerIconWrap}>
+      <View style={styles.headerRightGroup}>
+        <TouchableOpacity
+          style={styles.viewAllHeaderBtn}
+          onPress={() => router.push('/all-orders' as any)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.viewAllHeaderText}>All Orders</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.headerIconInner}
           onPress={() => router.push('/notifications' as any)}
@@ -75,7 +83,7 @@ const Header = () => {
   );
 };
 
-// ─── Top Grey Summary Card (Clean Total Revenue & View All List Button) ───────
+// ─── Top Grey Summary Card (Independent Total Revenue Card) ───────────────────
 
 const SummaryCard = ({
   count,
@@ -99,14 +107,6 @@ const SummaryCard = ({
         </View>
         <View style={styles.summaryColRight}>
           <Text style={styles.summaryValue}>{formatCurrencyWithCents(totalAmount)}</Text>
-          <TouchableOpacity
-            style={styles.viewListBtn}
-            onPress={() => router.push('/all-orders' as any)}
-            activeOpacity={0.8}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={styles.viewListBtnText}>View All List ›</Text>
-          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -217,7 +217,15 @@ const SearchOrdersSection = () => {
 
   return (
     <View style={styles.searchSection}>
-      <Text style={styles.searchSectionTitle}>Search Orders Overall</Text>
+      <View style={styles.searchHeaderRow}>
+        <Text style={styles.searchSectionTitle}>Search Orders Overall</Text>
+        <TouchableOpacity
+          onPress={() => router.push('/all-orders' as any)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.viewAllListLink}>View All List ›</Text>
+        </TouchableOpacity>
+      </View>
       
       {/* Search Input Bar */}
       <View style={styles.searchInputWrap}>
@@ -426,6 +434,22 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: PRIMARY,
   },
+  headerRightGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  viewAllHeaderBtn: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  viewAllHeaderText: {
+    fontSize: 12,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
+  },
   badge: {
     position: 'absolute',
     top: 2,
@@ -470,18 +494,6 @@ const styles = StyleSheet.create({
     fontFamily: Typography.numberHeavy,
     fontWeight: '700',
     color: '#FFFFFF',
-  },
-  viewListBtn: {
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    marginTop: 2,
-  },
-  viewListBtnText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontFamily: Typography.headingSemiBold,
   },
 
   // KPI Grid (4 White Cards)
@@ -533,8 +545,18 @@ const styles = StyleSheet.create({
     marginTop: 20,
     gap: 12,
   },
+  searchHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   searchSectionTitle: {
     fontSize: 15,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
+  },
+  viewAllListLink: {
+    fontSize: 13,
     fontFamily: Typography.headingSemiBold,
     color: PRIMARY,
   },

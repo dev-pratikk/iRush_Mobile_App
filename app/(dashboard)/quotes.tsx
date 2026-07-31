@@ -204,7 +204,13 @@ const BottomNav = () => {
 
 // ─── Main Screen Component ────────────────────────────────────────────────────
 
+import { UnderDevelopment } from '../../components/ui/UnderDevelopment';
+
 export default function QuotesOverviewScreen() {
+  return <UnderDevelopment featureName="Quotes" />;
+}
+
+function LegacyQuotesOverviewScreen() {
   const { user } = useAuthContext();
   const [activePreset, setActivePreset] = useState<DateFilterPreset>('today');
   const [customRange, setCustomRange] = useState<{ startDate: string; endDate: string } | null>(null);

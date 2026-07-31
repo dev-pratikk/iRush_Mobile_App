@@ -132,11 +132,11 @@ const getKpiOnPress = (label: string, period: DatePeriod): (() => void) | undefi
     case 'Orders':
       return () => router.push({ pathname: '/all-orders' as any, params: { period } });
     case 'Quotes':
-      return () => Alert.alert('Quotes', 'Quotes feature is coming soon!');
+      return () => router.push('/quotes' as any);
     case 'New Customers':
-      return () => Alert.alert('New Customers', 'New Customers feature is coming soon!');
+      return () => router.push('/new-customers' as any);
     case 'Invoices':
-      return () => Alert.alert('Invoices', 'Invoices feature is coming soon!');
+      return () => router.push('/invoices' as any);
     default:
       return undefined;
   }
@@ -160,13 +160,7 @@ const BottomNav = () => {
           <TouchableOpacity
             key={index}
             style={styles.navTab}
-            onPress={() => {
-              if (tab.route === '/quotes') {
-                Alert.alert('Quotes', 'Quotes feature is coming soon!');
-              } else {
-                router.push(tab.route as any);
-              }
-            }}
+            onPress={() => router.push(tab.route as any)}
           >
             <Ionicons
               name={isActive ? (tab.icon as any) : (`${tab.icon}-outline` as any)}

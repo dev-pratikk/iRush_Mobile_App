@@ -373,13 +373,7 @@ const BottomNav = () => {
           <TouchableOpacity
             key={index}
             style={styles.navTab}
-            onPress={() => {
-              if (tab.route === '/quotes') {
-                Alert.alert('Quotes', 'Quotes feature is coming soon!');
-              } else {
-                router.push(tab.route as any);
-              }
-            }}
+            onPress={() => router.push(tab.route as any)}
           >
             <Ionicons
               name={isActive ? (tab.icon as any) : (`${tab.icon}-outline` as any)}

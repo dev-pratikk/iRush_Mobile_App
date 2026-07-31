@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Text, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Text, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KpiCard } from '../../components/dashboard/KpiCard';
@@ -132,11 +132,11 @@ const getKpiOnPress = (label: string, period: DatePeriod): (() => void) | undefi
     case 'Orders':
       return () => router.push({ pathname: '/all-orders' as any, params: { period } });
     case 'Quotes':
-      return () => router.push({ pathname: '/quotes' as any, params: { period } });
+      return () => Alert.alert('Quotes', 'Quotes feature is coming soon!');
     case 'New Customers':
-      return () => router.push('/new-customers' as any);
+      return () => Alert.alert('New Customers', 'New Customers feature is coming soon!');
     case 'Invoices':
-      return () => router.push('/invoices' as any);
+      return () => Alert.alert('Invoices', 'Invoices feature is coming soon!');
     default:
       return undefined;
   }

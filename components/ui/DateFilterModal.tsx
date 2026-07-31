@@ -444,30 +444,6 @@ export const DateFilterModal: React.FC<DateFilterModalProps> = ({
                       })}
                     </View>
 
-                    {/* Manual Input Fallback */}
-                    <View style={styles.dateInputsRow}>
-                      <View style={styles.dateInputCol}>
-                        <Text style={styles.inputLabel}>From (YYYY-MM-DD)</Text>
-                        <TextInput
-                          style={styles.dateInput}
-                          value={startDateInput}
-                          onChangeText={setStartDateInput}
-                          placeholder="YYYY-MM-DD"
-                          placeholderTextColor="#94A3B8"
-                        />
-                      </View>
-                      <View style={styles.dateInputCol}>
-                        <Text style={styles.inputLabel}>To (YYYY-MM-DD)</Text>
-                        <TextInput
-                          style={styles.dateInput}
-                          value={endDateInput}
-                          onChangeText={setEndDateInput}
-                          placeholder="YYYY-MM-DD"
-                          placeholderTextColor="#94A3B8"
-                        />
-                      </View>
-                    </View>
-
                     {validationError ? (
                       <Text style={styles.errorText}>{validationError}</Text>
                     ) : null}

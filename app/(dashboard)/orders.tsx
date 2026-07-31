@@ -7,6 +7,7 @@ import {
   Text,
   TextInput,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -369,7 +370,17 @@ const BottomNav = () => {
       {tabs.map((tab, index) => {
         const isActive = pathname === tab.route;
         return (
-          <TouchableOpacity key={index} style={styles.navTab} onPress={() => router.push(tab.route as any)}>
+          <TouchableOpacity
+            key={index}
+            style={styles.navTab}
+            onPress={() => {
+              if (tab.route === '/quotes') {
+                Alert.alert('Quotes', 'Quotes feature is coming soon!');
+              } else {
+                router.push(tab.route as any);
+              }
+            }}
+          >
             <Ionicons
               name={isActive ? (tab.icon as any) : (`${tab.icon}-outline` as any)}
               size={24}

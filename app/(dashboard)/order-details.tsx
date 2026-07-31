@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,6 +8,8 @@ import {
   BackHandler,
   Linking,
   Alert,
+  Modal,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -34,8 +36,226 @@ const decodeHtml = (str: string | null | undefined): string => {
     .trim();
 };
 
+// ─── Tracking Modal Component ──────────────────────────────────────────────────
+
+const TrackModal = ({
+  visible,
+  onClose,
+  orderNo,
+  trackingNo,
+  carrier = 'FedEx Express',
+  shipDate = 'Jul 22, 2026',
+  estDelivery = 'Jul 25, 2026',
+  status = 'In Transit',
+}: {
+  visible: boolean;
+  onClose: () => void;
+  orderNo: string;
+  trackingNo: string;
+  carrier?: string;
+  shipDate?: string;
+  estDelivery?: string;
+  status?: string;
+}) => {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback>
+            <View style={styles.modalCard}>
+              {/* Header */}
+              <View style={styles.modalHeader}>
+                <View style={styles.modalHeaderLeft}>
+                  <View style={styles.modalIconCircle}>
+                    <Ionicons name="bus-outline" size={20} color="#0F172A" />
+                  </View>
+                  <View>
+                    <Text style={styles.modalTitle}>Shipment Tracking</Text>
+                    <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.modalCloseBtn}
+                  onPress={onClose}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="close" size={20} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Status Banner */}
+              <View style={styles.trackCardBanner}>
+                <View style={styles.trackStatusPill}>
+                  <View style={styles.statusDotActive} />
+                  <Text style={styles.trackStatusText}>{status}</Text>
+                </View>
+                <Text style={styles.carrierText}>{carrier}</Text>
+              </View>
+
+              {/* Info Grid */}
+              <View style={styles.modalBodyGrid}>
+                <View style={styles.modalGridRow}>
+                  <Text style={styles.gridKey}>Tracking Number</Text>
+                  <Text style={styles.gridValueBold}>#{trackingNo}</Text>
+                </View>
+
+                <View style={styles.modalGridRow}>
+                  <Text style={styles.gridKey}>Shipped Date</Text>
+                  <Text style={styles.gridValue}>{shipDate}</Text>
+                </View>
+
+                <View style={styles.modalGridRow}>
+                  <Text style={styles.gridKey}>Estimated Delivery</Text>
+                  <Text style={styles.gridValueHighlight}>{estDelivery}</Text>
+                </View>
+              </View>
+
+              {/* Progress Steps */}
+              <View style={styles.timelineContainer}>
+                <View style={styles.timelineStep}>
+                  <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
+                  <Text style={styles.timelineTextDone}>Processed</Text>
+                </View>
+                <View style={styles.timelineLineDone} />
+                <View style={styles.timelineStep}>
+                  <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
+                  <Text style={styles.timelineTextDone}>Shipped</Text>
+                </View>
+                <View style={styles.timelineLineDone} />
+                <View style={styles.timelineStep}>
+                  <Ionicons name="radio-button-on" size={18} color="#2563EB" />
+                  <Text style={styles.timelineTextActive}>In Transit</Text>
+                </View>
+                <View style={styles.timelineLinePending} />
+                <View style={styles.timelineStep}>
+                  <Ionicons name="ellipse-outline" size={18} color="#94A3B8" />
+                  <Text style={styles.timelineTextPending}>Delivered</Text>
+                </View>
+              </View>
+
+              {/* Primary Close Button */}
+              <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
+                <Text style={styles.primaryActionBtnText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
+};
+
+// ─── Invoice Modal Component ───────────────────────────────────────────────────
+
+const InvoiceModal = ({
+  visible,
+  onClose,
+  invNumber,
+  invStatus,
+  invAmount,
+  companyName,
+  orderNo,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  invNumber: string;
+  invStatus: string;
+  invAmount: number;
+  companyName: string;
+  orderNo: string;
+}) => {
+  const isUnpaid = invStatus.toLowerCase().includes('unpaid');
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback>
+            <View style={styles.modalCard}>
+              {/* Header */}
+              <View style={styles.modalHeader}>
+                <View style={styles.modalHeaderLeft}>
+                  <View style={styles.modalIconCircle}>
+                    <Ionicons name="document-text-outline" size={20} color="#0F172A" />
+                  </View>
+                  <View>
+                    <Text style={styles.modalTitle}>Invoice Summary</Text>
+                    <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.modalCloseBtn}
+                  onPress={onClose}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="close" size={20} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Invoice Hero Block */}
+              <View style={styles.invoiceHeroCard}>
+                <Text style={styles.invoiceHeroCompany}>{companyName}</Text>
+                <Text style={styles.invoiceHeroAmount}>{formatCurrencyWithCents(invAmount)}</Text>
+                <View style={isUnpaid ? styles.unpaidBadgePill : styles.paidBadgePill}>
+                  <Ionicons
+                    name={isUnpaid ? 'alert-circle' : 'checkmark-circle'}
+                    size={14}
+                    color={isUnpaid ? '#DC2626' : '#16A34A'}
+                  />
+                  <Text style={isUnpaid ? styles.unpaidBadgeText : styles.paidBadgeText}>{invStatus}</Text>
+                </View>
+              </View>
+
+              {/* Info Grid */}
+              <View style={styles.modalBodyGrid}>
+                <View style={styles.modalGridRow}>
+                  <Text style={styles.gridKey}>Invoice Number</Text>
+                  <Text style={styles.gridValueBold}>#{invNumber}</Text>
+                </View>
+
+                <View style={styles.modalGridRow}>
+                  <Text style={styles.gridKey}>Payment Term</Text>
+                  <Text style={styles.gridValue}>Net 30</Text>
+                </View>
+
+                <View style={styles.modalGridRow}>
+                  <Text style={styles.gridKey}>Due Date</Text>
+                  <Text style={styles.gridValue}>Aug 10, 2026</Text>
+                </View>
+              </View>
+
+              {/* Action Buttons */}
+              <View style={styles.modalFooterRow}>
+                <TouchableOpacity style={styles.secondaryActionBtn} onPress={onClose} activeOpacity={0.8}>
+                  <Text style={styles.secondaryActionBtnText}>Close</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.primaryActionBtnFlex}
+                  onPress={() => {
+                    onClose();
+                    Alert.alert('Invoice', `Viewing invoice #${invNumber}`);
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="document-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.primaryActionBtnText}>View Invoice</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
+};
+
+// ─── Main Screen Component ────────────────────────────────────────────────────
+
 export default function OrderDetailsScreen() {
   const params = useLocalSearchParams<{ orderData?: string; from?: string }>();
+  const [trackModalVisible, setTrackModalVisible] = useState(false);
+  const [invoiceModalVisible, setInvoiceModalVisible] = useState(false);
 
   const handleBack = React.useCallback(() => {
     if (params.from) {
@@ -133,17 +353,6 @@ export default function OrderDetailsScreen() {
     }
   };
 
-  const handleTrack = () => {
-    Alert.alert('Tracking Information', `Order #${orderNo}\nTracking No: ${trackingNo}`);
-  };
-
-  const handleInvoiceAction = () => {
-    Alert.alert(
-      'Invoice Information',
-      `Invoice #${invNumber}\nStatus: ${invStatus}\nAmount: ${formatCurrencyWithCents(invAmount)}`
-    );
-  };
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       {/* Header Bar */}
@@ -183,14 +392,14 @@ export default function OrderDetailsScreen() {
               <Text style={styles.actionLabel}>Email</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionItem} onPress={handleTrack} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.actionItem} onPress={() => setTrackModalVisible(true)} activeOpacity={0.7}>
               <View style={styles.actionCircle}>
                 <Ionicons name="bus-outline" size={20} color={PRIMARY} />
               </View>
               <Text style={styles.actionLabel}>Track</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionItem} onPress={handleInvoiceAction} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.actionItem} onPress={() => setInvoiceModalVisible(true)} activeOpacity={0.7}>
               <View style={styles.actionCircle}>
                 <Ionicons name="document-text-outline" size={20} color={PRIMARY} />
               </View>
@@ -268,17 +477,20 @@ export default function OrderDetailsScreen() {
         {/* Section 3: INVOICE */}
         <View style={styles.sectionWrap}>
           <Text style={styles.sectionHeaderTitle}>INVOICE</Text>
-          <View style={styles.cardGroup}>
+          <TouchableOpacity style={styles.cardGroup} onPress={() => setInvoiceModalVisible(true)} activeOpacity={0.8}>
             <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
               <View style={styles.rowLeft}>
                 <Ionicons name="alert-circle-outline" size={17} color={RED_TEXT} style={styles.rowIcon} />
                 <Text style={styles.rowKey}>{invNumber}</Text>
               </View>
-              <Text style={[styles.rowValue, { color: RED_TEXT }]}>
-                {invStatus} · {formatCurrencyWithCents(invAmount)}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[styles.rowValue, { color: RED_TEXT }]}>
+                  {invStatus} · {formatCurrencyWithCents(invAmount)}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+              </View>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Section 4: SHIPPING ADDRESS & CONTACT */}
@@ -307,6 +519,24 @@ export default function OrderDetailsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Pop-up Modals */}
+      <TrackModal
+        visible={trackModalVisible}
+        onClose={() => setTrackModalVisible(false)}
+        orderNo={orderNo}
+        trackingNo={trackingNo}
+      />
+
+      <InvoiceModal
+        visible={invoiceModalVisible}
+        onClose={() => setInvoiceModalVisible(false)}
+        invNumber={invNumber}
+        invStatus={invStatus}
+        invAmount={invAmount}
+        companyName={companyName}
+        orderNo={orderNo}
+      />
     </SafeAreaView>
   );
 }
@@ -448,5 +678,271 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Typography.headingSemiBold,
     color: PRIMARY,
+  },
+
+  // ─── Modal Styles ─────────────────────────────────────────────────────────────
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+    gap: 16,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  modalIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontFamily: Typography.headingSemiBold,
+    color: '#0F172A',
+  },
+  modalSubTitle: {
+    fontSize: 12,
+    fontFamily: Typography.bodyMedium,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  modalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Tracking Modal Styles
+  trackCardBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  trackStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  statusDotActive: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#2563EB',
+  },
+  trackStatusText: {
+    fontSize: 12,
+    fontFamily: Typography.headingSemiBold,
+    color: '#1E40AF',
+  },
+  carrierText: {
+    fontSize: 13,
+    fontFamily: Typography.headingSemiBold,
+    color: '#475569',
+  },
+
+  modalBodyGrid: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 14,
+    gap: 10,
+  },
+  modalGridRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  gridKey: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: '#64748B',
+  },
+  gridValue: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: '#0F172A',
+  },
+  gridValueBold: {
+    fontSize: 13,
+    fontFamily: Typography.headingSemiBold,
+    color: '#0F172A',
+  },
+  gridValueHighlight: {
+    fontSize: 13,
+    fontFamily: Typography.headingSemiBold,
+    color: '#2563EB',
+  },
+
+  // Timeline
+  timelineContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+  },
+  timelineStep: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  timelineLineDone: {
+    flex: 1,
+    height: 2,
+    backgroundColor: '#16A34A',
+    marginBottom: 14,
+  },
+  timelineLinePending: {
+    flex: 1,
+    height: 2,
+    backgroundColor: '#E2E8F0',
+    marginBottom: 14,
+  },
+  timelineTextDone: {
+    fontSize: 10,
+    fontFamily: Typography.bodyMedium,
+    color: '#16A34A',
+  },
+  timelineTextActive: {
+    fontSize: 10,
+    fontFamily: Typography.headingSemiBold,
+    color: '#2563EB',
+  },
+  timelineTextPending: {
+    fontSize: 10,
+    fontFamily: Typography.bodyMedium,
+    color: '#94A3B8',
+  },
+
+  // Invoice Hero
+  invoiceHeroCard: {
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 4,
+  },
+  invoiceHeroCompany: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: '#64748B',
+  },
+  invoiceHeroAmount: {
+    fontSize: 26,
+    fontFamily: Typography.titleSerif,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  unpaidBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 2,
+  },
+  unpaidBadgeText: {
+    fontSize: 12,
+    fontFamily: Typography.headingSemiBold,
+    color: '#DC2626',
+  },
+  paidBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 2,
+  },
+  paidBadgeText: {
+    fontSize: 12,
+    fontFamily: Typography.headingSemiBold,
+    color: '#16A34A',
+  },
+
+  // Footer Buttons
+  primaryActionBtn: {
+    height: 44,
+    backgroundColor: '#0F172A',
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  primaryActionBtnText: {
+    fontSize: 14,
+    fontFamily: Typography.headingSemiBold,
+    color: '#FFFFFF',
+  },
+  modalFooterRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+  },
+  secondaryActionBtn: {
+    flex: 1,
+    height: 44,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  secondaryActionBtnText: {
+    fontSize: 14,
+    fontFamily: Typography.headingSemiBold,
+    color: '#475569',
+  },
+  primaryActionBtnFlex: {
+    flex: 1.5,
+    height: 44,
+    backgroundColor: '#0F172A',
+    borderRadius: 14,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

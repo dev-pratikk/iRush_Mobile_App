@@ -75,6 +75,7 @@ const RevenueOverview = ({
   loading: boolean;
   usingSample: boolean;
 }) => {
+  const title = period === 'today' ? "Today's Revenue Overview" : "This Month's Revenue Overview";
   const revenueValue = useMemo(() => {
     const activeStats = stats ?? SAMPLE_STATS;
     const periodKey = period === 'year' ? 'month' : period;
@@ -89,7 +90,7 @@ const RevenueOverview = ({
     <View style={styles.revenueCard}>
       <View style={styles.revenueContent}>
         <View style={styles.revenueTitleRow}>
-          <Text style={styles.revenueTitle}>Revenue Overview</Text>
+          <Text style={styles.revenueTitle}>{title}</Text>
           {usingSample && !loading ? (
             <View style={styles.sampleBadge}>
               <Ionicons name="cloud-offline-outline" size={12} color="#FFD43B" />
@@ -273,7 +274,6 @@ export default function DashboardScreen() {
             ) : null}
 
             {/* Today Section */}
-            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Today</Text>
             <RevenueOverview period="today" stats={stats} loading={loading} usingSample={usingSample} />
             <View style={styles.kpiGrid}>
               {loading && !stats
@@ -295,8 +295,9 @@ export default function DashboardScreen() {
             </View>
 
             {/* This Month Section */}
-            <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 8 }]}>This month</Text>
-            <RevenueOverview period="month" stats={stats} loading={loading} usingSample={usingSample} />
+            <View style={{ marginTop: 16 }}>
+              <RevenueOverview period="month" stats={stats} loading={loading} usingSample={usingSample} />
+            </View>
             <View style={styles.kpiGrid}>
               {loading && !stats
                 ? [1, 2, 3, 4].map((i) => (

@@ -18,12 +18,13 @@ interface RevenueOverviewCardProps {
 export function RevenueOverviewCard({ period, stats, loading, usingSample }: RevenueOverviewCardProps) {
   const activeStats = stats ?? SAMPLE_STATS;
   const revenueValue = formatCurrencyWithCents(activeStats[period].revenue);
+  const title = period === 'today' ? "Today's Revenue Overview" : "This Month's Revenue Overview";
 
   return (
     <View style={styles.revenueCard}>
       <View style={styles.revenueContent}>
         <View style={styles.revenueTitleRow}>
-          <Text style={styles.revenueTitle}>Revenue Overview</Text>
+          <Text style={styles.revenueTitle}>{title}</Text>
           {usingSample && !loading ? (
             <View style={styles.sampleBadge}>
               <Ionicons name="cloud-offline-outline" size={12} color="#FFD43B" />

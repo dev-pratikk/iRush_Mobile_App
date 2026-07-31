@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Text, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Text, RefreshControl, Alert } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColors } from '../../context/ThemeContext';
@@ -109,18 +109,23 @@ const BottomNav = () => {
       {tabs.map((tab, index) => {
         const isActive = pathname === tab.route;
         return (
-          <TouchableOpacity key={index} style={styles.navTab} onPress={() => router.push(tab.route as any)}>
+          <TouchableOpacity
+            key={index}
+            style={styles.navTab}
+            onPress={() => {
+              if (tab.route === '/quotes') {
+                Alert.alert('Quotes', 'Quotes feature is coming soon!');
+              } else {
+                router.push(tab.route as any);
+              }
+            }}
+          >
             <Ionicons
-              name={isActive ? `${tab.icon}` : (`${tab.icon}-outline` as any)}
+              name={isActive ? (tab.icon as any) : (`${tab.icon}-outline` as any)}
               size={24}
               color={isActive ? colors.primary : colors.inactive}
             />
-            <Text
-              style={[
-                styles.navLabel,
-                { color: isActive ? colors.primary : colors.inactive },
-              ]}
-            >
+            <Text style={[styles.navLabel, { color: isActive ? colors.primary : colors.inactive }]}>
               {tab.label}
             </Text>
           </TouchableOpacity>
@@ -457,13 +462,18 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 12, color: '#8A1C1C', flex: 1 },
 
   bottomNav: {
+    height: 58,
     flexDirection: 'row',
-    paddingTop: 8,
-    paddingBottom: 24,
-    paddingHorizontal: 16,
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5,
   },
-  navTab: { alignItems: 'center', paddingVertical: 4 },
-  navLabel: { fontSize: 11, fontFamily: Typography.bodyMedium, marginTop: 4 },
+  navTab: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  navLabel: {
+    fontSize: 10,
+    fontFamily: Typography.body,
+    marginTop: 3,
+  },
 });

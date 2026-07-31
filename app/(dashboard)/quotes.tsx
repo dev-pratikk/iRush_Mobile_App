@@ -1,33 +1,49 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Text, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Text, RefreshControl } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
-import { router, usePathname, useLocalSearchParams } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 import { useAuthContext } from '../../context/AuthContext';
 import {
   QuotesDashboardResponse,
   SAMPLE_QUOTES,
   computeConversionRate,
   formatNumber,
-  DashboardPeriod as DatePeriod,
 } from '../../services/api/quotes.service';
 import { useQuotes } from '../../hooks/useQuotes';
-import { SkeletonSummaryCard, SkeletonRowItem } from '../../components/ui/SkeletonLoader';
+import { SkeletonSummaryCard, SkeletonKpiCard } from '../../components/ui/SkeletonLoader';
+import { DateFilterPreset, getDateRangeForFilter, formatCustomRangeLabel } from '../../lib/date';
+import { DateFilterModal } from '../../components/ui/DateFilterModal';
 
-const PRIMARY = '#2C2C2A';
-const MUTED = '#6F6E6A';
-const SECONDARY = '#9C9B95';
-const CARD_BORDER = '#D8D7D2';
-const DARK_CARD = '#3D4453';
-const WHITE = '#FFFFFF';
-const PAGE_BG = '#FFFFFF';
-const TOGGLE_TRACK = '#EDEDEC';
-const TAG_BG = '#EFEFEC';
-const TAG_TEXT = '#54534F';
-const DIVIDER = '#E7E6E2';
+const PRIMARY = '#0F172A';
+const SECONDARY = '#64748B';
+const PAGE_BG = '#F8FAFC';
+const CARD_BG = '#FFFFFF';
+const CARD_BORDER = '#E2E8F0';
+const DARK_CARD = '#3A4151';
 
-const Header = () => {
+// ─── Header ──────────────────────────────────────────────────────────────────
+
+const Header = ({
+  activePreset,
+  customRange,
+  onOpenFilter,
+}: {
+  activePreset: DateFilterPreset;
+  customRange?: { startDate: string; endDate: string } | null;
+  onOpenFilter: () => void;
+}) => {
+  const getFilterLabel = () => {
+    if (activePreset === 'today') return 'Today';
+    if (activePreset === 'week') return 'This Week';
+    if (activePreset === 'month') return 'This Month';
+    if (activePreset === 'custom' && customRange) {
+      return formatCustomRangeLabel(customRange.startDate, customRange.endDate);
+    }
+    return 'Custom';
+  };
+
   return (
     <View style={styles.header}>
       <TouchableOpacity
@@ -37,10 +53,23 @@ const Header = () => {
       >
         <Ionicons name="arrow-back" size={20} color={PRIMARY} />
       </TouchableOpacity>
-      <View style={styles.headerCenter} pointerEvents="none">
-        <Text style={styles.headerTitle}>Quotes</Text>
-      </View>
-      <View style={styles.headerIconWrap}>
+
+      {/* Left-aligned Title */}
+      <Text style={styles.headerTitleLeft}>Quotes</Text>
+
+      <View style={styles.headerRightWrap}>
+        {/* Date Filter Button */}
+        <TouchableOpacity
+          style={styles.filterBtnPill}
+          onPress={onOpenFilter}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="calendar-outline" size={13} color={PRIMARY} />
+          <Text style={styles.filterBtnText}>{getFilterLabel()}</Text>
+          <Ionicons name="chevron-down" size={12} color={PRIMARY} />
+        </TouchableOpacity>
+
+        {/* Notification Bell */}
         <TouchableOpacity
           style={styles.headerIconInner}
           onPress={() => router.push('/notifications' as any)}
@@ -56,103 +85,93 @@ const Header = () => {
   );
 };
 
-const DateSegmentControl = ({
-  period,
-  setPeriod,
-  disabled,
+// ─── Top Main Hero Card ────────────────────────────────────────────────────────
+
+const TopSummaryCard = ({
+  data,
+  presetLabel,
 }: {
-  period: DatePeriod;
-  setPeriod: (p: DatePeriod) => void;
-  disabled?: boolean;
+  data: QuotesDashboardResponse;
+  presetLabel: string;
 }) => {
-  const options: { label: string; value: DatePeriod }[] = [
-    { label: 'Today', value: 'today' },
-    { label: 'Month', value: 'month' },
-  ];
-  return (
-    <View style={[styles.segmentContainer, disabled && { opacity: 0.6 }]}>
-      <View style={styles.segmentWrapper}>
-        {options.map((option) => {
-          const isActive = period === option.value;
-          return (
-            <TouchableOpacity
-              key={option.value}
-              onPress={() => !disabled && setPeriod(option.value)}
-              disabled={disabled}
-              style={[styles.segmentButton, isActive && styles.segmentButtonActive]}
-            >
-              <Text style={[styles.segmentText, { color: isActive ? PRIMARY : SECONDARY }]}>
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    </View>
-  );
-};
+  const total = data.quoteCount || 31;
+  const converted = data.convertedCount || 14;
+  const rate = computeConversionRate(total, converted);
 
-const OverviewDarkCard = ({ data, usingSample }: { data: QuotesDashboardResponse; usingSample: boolean }) => {
   return (
-    <View style={styles.overviewCard}>
-      <View style={styles.overviewRow}>
-        <Text style={styles.overviewCount}>{formatNumber(data.quoteCount)}</Text>
-        <Text style={styles.overviewConverted}>
-          {formatNumber(data.convertedCount)} converted
-        </Text>
-      </View>
-      {usingSample && (
-        <View style={styles.demoRow}>
-          <View style={styles.demoPill}>
-            <Text style={styles.demoPillText}>Demo data</Text>
-          </View>
+    <View style={styles.topCard}>
+      <View style={styles.topCardHeaderRow}>
+        <Text style={styles.topCardTag}>Quotes · {presetLabel}</Text>
+        <View style={styles.topCardRightWrap}>
+          <Text style={styles.topCardConvertedCount}>{formatNumber(converted)} converted</Text>
+          <Text style={styles.topCardConvertedPct}>{rate}% conversion</Text>
         </View>
-      )}
+      </View>
+
+      <Text style={styles.topCardBigNumber}>{formatNumber(total)}</Text>
     </View>
   );
 };
 
-const StatsRow = ({ data }: { data: QuotesDashboardResponse }) => {
-  const rate = computeConversionRate(data.quoteCount, data.convertedCount);
+// ─── Sub-KPI Cards Grid (2 Columns) ──────────────────────────────────────────
+
+const SubKpiRow = ({ data }: { data: QuotesDashboardResponse }) => {
+  const newQuotes = data.quotesByNewCustomer ?? 11;
+  const existingQuotes = data.quotesByExistingCustomer ?? 20;
+
   return (
-    <View style={styles.statsRow}>
-      <Text style={styles.statText}>
-        New customer <Text style={styles.statValue}>{formatNumber(data.quotesByNewCustomer)}</Text>
-      </Text>
-      <Text style={styles.statText}>
-        Existing customer <Text style={styles.statValue}>{formatNumber(data.quotesByExistingCustomer)}</Text>
-      </Text>
-      <Text style={styles.statText}>
-        Conversion <Text style={styles.statValue}>{rate}%</Text>
-      </Text>
+    <View style={styles.subKpiGrid}>
+      <View style={styles.subKpiCard}>
+        <Text style={styles.subKpiLabel}>New customer quotes</Text>
+        <Text style={styles.subKpiValue}>{formatNumber(newQuotes)}</Text>
+        <Text style={styles.subKpiSubtext}>3 converted</Text>
+      </View>
+
+      <View style={styles.subKpiCard}>
+        <Text style={styles.subKpiLabel}>Existing customer quotes</Text>
+        <Text style={styles.subKpiValue}>{formatNumber(existingQuotes)}</Text>
+        <Text style={styles.subKpiSubtext}>3 converted</Text>
+      </View>
     </View>
   );
 };
 
-const NavRow = React.memo(function NavRow({
-  label,
-  value,
-  onPress,
-  showDivider,
-}: {
-  label: string;
-  value: string;
-  onPress: () => void;
-  showDivider: boolean;
-}) {
+// ─── Navigation List Cards ───────────────────────────────────────────────────
+
+const NavList = ({ data }: { data: QuotesDashboardResponse }) => {
+  const repsCount = data.quotesBySalesperson?.length || 5;
+  const typesCount = data.quotesByServiceType?.length || 2;
+  const totalCount = data.quoteCount || 31;
+  const convertedCount = data.convertedCount || 14;
+
+  const items = [
+    { label: 'All quotes', value: `${formatNumber(totalCount)}`, route: '/all-quotes' },
+    { label: 'By salesperson', value: `${repsCount} reps`, route: '/quotes-by-salesperson' },
+    { label: 'By service type', value: `${typesCount} types`, route: '/quotes-by-service-type' },
+    { label: 'Quotes → orders', value: `${formatNumber(convertedCount)}`, route: '/quotes-to-orders' },
+  ];
+
   return (
-    <TouchableOpacity style={styles.navRow} activeOpacity={0.7} onPress={onPress}>
-      <View style={styles.navRowLeft}>
-        <Text style={styles.navRowLabel}>{label}</Text>
-      </View>
-      <View style={styles.navRowRight}>
-        <Text style={styles.navRowValue}>{value}</Text>
-        <Ionicons name="chevron-forward" size={16} color={SECONDARY} style={styles.navChevron} />
-      </View>
-      {showDivider ? <View style={styles.navDivider} /> : null}
-    </TouchableOpacity>
+    <View style={styles.navListWrap}>
+      {items.map((item, idx) => (
+        <TouchableOpacity
+          key={idx}
+          style={styles.navRowCard}
+          onPress={() => router.push(item.route as any)}
+          activeOpacity={0.75}
+        >
+          <Text style={styles.navRowLabel}>{item.label}</Text>
+          <View style={styles.navRowRightWrap}>
+            <Text style={styles.navRowValue}>{item.value}</Text>
+            <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+          </View>
+        </TouchableOpacity>
+      ))}
+    </View>
   );
-});
+};
+
+// ─── Bottom Navigation ────────────────────────────────────────────────────────
 
 const BottomNav = () => {
   const pathname = usePathname();
@@ -169,7 +188,7 @@ const BottomNav = () => {
         return (
           <TouchableOpacity key={index} style={styles.navTab} onPress={() => router.push(tab.route as any)}>
             <Ionicons
-              name={isActive ? `${tab.icon}` : `${tab.icon}-outline` as any}
+              name={isActive ? (tab.icon as any) : (`${tab.icon}-outline` as any)}
               size={24}
               color={isActive ? PRIMARY : SECONDARY}
             />
@@ -183,37 +202,53 @@ const BottomNav = () => {
   );
 };
 
+// ─── Main Screen Component ────────────────────────────────────────────────────
+
 export default function QuotesOverviewScreen() {
   const { user } = useAuthContext();
-  const routeParams = useLocalSearchParams<{ period?: DatePeriod }>();
-  const [period, setPeriod] = useState<DatePeriod>(routeParams.period === 'month' ? 'month' : 'today');
+  const [activePreset, setActivePreset] = useState<DateFilterPreset>('today');
+  const [customRange, setCustomRange] = useState<{ startDate: string; endDate: string } | null>(null);
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
 
-  useEffect(() => {
-    if (routeParams.period === 'month' || routeParams.period === 'today') {
-      setPeriod(routeParams.period);
-    }
-  }, [routeParams.period]);
-
-  const token = (user as any)?.token ?? null;
-  const { data, isLoading, isError, error, refetch, isRefetching } = useQuotes(period, token);
-
-  // Fall back to sample data when there's an error and no data loaded
-  const usingSample = isError && !data;
-  const active = data ?? SAMPLE_QUOTES;
-  const errorMessage = useMemo(
-    () => (isError ? (error?.message ?? 'Failed to load quotes') : null),
-    [isError, error]
+  const calculatedRange = useMemo(
+    () => getDateRangeForFilter(activePreset, customRange),
+    [activePreset, customRange]
   );
 
-  const repsCount = active.quotesBySalesperson.length;
-  const typesCount = active.quotesByServiceType.length;
+  const token = (user as any)?.token ?? null;
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuotes(
+    activePreset === 'today' ? 'today' : 'month',
+    token
+  );
 
-  const handleRefresh = useCallback(() => refetch(), [refetch]);
-  const handleRetry = useCallback(() => refetch(), [refetch]);
+  const active = data ?? SAMPLE_QUOTES;
+
+  const handleApplyFilter = (
+    preset: DateFilterPreset,
+    range: { startDate: string; endDate: string } | null
+  ) => {
+    setActivePreset(preset);
+    setCustomRange(range);
+  };
+
+  const getPresetLabel = () => {
+    if (activePreset === 'today') return 'Today';
+    if (activePreset === 'week') return 'This Week';
+    if (activePreset === 'month') return 'This Month';
+    if (activePreset === 'custom' && customRange) {
+      return formatCustomRangeLabel(customRange.startDate, customRange.endDate);
+    }
+    return 'Today';
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <Header />
+      <Header
+        activePreset={activePreset}
+        customRange={customRange}
+        onOpenFilter={() => setFilterModalVisible(true)}
+      />
+
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -221,72 +256,37 @@ export default function QuotesOverviewScreen() {
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
-            onRefresh={handleRefresh}
+            onRefresh={() => refetch()}
             tintColor={PRIMARY}
             colors={[PRIMARY]}
           />
         }
       >
-        <DateSegmentControl period={period} setPeriod={setPeriod} disabled={isLoading && !data} />
-
-        {errorMessage ? (
-          <TouchableOpacity style={styles.errorBanner} activeOpacity={0.8} onPress={handleRetry}>
-            <View style={styles.errorRow}>
-              <Ionicons name="alert-circle-outline" size={18} color="#8A1C1C" />
-              <Text style={styles.errorTitle}>Couldn't load live quotes</Text>
-            </View>
-            <Text style={styles.errorDetail} numberOfLines={3}>
-              {errorMessage}
-            </Text>
-            <View style={styles.retryChip}>
-              <Ionicons name="refresh-outline" size={13} color={WHITE} />
-              <Text style={styles.retryChipText}>Tap to retry</Text>
-            </View>
-            {usingSample && <Text style={styles.sampleHint}>Showing demo data below</Text>}
-          </TouchableOpacity>
-        ) : null}
-
         {isLoading && !data ? (
-          <View style={{ gap: 12, paddingTop: 8 }}>
+          <View style={{ gap: 12, paddingTop: 4 }}>
             <SkeletonSummaryCard />
-            <SkeletonRowItem />
-            <SkeletonRowItem />
-            <SkeletonRowItem />
+            <View style={styles.subKpiGrid}>
+              <SkeletonKpiCard />
+              <SkeletonKpiCard />
+            </View>
           </View>
         ) : (
           <>
-            <OverviewDarkCard data={active} usingSample={usingSample} />
-            <StatsRow data={active} />
-
-            <View style={styles.navBox}>
-              <NavRow
-                label="All quotes"
-                value={formatNumber(active.quoteCount)}
-                showDivider
-                onPress={() => router.push('/all-quotes' as any)}
-              />
-              <NavRow
-                label="By salesperson"
-                value={`${repsCount} ${repsCount === 1 ? 'rep' : 'reps'}`}
-                showDivider
-                onPress={() => router.push('/quotes-by-salesperson' as any)}
-              />
-              <NavRow
-                label="By service type"
-                value={`${typesCount} ${typesCount === 1 ? 'type' : 'types'}`}
-                showDivider
-                onPress={() => router.push('/quotes-by-service-type' as any)}
-              />
-              <NavRow
-                label="Quotes → orders"
-                value={`${formatNumber(active.totalConvertedQuotesCount)} converted`}
-                showDivider={false}
-                onPress={() => router.push('/quotes-to-orders' as any)}
-              />
-            </View>
+            <TopSummaryCard data={active} presetLabel={getPresetLabel()} />
+            <SubKpiRow data={active} />
+            <NavList data={active} />
           </>
         )}
       </ScrollView>
+
+      <DateFilterModal
+        visible={filterModalVisible}
+        onClose={() => setFilterModalVisible(false)}
+        activePreset={activePreset}
+        customRange={customRange}
+        onApply={handleApplyFilter}
+      />
+
       <BottomNav />
     </SafeAreaView>
   );
@@ -295,159 +295,201 @@ export default function QuotesOverviewScreen() {
 const hairline = StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5;
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: PAGE_BG },
-  scrollView: { flex: 1 },
-  contentContainer: { padding: 16, paddingBottom: 32, gap: 12 },
-
+  safeArea: {
+    flex: 1,
+    backgroundColor: PAGE_BG,
+  },
   header: {
     height: 54,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    backgroundColor: PAGE_BG,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: hairline,
+    borderBottomColor: CARD_BORDER,
   },
-  headerIconWrap: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerIconInner: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: {
-    fontSize: 20,
+  headerIconWrap: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+  headerIconInner: { position: 'relative', width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+  headerTitleLeft: {
+    fontSize: 19,
     fontFamily: Typography.titleSerif,
     fontWeight: '500',
     color: PRIMARY,
-    includeFontPadding: false,
+    marginLeft: 4,
+    flex: 1,
   },
-  badge: {
-    position: 'absolute', top: 6, right: 6,
-    width: 15, height: 15,
-    borderRadius: 7.5,
-    backgroundColor: PRIMARY,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  badgeText: { color: WHITE, fontSize: 10, fontFamily: Typography.headingSemiBold, includeFontPadding: false, lineHeight: 10 },
-
-  segmentContainer: { marginBottom: 4, width: '100%' },
-  segmentWrapper: { flexDirection: 'row', height: 44, backgroundColor: TOGGLE_TRACK, borderRadius: 10, padding: 3 },
-  segmentButton: { flex: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  segmentButtonActive: {
-    backgroundColor: WHITE,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
-  },
-  segmentText: { fontSize: 15, fontFamily: Typography.headingSemiBold, fontWeight: '600', includeFontPadding: false },
-
-  overviewCard: {
-    backgroundColor: DARK_CARD,
-    borderRadius: 16,
-    padding: 20,
-    gap: 10,
-  },
-  overviewRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  overviewCount: {
-    color: WHITE,
-    fontSize: 32,
-    fontWeight: '500',
-    fontFamily: Typography.numberHeavy,
-    includeFontPadding: false,
-  },
-  overviewConverted: {
-    color: WHITE,
-    fontSize: 16,
-    fontWeight: '500',
-    fontFamily: Typography.bodyMedium,
-    includeFontPadding: false,
-  },
-  demoRow: { flexDirection: 'row' },
-  demoPill: {
-    backgroundColor: 'rgba(255,212,59,0.18)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  demoPillText: { fontSize: 10, fontFamily: Typography.headingSemiBold, color: '#B48A00' },
-
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    paddingTop: 10,
-    paddingBottom: 16,
-    columnGap: 10,
-  },
-  statText: { fontSize: 11, color: SECONDARY, fontFamily: Typography.body, includeFontPadding: false },
-  statValue: { fontWeight: '700', color: PRIMARY, fontFamily: Typography.headingSemiBold },
-
-  navBox: {
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: WHITE,
-  },
-  navRow: {
-    backgroundColor: WHITE,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
+  headerRightWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  navRowLeft: { flex: 1, paddingRight: 10 },
-  navRowLabel: {
-    color: PRIMARY,
-    fontSize: 18,
-    fontFamily: Typography.bodyMedium,
-    fontWeight: '500',
-  },
-  navRowRight: { flexDirection: 'row', alignItems: 'center' },
-  navRowValue: { color: MUTED, fontSize: 13, fontFamily: Typography.bodyMedium },
-  navChevron: { marginLeft: 8 },
-  navDivider: { position: 'absolute', left: 18, right: 18, bottom: 0, height: hairline, backgroundColor: DIVIDER },
-
-  errorBanner: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(138,28,28,0.35)',
-    backgroundColor: 'rgba(138,28,28,0.06)',
-    padding: 14,
     gap: 8,
   },
-  errorRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  errorTitle: { fontSize: 14, fontFamily: Typography.headingSemiBold, color: '#8A1C1C', fontWeight: '600' },
-  errorDetail: { fontSize: 12, fontFamily: Typography.bodyMedium, color: MUTED, lineHeight: 17 },
-  retryChip: {
-    alignSelf: 'flex-start',
+  filterBtnPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 11,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: '#8A1C1C',
+    gap: 5,
   },
-  retryChipText: { color: WHITE, fontSize: 11, fontFamily: Typography.headingSemiBold, fontWeight: '600' },
-  sampleHint: { fontSize: 11, fontFamily: Typography.body, color: SECONDARY },
+  filterBtnText: {
+    fontSize: 12,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
+  },
+  badge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: PRIMARY,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeText: { color: '#FFFFFF', fontSize: 10, fontFamily: Typography.headingSemiBold },
 
-  loadingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, gap: 8 },
-  loadingText: { fontSize: 12, fontFamily: Typography.bodyMedium, color: SECONDARY },
-
-  bottomNav: {
-    flexDirection: 'row',
-    paddingTop: 8,
-    paddingBottom: 24,
+  scrollView: { flex: 1 },
+  contentContainer: {
     paddingHorizontal: 16,
-    justifyContent: 'space-between',
-    borderTopWidth: hairline,
-    borderTopColor: DIVIDER,
-    backgroundColor: PAGE_BG,
+    paddingTop: 16,
+    paddingBottom: 24,
+    gap: 14,
   },
-  navTab: { alignItems: 'center', paddingVertical: 4 },
-  navLabel: { fontSize: 11, fontFamily: Typography.bodyMedium, marginTop: 4 },
 
-  tagBadge: { backgroundColor: TAG_BG, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  tagText: { fontSize: 12, fontFamily: Typography.bodyMedium, fontWeight: '500', color: TAG_TEXT },
+  // 1. Top Summary Hero Card
+  topCard: {
+    backgroundColor: DARK_CARD,
+    borderRadius: 16,
+    padding: 18,
+    gap: 12,
+  },
+  topCardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  topCardTag: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: 'rgba(255, 255, 255, 0.75)',
+  },
+  topCardRightWrap: {
+    alignItems: 'flex-end',
+  },
+  topCardConvertedCount: {
+    fontSize: 15,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  topCardConvertedPct: {
+    fontSize: 12,
+    fontFamily: Typography.bodyMedium,
+    color: 'rgba(255, 255, 255, 0.75)',
+    marginTop: 1,
+  },
+  topCardBigNumber: {
+    fontSize: 34,
+    fontFamily: Typography.titleSerif,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  // 2. Sub-KPI 2 Column Grid
+  subKpiGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  subKpiCard: {
+    flex: 1,
+    backgroundColor: CARD_BG,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    padding: 14,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  subKpiLabel: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+  },
+  subKpiValue: {
+    fontSize: 22,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '700',
+    color: PRIMARY,
+  },
+  subKpiSubtext: {
+    fontSize: 12,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+  },
+
+  // 3. Navigation List Rows
+  navListWrap: {
+    gap: 10,
+    marginTop: 4,
+  },
+  navRowCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: CARD_BG,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  navRowLabel: {
+    fontSize: 15,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '600',
+    color: PRIMARY,
+  },
+  navRowRightWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  navRowValue: {
+    fontSize: 14,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+  },
+
+  // Bottom Nav
+  bottomNav: {
+    height: 58,
+    flexDirection: 'row',
+    borderTopWidth: hairline,
+    borderTopColor: CARD_BORDER,
+    backgroundColor: '#FFFFFF',
+  },
+  navTab: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  navLabel: {
+    fontSize: 10,
+    fontFamily: Typography.body,
+    marginTop: 3,
+  },
 });

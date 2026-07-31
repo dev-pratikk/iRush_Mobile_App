@@ -419,7 +419,7 @@ export default function OrdersScreen() {
   const { user } = useAuthContext();
   const token = (user as any)?.token ?? null;
 
-  const [activePreset, setActivePreset] = useState<DateFilterPreset>('month');
+  const [activePreset, setActivePreset] = useState<DateFilterPreset>('today');
   const [customRange, setCustomRange] = useState<{ startDate: string; endDate: string } | null>(null);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 

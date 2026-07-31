@@ -3,7 +3,7 @@ import { View, StyleSheet, FlatList, TouchableOpacity, Text, RefreshControl } fr
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
-import { router, usePathname } from 'expo-router';
+import { router } from 'expo-router';
 import {
   QuotesByServiceType,
   SAMPLE_QUOTES,
@@ -11,11 +11,11 @@ import {
   formatNumber,
 } from '../../services/api/quotes.service';
 
-const PRIMARY = '#2C2C2A';
-const SECONDARY = '#9C9B95';
-const SUMMARY_TEXT = '#9C9B95';
-const DIVIDER = '#E7E6E2';
-const PAGE_BG = '#FFFFFF';
+const PRIMARY = '#0F172A';
+const SECONDARY = '#64748B';
+const PAGE_BG = '#F8FAFC';
+const CARD_BG = '#FFFFFF';
+const CARD_BORDER = '#E2E8F0';
 
 const Header = () => {
   return (
@@ -27,45 +27,61 @@ const Header = () => {
       >
         <Ionicons name="arrow-back" size={20} color={PRIMARY} />
       </TouchableOpacity>
-      <View style={styles.headerCenter} pointerEvents="none">
-        <Text style={styles.headerTitle}>By service type</Text>
-      </View>
-      <View style={styles.headerSpacer} />
+      <Text style={styles.headerTitleLeft}>By service type</Text>
     </View>
   );
 };
 
-const SummaryLine = () => {
-  const types = SAMPLE_QUOTES.quotesByServiceType.length;
-  const quotes = SAMPLE_QUOTES.quoteCount;
+const SummaryBar = ({ totalTypes, totalQuotes }: { totalTypes: number; totalQuotes: number }) => {
   return (
     <View style={styles.summaryBar}>
       <Text style={styles.summaryText}>
-        {types} {types === 1 ? 'type' : 'types'} · {formatNumber(quotes)} quote{quotes === 1 ? '' : 's'}
+        {totalTypes} {totalTypes === 1 ? 'service type' : 'service types'} · {formatNumber(totalQuotes)} quote{totalQuotes === 1 ? '' : 's'}
       </Text>
     </View>
   );
 };
 
-const TypeRow = React.memo(function TypeRow({ item }: { item: QuotesByServiceType }) {
+const TypeCard = React.memo(function TypeCard({
+  item,
+  totalQuotes,
+}: {
+  item: QuotesByServiceType;
+  totalQuotes: number;
+}) {
   const name = cleanupName(item.serviceType, 'Service');
+  const count = item.quoteCount || 0;
+  const converted = item.convertedCount || 0;
+
+  // Share percentage of total quotes
+  const sharePctNum = totalQuotes > 0 ? (count / totalQuotes) * 100 : 0;
+  const sharePctStr = sharePctNum % 1 === 0 ? sharePctNum.toFixed(0) : sharePctNum.toFixed(1);
+
+  // Conversion rate percentage
+  const convPctNum = count > 0 ? (converted / count) * 100 : 0;
+  const convPctStr = convPctNum % 1 === 0 ? convPctNum.toFixed(0) : convPctNum.toFixed(1);
+
   return (
-    <View style={styles.row}>
-      <View style={styles.rowLine1}>
-        <Text style={styles.nameText} numberOfLines={1}>{name}</Text>
-        <Text style={styles.quotesText}>
-          {formatNumber(item.quoteCount)} quote{item.quoteCount === 1 ? '' : 's'}
+    <View style={styles.typeCard}>
+      {/* Top Line */}
+      <View style={styles.cardTopRow}>
+        <Text style={styles.nameText} numberOfLines={1}>
+          {name}
+        </Text>
+        <Text style={styles.shareText}>
+          {formatNumber(count)} quotes · {sharePctStr}%
         </Text>
       </View>
-      <View style={styles.rowLine2}>
-        <Text style={styles.convertedText}>
-          {formatNumber(item.convertedCount)} converted
-        </Text>
-        <Text style={styles.pctText}>
-          {typeof item.convertedPct === 'number'
-            ? `${Number.isInteger(item.convertedPct) ? item.convertedPct.toFixed(0) : item.convertedPct.toFixed(1)}%`
-            : '0%'}
-        </Text>
+
+      {/* Middle: Progress Bar */}
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${Math.min(100, Math.max(4, sharePctNum))}%` }]} />
+      </View>
+
+      {/* Bottom Line */}
+      <View style={styles.cardBottomRow}>
+        <Text style={styles.convertedText}>{formatNumber(converted)} converted</Text>
+        <Text style={styles.convRateText}>{convPctStr}%</Text>
       </View>
     </View>
   );
@@ -88,25 +104,29 @@ export default function QuotesByServiceTypeScreen() {
     setTimeout(() => setRefreshing(false), 600);
   }, []);
 
-  const items = useMemo(() => {
-    return [...(SAMPLE_QUOTES.quotesByServiceType ?? [])].sort(
-      (a, b) => (b.quoteCount || 0) - (a.quoteCount || 0)
-    );
-  }, []);
+  const rawList = SAMPLE_QUOTES.quotesByServiceType ?? [];
+  const totalQuotes = useMemo(
+    () => rawList.reduce((sum, item) => sum + (item.quoteCount || 0), 0) || 31,
+    [rawList]
+  );
 
-  const keyExtractor = useCallback((item: QuotesByServiceType, i: number) => `${item.serviceType}-${i}`, []);
-  const renderItem = useCallback(
-    ({ item }: { item: QuotesByServiceType }) => <TypeRow item={item} />,
+  const items = useMemo(() => {
+    return [...rawList].sort((a, b) => (b.quoteCount || 0) - (a.quoteCount || 0));
+  }, [rawList]);
+
+  const keyExtractor = useCallback(
+    (item: QuotesByServiceType, i: number) => `${item.serviceType}-${i}`,
     []
   );
+
+  const renderItem = useCallback(
+    ({ item }: { item: QuotesByServiceType }) => <TypeCard item={item} totalQuotes={totalQuotes} />,
+    [totalQuotes]
+  );
+
   const ListHeader = useMemo(
-    () => (
-      <View>
-        <SummaryLine />
-        <View style={styles.divider} />
-      </View>
-    ),
-    []
+    () => <SummaryBar totalTypes={items.length} totalQuotes={totalQuotes} />,
+    [items.length, totalQuotes]
   );
 
   return (
@@ -120,12 +140,13 @@ export default function QuotesByServiceTypeScreen() {
         ListEmptyComponent={EmptyState}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.flatlistContent}
-        initialNumToRender={20}
-        maxToRenderPerBatch={20}
-        windowSize={9}
-        removeClippedSubviews
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY} colors={[PRIMARY]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={PRIMARY}
+            colors={[PRIMARY]}
+          />
         }
       />
     </SafeAreaView>
@@ -136,94 +157,111 @@ const hairline = StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5;
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: PAGE_BG },
-  flatlistContent: { paddingBottom: 40, flexGrow: 1 },
+  flatlistContent: { paddingHorizontal: 16, paddingBottom: 32, flexGrow: 1 },
 
   header: {
-    height: 54,
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    backgroundColor: PAGE_BG,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: hairline,
+    borderBottomColor: CARD_BORDER,
   },
-  headerIconWrap: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: {
-    fontSize: 19,
+  headerIconWrap: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+  headerTitleLeft: {
+    fontSize: 18,
     fontFamily: Typography.titleSerif,
     fontWeight: '500',
     color: PRIMARY,
-    includeFontPadding: false,
+    marginLeft: 4,
   },
-  headerSpacer: { width: 40, height: 40 },
 
-  summaryBar: { paddingHorizontal: 16, paddingVertical: 12 },
+  summaryBar: {
+    paddingVertical: 14,
+  },
   summaryText: {
-    fontSize: 12,
-    color: SUMMARY_TEXT,
-    fontFamily: Typography.body,
-    fontWeight: '400',
-    includeFontPadding: false,
-  },
-  divider: { height: hairline, backgroundColor: DIVIDER },
-
-  row: {
-    paddingVertical: 13,
-    paddingHorizontal: 18,
-    borderBottomWidth: hairline,
-    borderBottomColor: DIVIDER,
-  },
-  rowLine1: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  nameText: {
-    fontSize: 13.5,
+    fontSize: 13,
+    color: SECONDARY,
     fontFamily: Typography.bodyMedium,
-    fontWeight: '500',
+  },
+
+  // Service Type Card
+  typeCard: {
+    backgroundColor: CARD_BG,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    padding: 16,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  nameText: {
+    fontSize: 15,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '700',
     color: PRIMARY,
     flex: 1,
-    paddingRight: 12,
+    paddingRight: 10,
   },
-  quotesText: {
+  shareText: {
     fontSize: 13,
     fontFamily: Typography.bodyMedium,
-    fontWeight: '500',
-    color: PRIMARY,
-    includeFontPadding: false,
+    color: SECONDARY,
   },
-  rowLine2: {
-    marginTop: 6,
+
+  progressTrack: {
+    height: 6,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 3,
+    marginVertical: 10,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#3A4151',
+    borderRadius: 3,
+  },
+
+  cardBottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   convertedText: {
-    fontSize: 11,
-    fontFamily: Typography.body,
-    fontWeight: '400',
+    fontSize: 12.5,
+    fontFamily: Typography.bodyMedium,
     color: SECONDARY,
-    includeFontPadding: false,
   },
-  pctText: {
-    fontSize: 11,
-    fontFamily: Typography.body,
-    fontWeight: '400',
-    color: SECONDARY,
-    includeFontPadding: false,
+  convRateText: {
+    fontSize: 12.5,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '600',
+    color: PRIMARY,
   },
 
-  emptyState: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 24, gap: 6 },
-  emptyTitle: { fontSize: 15, fontFamily: Typography.headingSemiBold, fontWeight: '600', color: SECONDARY, marginTop: 10 },
-  emptySubtitle: { fontSize: 12, fontFamily: Typography.body, color: SECONDARY, opacity: 0.8, textAlign: 'center' },
-
-  bottomNav: {
-    flexDirection: 'row',
-    paddingTop: 8,
-    paddingBottom: 24,
-    paddingHorizontal: 16,
-    justifyContent: 'space-between',
-    borderTopWidth: hairline,
-    borderTopColor: DIVIDER,
-    backgroundColor: PAGE_BG,
+  emptyState: {
+    paddingTop: 60,
+    alignItems: 'center',
+    gap: 8,
   },
-  navTab: { alignItems: 'center', paddingVertical: 4 },
-  navLabel: { fontSize: 11, fontFamily: Typography.bodyMedium, marginTop: 4 },
+  emptyTitle: {
+    fontSize: 16,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    fontFamily: Typography.body,
+    color: SECONDARY,
+  },
 });

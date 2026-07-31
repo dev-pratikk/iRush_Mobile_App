@@ -89,10 +89,8 @@ const Header = ({
 
 const TopSummaryCard = ({
   data,
-  presetLabel,
 }: {
   data: QuotesDashboardResponse;
-  presetLabel: string;
 }) => {
   const total = data.quoteCount || 31;
   const converted = data.convertedCount || 14;
@@ -101,14 +99,16 @@ const TopSummaryCard = ({
   return (
     <View style={styles.topCard}>
       <View style={styles.topCardHeaderRow}>
-        <Text style={styles.topCardTag}>Quotes · {presetLabel}</Text>
+        <View style={styles.topCardLeftWrap}>
+          <Text style={styles.topCardTag}>Quotes</Text>
+          <Text style={styles.topCardBigNumber}>{formatNumber(total)}</Text>
+        </View>
+
         <View style={styles.topCardRightWrap}>
           <Text style={styles.topCardConvertedCount}>{formatNumber(converted)} converted</Text>
           <Text style={styles.topCardConvertedPct}>{rate}% conversion</Text>
         </View>
       </View>
-
-      <Text style={styles.topCardBigNumber}>{formatNumber(total)}</Text>
     </View>
   );
 };
@@ -122,13 +122,13 @@ const SubKpiRow = ({ data }: { data: QuotesDashboardResponse }) => {
   return (
     <View style={styles.subKpiGrid}>
       <View style={styles.subKpiCard}>
-        <Text style={styles.subKpiLabel}>New customer quotes</Text>
+        <Text style={styles.subKpiLabel}>New customer</Text>
         <Text style={styles.subKpiValue}>{formatNumber(newQuotes)}</Text>
         <Text style={styles.subKpiSubtext}>3 converted</Text>
       </View>
 
       <View style={styles.subKpiCard}>
-        <Text style={styles.subKpiLabel}>Existing customer quotes</Text>
+        <Text style={styles.subKpiLabel}>Existing customer</Text>
         <Text style={styles.subKpiValue}>{formatNumber(existingQuotes)}</Text>
         <Text style={styles.subKpiSubtext}>3 converted</Text>
       </View>
@@ -272,7 +272,7 @@ export default function QuotesOverviewScreen() {
           </View>
         ) : (
           <>
-            <TopSummaryCard data={active} presetLabel={getPresetLabel()} />
+            <TopSummaryCard data={active} />
             <SubKpiRow data={active} />
             <NavList data={active} />
           </>
@@ -365,13 +365,16 @@ const styles = StyleSheet.create({
   topCard: {
     backgroundColor: DARK_CARD,
     borderRadius: 16,
-    padding: 18,
-    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   topCardHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+  },
+  topCardLeftWrap: {
+    gap: 2,
   },
   topCardTag: {
     fontSize: 13,

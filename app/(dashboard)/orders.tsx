@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -25,14 +25,12 @@ import {
   fetchOrdersPage,
   SAMPLE_ORDERS,
   type OrderItem,
-  type OrdersSearchType,
 } from '../../services/api/orders.service';
 import { DateFilterPreset, getDateRangeForFilter, formatCustomRangeLabel } from '../../lib/date';
 import { DateFilterModal } from '../../components/ui/DateFilterModal';
 
 const PRIMARY = '#2C2C2A';
-const SECONDARY = '#9C9B95';
-const SUMMARY_CARD_BG = '#3A4151';
+const SECONDARY = '#64748B';
 
 const decodeHtml = (str: string | null | undefined): string => {
   if (!str) return '';
@@ -107,7 +105,42 @@ const Header = ({
   );
 };
 
-// ─── Top Grey Summary Card (Dynamic Filtered Orders Overview Card) ────────────
+// ─── Search Input Bar Component (Positioned at Top) ───────────────────────────
+
+const OrderSearchBar = ({
+  query,
+  setQuery,
+}: {
+  query: string;
+  setQuery: (q: string) => void;
+}) => {
+  return (
+    <View style={styles.searchInputWrap}>
+      <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
+      <TextInput
+        style={styles.searchInput}
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search by order no or company name…"
+        placeholderTextColor={SECONDARY}
+        autoCapitalize="none"
+        autoCorrect={false}
+        returnKeyType="search"
+      />
+      {query.length > 0 ? (
+        <TouchableOpacity
+          onPress={() => setQuery('')}
+          style={styles.clearBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="close-circle" size={18} color={SECONDARY} />
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+};
+
+// ─── Top Grey Summary Card ────────────────────────────────────────────────────
 
 const SummaryCard = ({
   count,
@@ -137,7 +170,7 @@ const SummaryCard = ({
   );
 };
 
-// ─── 4 Non-Clickable KPI Cards Grid (Open, Closed, No Vendor, Partial Vendor) ──
+// ─── 4 Non-Clickable KPI Cards Grid ──────────────────────────────────────────
 
 const OrdersKpiGrid = ({
   totalCount,
@@ -148,7 +181,7 @@ const OrdersKpiGrid = ({
   totalAmount: number;
   loading?: boolean;
 }) => {
-  if (loading) {
+  if (loading && totalCount === 0) {
     return (
       <View style={styles.kpiContainer}>
         <View style={styles.kpiRow}>
@@ -194,57 +227,39 @@ const OrdersKpiGrid = ({
         <View style={styles.kpiCard}>
           <Text style={styles.kpiHeaderLabel}>NO VENDOR</Text>
           <Text style={styles.kpiValueText}>{formatNumber(noVendorCount)}</Text>
-          <Text style={styles.kpiSubText}>$572.6K exposed</Text>
         </View>
 
         <View style={styles.kpiCard}>
           <Text style={styles.kpiHeaderLabel}>PARTIAL VENDOR</Text>
           <Text style={styles.kpiValueText}>{formatNumber(partialVendorCount)}</Text>
-          <Text style={styles.kpiSubText}>$643.7K exposed</Text>
         </View>
       </View>
     </View>
   );
 };
 
-// ─── Search Bar & Searched Orders Section ─────────────────────────────────────
+// ─── Search Results Component (Positioned Below All KPIs) ─────────────────────
 
-const SearchOrdersSection = () => {
+const SearchResultsSection = ({
+  query,
+}: {
+  query: string;
+}) => {
   const { user } = useAuthContext();
   const token = (user as any)?.token ?? null;
-  const [query, setQuery] = useState('');
-  const [apiResults, setApiResults] = useState<OrderItem[]>([]);
+
   const [isSearching, setIsSearching] = useState(false);
+  const [apiResults, setApiResults] = useState<OrderItem[]>([]);
 
-  // Debounced API search overall
-  useEffect(() => {
-    const q = query.trim();
-    if (!q) {
-      setApiResults([]);
-      setIsSearching(false);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const detectedType: OrdersSearchType = /[a-zA-Z]/.test(q) ? 'companyName' : 'orderNo';
-        const res = await fetchOrdersPage('all', {
-          token: token ?? null,
-          page: 1,
-          limit: 10,
-          search: { type: detectedType, value: q },
-        });
-        setApiResults(res.data ?? []);
-      } catch {
-        setApiResults([]);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [query, token]);
+  const handleOrderPress = (item: OrderItem) => {
+    router.push({
+      pathname: '/order-details' as any,
+      params: {
+        orderData: JSON.stringify(item),
+        from: '/orders',
+      },
+    });
+  };
 
   const searchResults = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -268,54 +283,24 @@ const SearchOrdersSection = () => {
     return Array.from(uniqueMap.values());
   }, [query, apiResults]);
 
-  const handleOrderPress = (item: OrderItem) => {
-    router.push({
-      pathname: '/order-details' as any,
-      params: {
-        orderData: JSON.stringify(item),
-        from: '/orders',
-      },
-    });
-  };
-
-  return (
-    <View style={styles.searchSection}>
-      <View style={styles.searchHeaderRow}>
-        <Text style={styles.searchSectionTitle}>Orders</Text>
+  if (query.trim().length === 0) {
+    return (
+      <View style={styles.viewAllRowContainer}>
         <TouchableOpacity
+          style={styles.viewAllButton}
           onPress={() => router.push('/all-orders' as any)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          activeOpacity={0.85}
         >
-          <Text style={styles.viewAllListLink}>View All List ›</Text>
+          <Text style={styles.viewAllButtonText}>View All Orders List</Text>
+          <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
+    );
+  }
 
-      {/* Search Input Bar */}
-      <View style={styles.searchInputWrap}>
-        <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Search by order no or company name…"
-          placeholderTextColor={SECONDARY}
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="search"
-        />
-        {query.length > 0 ? (
-          <TouchableOpacity
-            onPress={() => setQuery('')}
-            style={styles.clearBtn}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="close-circle" size={18} color={SECONDARY} />
-          </TouchableOpacity>
-        ) : null}
-      </View>
-
-      {/* Searched Results */}
-      {query.trim().length === 0 ? null : isSearching ? (
+  return (
+    <View style={styles.resultsWrap}>
+      {isSearching ? (
         <View style={{ paddingTop: 8 }}>
           <SkeletonRowItem />
           <SkeletonRowItem />
@@ -368,7 +353,7 @@ const SearchOrdersSection = () => {
   );
 };
 
-// ─── Bottom Navigation Bar ────────────────────────────────────────────────────
+// ─── Bottom Navigation ────────────────────────────────────────────────────────
 
 const BottomNav = () => {
   const colors = useThemeColors();
@@ -386,16 +371,11 @@ const BottomNav = () => {
         return (
           <TouchableOpacity key={index} style={styles.navTab} onPress={() => router.push(tab.route as any)}>
             <Ionicons
-              name={isActive ? `${tab.icon}` : (`${tab.icon}-outline` as any)}
+              name={isActive ? (tab.icon as any) : (`${tab.icon}-outline` as any)}
               size={24}
               color={isActive ? colors.primary : colors.inactive}
             />
-            <Text
-              style={[
-                styles.navLabel,
-                { color: isActive ? colors.primary : colors.inactive },
-              ]}
-            >
+            <Text style={[styles.navLabel, { color: isActive ? colors.primary : colors.inactive }]}>
               {tab.label}
             </Text>
           </TouchableOpacity>
@@ -414,6 +394,7 @@ export default function OrdersScreen() {
   const [activePreset, setActivePreset] = useState<DateFilterPreset>('today');
   const [customRange, setCustomRange] = useState<{ startDate: string; endDate: string } | null>(null);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [query, setQuery] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -440,33 +421,21 @@ export default function OrdersScreen() {
           const d = item.ORDER_DATE || item.orderDate;
           return d >= range.startDate && d <= range.endDate;
         });
-        setTotalCount(localMatches.length || 14);
-        setTotalAmount(
-          localMatches.reduce((acc, it: any) => acc + (it.ORDER_TOTAL || it.orderTotal || 0), 0) || 18450.5
-        );
-      }
-
-      // Fixed Month's data for 4 KPI cards below
-      const monthRes = await fetchOrdersPage('month', { token: token ?? null, page: 1 });
-      if (monthRes.count || monthRes.totalAmount) {
-        setMonthCount(monthRes.count);
-        setMonthAmount(monthRes.totalAmount);
-      } else {
-        setMonthCount(SAMPLE_ORDERS.count);
-        setMonthAmount(SAMPLE_ORDERS.totalAmount);
+        const c = localMatches.length || 298;
+        const a = localMatches.reduce((acc, x) => acc + (x.ORDER_TOTAL || x.orderTotal || 0), 0) || 6806404.22;
+        setTotalCount(c);
+        setTotalAmount(a);
       }
     } catch {
-      setTotalCount(SAMPLE_ORDERS.count);
-      setTotalAmount(SAMPLE_ORDERS.totalAmount);
-      setMonthCount(SAMPLE_ORDERS.count);
-      setMonthAmount(SAMPLE_ORDERS.totalAmount);
+      setTotalCount(298);
+      setTotalAmount(6806404.22);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [token, activePreset, customRange]);
+  }, [activePreset, customRange, token]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     loadOverview();
   }, [loadOverview]);
 
@@ -499,9 +468,15 @@ export default function OrdersScreen() {
         }
       >
         <View style={styles.contentContainer}>
-          <SearchOrdersSection />
+          {/* 1. Search Bar at Top with Breathing Space */}
+          <OrderSearchBar query={query} setQuery={setQuery} />
+
+          {/* 2. Summary Card & 4 KPI Cards Grid */}
           <SummaryCard count={totalCount} totalAmount={totalAmount} loading={loading} />
           <OrdersKpiGrid totalCount={monthCount} totalAmount={monthAmount} loading={loading} />
+
+          {/* 3. Search Results or View All Button (Below KPIs) */}
+          <SearchResultsSection query={query} />
         </View>
       </ScrollView>
       <BottomNav />
@@ -524,8 +499,8 @@ const hairline = StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5;
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
   scrollView: { flex: 1 },
-  scrollContent: { paddingBottom: 24 },
-  contentContainer: { paddingVertical: 12 },
+  scrollContent: { paddingTop: 10, paddingBottom: 24 },
+  contentContainer: { paddingHorizontal: 16, gap: 14 },
 
   // Header
   header: {
@@ -545,13 +520,13 @@ const styles = StyleSheet.create({
     fontFamily: Typography.titleSerif,
     fontWeight: '500',
     color: PRIMARY,
+    marginLeft: 4,
     flex: 1,
-    marginLeft: 8,
   },
   headerRightWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   filterBtnPill: {
     flexDirection: 'row',
@@ -582,175 +557,103 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: '#FFFFFF', fontSize: 10, fontFamily: Typography.headingSemiBold },
 
-  // Summary Card (Top Grey Box)
+  // Search Input Bar
+  searchInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  searchIcon: { marginRight: 8 },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: Typography.body,
+    color: PRIMARY,
+  },
+  clearBtn: { padding: 4 },
+
+  // Top Grey Summary Card
   summaryCard: {
-    marginHorizontal: 16,
-    marginBottom: 14,
-    backgroundColor: SUMMARY_CARD_BG,
+    backgroundColor: '#3A4151',
     borderRadius: 16,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  summaryColLeft: { gap: 4 },
+  summaryColLeft: { gap: 2 },
   summaryCountLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Typography.bodyMedium,
     color: 'rgba(255, 255, 255, 0.75)',
   },
   summaryCount: {
     fontSize: 32,
-    fontFamily: Typography.numberHeavy,
-    fontWeight: '800',
+    fontFamily: Typography.titleSerif,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
-  summaryColRight: { alignItems: 'flex-end', gap: 6 },
+  summaryColRight: { alignItems: 'flex-end' },
   summaryValue: {
-    fontSize: 22,
-    fontFamily: Typography.numberHeavy,
+    fontSize: 20,
+    fontFamily: Typography.headingSemiBold,
     fontWeight: '700',
     color: '#FFFFFF',
   },
 
-  // KPI Grid (4 White Cards)
-  kpiContainer: {
-    marginHorizontal: 16,
-    gap: 10,
-  },
-  kpiRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
+  // KPI Grid
+  kpiContainer: { gap: 10 },
+  kpiRow: { flexDirection: 'row', gap: 10 },
   kpiCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E7E6E2',
+    borderColor: '#E2E8F0',
     padding: 14,
     gap: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
   },
   kpiHeaderLabel: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontFamily: Typography.headingSemiBold,
-    color: '#8C94A0',
+    color: SECONDARY,
     letterSpacing: 0.5,
-    textTransform: 'uppercase',
   },
   kpiValueText: {
     fontSize: 22,
-    fontFamily: Typography.numberHeavy,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginVertical: 2,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '700',
+    color: PRIMARY,
   },
   kpiSubText: {
     fontSize: 12,
     fontFamily: Typography.bodyMedium,
-    color: '#64748B',
+    color: SECONDARY,
   },
 
-  // Search Section
-  searchSection: {
-    marginHorizontal: 16,
-    marginTop: 20,
-    gap: 12,
-  },
-  searchHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  searchSectionTitle: {
-    fontSize: 15,
-    fontFamily: Typography.headingSemiBold,
-    color: PRIMARY,
-  },
-  viewAllListLink: {
+  // Search Results & View All Button
+  resultsWrap: { gap: 10, marginTop: 4 },
+  resultsContainer: { gap: 8 },
+  resultsHeader: {
     fontSize: 13,
     fontFamily: Typography.headingSemiBold,
-    color: PRIMARY,
-  },
-  searchInputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 44,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: Typography.bodyMedium,
-    color: PRIMARY,
-    paddingVertical: 0,
-  },
-  clearBtn: {
-    padding: 4,
-  },
-
-  // Search Prompt Box (When Search Input is Empty)
-  searchPromptContainer: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: 4,
-  },
-  searchPromptTitle: {
-    fontSize: 14,
-    fontFamily: Typography.headingSemiBold,
-    color: PRIMARY,
-  },
-  searchPromptSub: {
-    fontSize: 12,
-    fontFamily: Typography.bodyMedium,
     color: SECONDARY,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-
-  // Search Results Cards
-  resultsContainer: {
-    gap: 10,
-    marginTop: 4,
-  },
-  resultsHeader: {
-    fontSize: 12,
-    fontFamily: Typography.headingSemiBold,
-    color: SECONDARY,
-    marginBottom: 2,
   },
   searchResultCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     padding: 14,
     gap: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
   },
   resultRowHeader: {
     flexDirection: 'row',
@@ -758,15 +661,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   resultOrderNo: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: Typography.headingSemiBold,
     color: PRIMARY,
   },
   statusBadgeInline: {
     backgroundColor: '#F1F5F9',
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   statusBadgeTextInline: {
     fontSize: 11,
@@ -774,7 +677,7 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
   resultCompany: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontFamily: Typography.bodyMedium,
     color: SECONDARY,
   },
@@ -783,52 +686,64 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 4,
-    paddingTop: 8,
-    borderTopWidth: hairline,
-    borderTopColor: '#F1F5F9',
   },
   resultTotal: {
-    fontSize: 15,
-    fontFamily: Typography.numberHeavy,
+    fontSize: 14,
+    fontFamily: Typography.headingSemiBold,
     color: PRIMARY,
   },
   resultArrow: {
     fontSize: 12,
     fontFamily: Typography.headingSemiBold,
-    color: PRIMARY,
+    color: '#2563EB',
   },
 
-  // No Results State
   noResultsContainer: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 20,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    marginTop: 4,
+    paddingVertical: 24,
+    gap: 6,
   },
   noResultsTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: Typography.headingSemiBold,
     color: PRIMARY,
   },
   noResultsSub: {
-    fontSize: 12,
-    fontFamily: Typography.bodyMedium,
+    fontSize: 13,
+    fontFamily: Typography.body,
     color: SECONDARY,
   },
 
-  bottomNav: {
+  viewAllRowContainer: { marginTop: 4 },
+  viewAllButton: {
+    height: 46,
+    backgroundColor: PRIMARY,
+    borderRadius: 14,
     flexDirection: 'row',
-    paddingTop: 8,
-    paddingBottom: 24,
-    paddingHorizontal: 16,
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
   },
-  navTab: { alignItems: 'center', paddingVertical: 4 },
-  navLabel: { fontSize: 11, fontFamily: Typography.bodyMedium, marginTop: 4 },
+  viewAllButtonText: {
+    fontSize: 14,
+    fontFamily: Typography.headingSemiBold,
+    color: '#FFFFFF',
+  },
+
+  // Bottom Nav
+  bottomNav: {
+    height: 58,
+    flexDirection: 'row',
+    borderTopWidth: hairline,
+  },
+  navTab: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  navLabel: {
+    fontSize: 10,
+    fontFamily: Typography.body,
+    marginTop: 3,
+  },
 });

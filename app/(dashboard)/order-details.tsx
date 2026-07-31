@@ -490,42 +490,43 @@ export default function OrderDetailsScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Top Hero Section - Highlight Order # */}
+        {/* Top Hero Section - Actions on Top Right above Order # */}
         <View style={styles.heroSection}>
-          <Text style={styles.heroAmount}>Order #{orderNo}</Text>
-          <Text style={styles.heroSubtitle}>
-            {companyName} · {formatCurrencyWithCents(orderTotal)} · {orderStatus}
-          </Text>
-
-          {/* Top Quick Action Icons Row: Location, Contact, Track, Invoice */}
-          <View style={styles.actionRow}>
+          <View style={styles.topRightActionRow}>
             <TouchableOpacity style={styles.actionItem} onPress={() => setLocationModalVisible(true)} activeOpacity={0.7}>
               <View style={styles.actionCircle}>
-                <Ionicons name="location-outline" size={20} color={PRIMARY} />
+                <Ionicons name="location-outline" size={19} color={PRIMARY} />
               </View>
               <Text style={styles.actionLabel}>Location</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionItem} onPress={() => setContactModalVisible(true)} activeOpacity={0.7}>
               <View style={styles.actionCircle}>
-                <Ionicons name="call-outline" size={20} color={PRIMARY} />
+                <Ionicons name="call-outline" size={19} color={PRIMARY} />
               </View>
               <Text style={styles.actionLabel}>Contact</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionItem} onPress={() => setTrackModalVisible(true)} activeOpacity={0.7}>
               <View style={styles.actionCircle}>
-                <Ionicons name="bus-outline" size={20} color={PRIMARY} />
+                <Ionicons name="bus-outline" size={19} color={PRIMARY} />
               </View>
               <Text style={styles.actionLabel}>Track</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionItem} onPress={() => setInvoiceModalVisible(true)} activeOpacity={0.7}>
               <View style={styles.actionCircle}>
-                <Ionicons name="document-text-outline" size={20} color={PRIMARY} />
+                <Ionicons name="document-text-outline" size={19} color={PRIMARY} />
               </View>
               <Text style={styles.actionLabel}>Invoice</Text>
             </TouchableOpacity>
+          </View>
+
+          <View style={styles.heroTitleWrap}>
+            <Text style={styles.heroOrderNo}>Order #{orderNo}</Text>
+            <Text style={styles.heroSubtitle}>
+              {companyName} · {formatCurrencyWithCents(orderTotal)} · {orderStatus}
+            </Text>
           </View>
         </View>
 
@@ -691,37 +692,22 @@ const styles = StyleSheet.create({
 
   // Hero section
   heroSection: {
-    alignItems: 'center',
     paddingVertical: 8,
+    gap: 16,
   },
-  heroAmount: {
-    fontSize: 32,
-    fontFamily: Typography.titleSerif,
-    fontWeight: '700',
-    color: PRIMARY,
-    marginVertical: 4,
-  },
-  heroSubtitle: {
-    fontSize: 13,
-    fontFamily: Typography.bodyMedium,
-    color: '#475569',
-  },
-
-  // Action buttons
-  actionRow: {
+  topRightActionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 20,
-    marginTop: 20,
+    justifyContent: 'flex-end',
+    gap: 16,
   },
   actionItem: {
     alignItems: 'center',
   },
   actionCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: CARD_BORDER,
@@ -734,10 +720,26 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   actionLabel: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontFamily: Typography.bodyMedium,
     color: '#475569',
-    marginTop: 6,
+    marginTop: 4,
+  },
+  heroTitleWrap: {
+    alignItems: 'flex-start',
+    marginTop: 2,
+  },
+  heroOrderNo: {
+    fontSize: 32,
+    fontFamily: Typography.titleSerif,
+    fontWeight: '700',
+    color: PRIMARY,
+  },
+  heroSubtitle: {
+    fontSize: 13.5,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+    marginTop: 4,
   },
 
   // Sections

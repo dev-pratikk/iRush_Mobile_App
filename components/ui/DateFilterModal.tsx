@@ -82,7 +82,7 @@ export const DateFilterModal: React.FC<DateFilterModalProps> = ({
 
     const isoRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!isoRegex.test(start) || !isoRegex.test(end)) {
-      setValidationError('Please use YYYY-MM-DD format (e.g. 2026-07-01)');
+      setValidationError('Please use YYYY-MM-DD format');
       return;
     }
 
@@ -122,11 +122,9 @@ export const DateFilterModal: React.FC<DateFilterModalProps> = ({
 
   const calendarDays = useMemo(() => {
     const days: Array<{ day: number | null; iso: string | null }> = [];
-    // Leading empty slots for day of week alignment
     for (let i = 0; i < firstDayOfWeek; i++) {
       days.push({ day: null, iso: null });
     }
-    // Days of current month
     for (let d = 1; d <= daysInMonth; d++) {
       const mStr = String(calendarMonth + 1).padStart(2, '0');
       const dStr = String(d).padStart(2, '0');
@@ -140,7 +138,6 @@ export const DateFilterModal: React.FC<DateFilterModalProps> = ({
     setValidationError(null);
     if (activeDateTarget === 'start') {
       setStartDateInput(iso);
-      // Auto toggle to end date target for smooth 2-tap selection
       if (iso > endDateInput) {
         setEndDateInput(iso);
       }
@@ -183,295 +180,227 @@ export const DateFilterModal: React.FC<DateFilterModalProps> = ({
         <View style={styles.modalOverlay}>
           <TouchableWithoutFeedback>
             <View style={styles.modalContainer}>
+              {/* Header */}
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Select Date Range</Text>
                 <TouchableOpacity
                   onPress={onClose}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
                   <Ionicons name="close" size={20} color="#2C2C2A" />
                 </TouchableOpacity>
               </View>
 
-              <ScrollView style={{ maxHeight: 520 }} showsVerticalScrollIndicator={false}>
-                <View style={styles.optionsList}>
-                  {/* Today */}
-                  <TouchableOpacity
+              {/* Compact Preset Selector Grid */}
+              <View style={styles.presetGrid}>
+                <TouchableOpacity
+                  style={[
+                    styles.presetPill,
+                    selectedPreset === 'today' && styles.presetPillActive,
+                  ]}
+                  onPress={() => handleSelectPreset('today')}
+                  activeOpacity={0.7}
+                >
+                  <Text
                     style={[
-                      styles.optionItem,
-                      selectedPreset === 'today' && styles.optionItemActive,
+                      styles.presetPillText,
+                      selectedPreset === 'today' && styles.presetPillTextActive,
                     ]}
-                    onPress={() => handleSelectPreset('today')}
-                    activeOpacity={0.7}
                   >
-                    <View style={styles.optionLeft}>
-                      <Ionicons
-                        name="today-outline"
-                        size={18}
-                        color={selectedPreset === 'today' ? '#0F172A' : '#64748B'}
-                      />
-                      <Text
-                        style={[
-                          styles.optionText,
-                          selectedPreset === 'today' && styles.optionTextActive,
-                        ]}
-                      >
-                        Today
-                      </Text>
-                    </View>
-                    {selectedPreset === 'today' && (
-                      <Ionicons name="checkmark-circle" size={18} color="#0F172A" />
-                    )}
-                  </TouchableOpacity>
+                    Today
+                  </Text>
+                </TouchableOpacity>
 
-                  {/* This Week */}
-                  <TouchableOpacity
+                <TouchableOpacity
+                  style={[
+                    styles.presetPill,
+                    selectedPreset === 'week' && styles.presetPillActive,
+                  ]}
+                  onPress={() => handleSelectPreset('week')}
+                  activeOpacity={0.7}
+                >
+                  <Text
                     style={[
-                      styles.optionItem,
-                      selectedPreset === 'week' && styles.optionItemActive,
+                      styles.presetPillText,
+                      selectedPreset === 'week' && styles.presetPillTextActive,
                     ]}
-                    onPress={() => handleSelectPreset('week')}
-                    activeOpacity={0.7}
                   >
-                    <View style={styles.optionLeft}>
-                      <Ionicons
-                        name="calendar-outline"
-                        size={18}
-                        color={selectedPreset === 'week' ? '#0F172A' : '#64748B'}
-                      />
-                      <Text
-                        style={[
-                          styles.optionText,
-                          selectedPreset === 'week' && styles.optionTextActive,
-                        ]}
-                      >
-                        This Week
-                      </Text>
-                    </View>
-                    {selectedPreset === 'week' && (
-                      <Ionicons name="checkmark-circle" size={18} color="#0F172A" />
-                    )}
-                  </TouchableOpacity>
+                    This Week
+                  </Text>
+                </TouchableOpacity>
 
-                  {/* This Month */}
-                  <TouchableOpacity
+                <TouchableOpacity
+                  style={[
+                    styles.presetPill,
+                    selectedPreset === 'month' && styles.presetPillActive,
+                  ]}
+                  onPress={() => handleSelectPreset('month')}
+                  activeOpacity={0.7}
+                >
+                  <Text
                     style={[
-                      styles.optionItem,
-                      selectedPreset === 'month' && styles.optionItemActive,
+                      styles.presetPillText,
+                      selectedPreset === 'month' && styles.presetPillTextActive,
                     ]}
-                    onPress={() => handleSelectPreset('month')}
-                    activeOpacity={0.7}
                   >
-                    <View style={styles.optionLeft}>
-                      <Ionicons
-                        name="calendar-number-outline"
-                        size={18}
-                        color={selectedPreset === 'month' ? '#0F172A' : '#64748B'}
-                      />
-                      <Text
-                        style={[
-                          styles.optionText,
-                          selectedPreset === 'month' && styles.optionTextActive,
-                        ]}
-                      >
-                        This Month
-                      </Text>
-                    </View>
-                    {selectedPreset === 'month' && (
-                      <Ionicons name="checkmark-circle" size={18} color="#0F172A" />
-                    )}
-                  </TouchableOpacity>
+                    This Month
+                  </Text>
+                </TouchableOpacity>
 
-                  {/* Custom Range */}
-                  <TouchableOpacity
+                <TouchableOpacity
+                  style={[
+                    styles.presetPill,
+                    selectedPreset === 'custom' && styles.presetPillActive,
+                  ]}
+                  onPress={() => setSelectedPreset('custom')}
+                  activeOpacity={0.7}
+                >
+                  <Text
                     style={[
-                      styles.optionItem,
-                      selectedPreset === 'custom' && styles.optionItemActive,
+                      styles.presetPillText,
+                      selectedPreset === 'custom' && styles.presetPillTextActive,
                     ]}
-                    onPress={() => setSelectedPreset('custom')}
-                    activeOpacity={0.7}
                   >
-                    <View style={styles.optionLeft}>
-                      <Ionicons
-                        name="options-outline"
-                        size={18}
-                        color={selectedPreset === 'custom' ? '#0F172A' : '#64748B'}
-                      />
-                      <Text
-                        style={[
-                          styles.optionText,
-                          selectedPreset === 'custom' && styles.optionTextActive,
-                        ]}
-                      >
-                        Custom Range
-                      </Text>
-                    </View>
-                    {selectedPreset === 'custom' && (
-                      <Ionicons name="checkmark-circle" size={18} color="#0F172A" />
-                    )}
-                  </TouchableOpacity>
-                </View>
+                    Custom Range
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
-                {/* Custom Interactive Calendar Section */}
-                {selectedPreset === 'custom' && (
-                  <View style={styles.customSection}>
-                    {/* Range Tabs (From Date / To Date) */}
-                    <View style={styles.rangeSelectorRow}>
-                      <TouchableOpacity
-                        style={[
-                          styles.rangeTab,
-                          activeDateTarget === 'start' && styles.rangeTabActive,
-                        ]}
-                        onPress={() => setActiveDateTarget('start')}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.rangeTabSub}>From Date</Text>
-                        <Text style={styles.rangeTabValue}>{startDateInput || 'YYYY-MM-DD'}</Text>
-                      </TouchableOpacity>
+              {/* Custom Range View (Expanded Full Heights without Internal Scroll) */}
+              {selectedPreset === 'custom' && (
+                <View style={styles.customSection}>
+                  {/* Range Tabs (From Date / To Date) */}
+                  <View style={styles.rangeSelectorRow}>
+                    <TouchableOpacity
+                      style={[
+                        styles.rangeTab,
+                        activeDateTarget === 'start' && styles.rangeTabActive,
+                      ]}
+                      onPress={() => setActiveDateTarget('start')}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.rangeTabSub}>From Date</Text>
+                      <Text style={styles.rangeTabValue}>{startDateInput || 'YYYY-MM-DD'}</Text>
+                    </TouchableOpacity>
 
-                      <Ionicons name="arrow-forward" size={14} color="#94A3B8" />
-
-                      <TouchableOpacity
-                        style={[
-                          styles.rangeTab,
-                          activeDateTarget === 'end' && styles.rangeTabActive,
-                        ]}
-                        onPress={() => setActiveDateTarget('end')}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.rangeTabSub}>To Date</Text>
-                        <Text style={styles.rangeTabValue}>{endDateInput || 'YYYY-MM-DD'}</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* Quick Range Shortcuts */}
-                    <View style={styles.quickPillsRow}>
-                      <TouchableOpacity
-                        style={styles.quickPill}
-                        onPress={() => applyQuickRange(6)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.quickPillText}>Last 7 Days</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.quickPill}
-                        onPress={() => applyQuickRange(13)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.quickPillText}>Last 14 Days</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.quickPill}
-                        onPress={() => applyQuickRange(29)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.quickPillText}>Last 30 Days</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* Calendar Month Header */}
-                    <View style={styles.calendarNavRow}>
-                      <TouchableOpacity
-                        onPress={handlePrevMonth}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Ionicons name="chevron-back" size={18} color="#0F172A" />
-                      </TouchableOpacity>
-                      <Text style={styles.calendarNavTitle}>
-                        {MONTH_NAMES[calendarMonth]} {calendarYear}
-                      </Text>
-                      <TouchableOpacity
-                        onPress={handleNextMonth}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Ionicons name="chevron-forward" size={18} color="#0F172A" />
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* Days of Week Header */}
-                    <View style={styles.weekHeaderRow}>
-                      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (
-                        <Text key={idx} style={styles.weekDayLabel}>
-                          {day}
-                        </Text>
-                      ))}
-                    </View>
-
-                    {/* Calendar Grid */}
-                    <View style={styles.calendarGrid}>
-                      {calendarDays.map((item, idx) => {
-                        if (!item.day || !item.iso) {
-                          return <View key={idx} style={styles.calendarCellEmpty} />;
-                        }
-
-                        const isStart = item.iso === startDateInput;
-                        const isEnd = item.iso === endDateInput;
-                        const isInRange =
-                          item.iso > startDateInput && item.iso < endDateInput;
-
-                        return (
-                          <TouchableOpacity
-                            key={idx}
-                            style={[
-                              styles.calendarCell,
-                              isInRange && styles.calendarCellInRange,
-                              (isStart || isEnd) && styles.calendarCellSelected,
-                            ]}
-                            onPress={() => handleSelectDay(item.iso!)}
-                            activeOpacity={0.7}
-                          >
-                            <Text
-                              style={[
-                                styles.calendarCellText,
-                                (isStart || isEnd) && styles.calendarCellTextSelected,
-                                isInRange && styles.calendarCellTextInRange,
-                              ]}
-                            >
-                              {item.day}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-
-                    {/* Manual Input Fallback */}
-                    <View style={styles.dateInputsRow}>
-                      <View style={styles.dateInputCol}>
-                        <Text style={styles.inputLabel}>From (YYYY-MM-DD)</Text>
-                        <TextInput
-                          style={styles.dateInput}
-                          value={startDateInput}
-                          onChangeText={setStartDateInput}
-                          placeholder="YYYY-MM-DD"
-                          placeholderTextColor="#94A3B8"
-                        />
-                      </View>
-                      <View style={styles.dateInputCol}>
-                        <Text style={styles.inputLabel}>To (YYYY-MM-DD)</Text>
-                        <TextInput
-                          style={styles.dateInput}
-                          value={endDateInput}
-                          onChangeText={setEndDateInput}
-                          placeholder="YYYY-MM-DD"
-                          placeholderTextColor="#94A3B8"
-                        />
-                      </View>
-                    </View>
-
-                    {validationError ? (
-                      <Text style={styles.errorText}>{validationError}</Text>
-                    ) : null}
+                    <Ionicons name="arrow-forward" size={14} color="#94A3B8" />
 
                     <TouchableOpacity
-                      style={styles.applyBtn}
-                      onPress={handleApplyCustom}
-                      activeOpacity={0.85}
+                      style={[
+                        styles.rangeTab,
+                        activeDateTarget === 'end' && styles.rangeTabActive,
+                      ]}
+                      onPress={() => setActiveDateTarget('end')}
+                      activeOpacity={0.8}
                     >
-                      <Text style={styles.applyBtnText}>Apply Custom Range</Text>
+                      <Text style={styles.rangeTabSub}>To Date</Text>
+                      <Text style={styles.rangeTabValue}>{endDateInput || 'YYYY-MM-DD'}</Text>
                     </TouchableOpacity>
                   </View>
-                )}
-              </ScrollView>
+
+                  {/* Calendar Month Header */}
+                  <View style={styles.calendarNavRow}>
+                    <TouchableOpacity
+                      onPress={handlePrevMonth}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Ionicons name="chevron-back" size={18} color="#0F172A" />
+                    </TouchableOpacity>
+                    <Text style={styles.calendarNavTitle}>
+                      {MONTH_NAMES[calendarMonth]} {calendarYear}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={handleNextMonth}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Ionicons name="chevron-forward" size={18} color="#0F172A" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Days of Week Header */}
+                  <View style={styles.weekHeaderRow}>
+                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (
+                      <Text key={idx} style={styles.weekDayLabel}>
+                        {day}
+                      </Text>
+                    ))}
+                  </View>
+
+                  {/* Calendar Grid */}
+                  <View style={styles.calendarGrid}>
+                    {calendarDays.map((item, idx) => {
+                      if (!item.day || !item.iso) {
+                        return <View key={idx} style={styles.calendarCellEmpty} />;
+                      }
+
+                      const isStart = item.iso === startDateInput;
+                      const isEnd = item.iso === endDateInput;
+                      const isInRange =
+                        item.iso > startDateInput && item.iso < endDateInput;
+
+                      return (
+                        <TouchableOpacity
+                          key={idx}
+                          style={[
+                            styles.calendarCell,
+                            isInRange && styles.calendarCellInRange,
+                            (isStart || isEnd) && styles.calendarCellSelected,
+                          ]}
+                          onPress={() => handleSelectDay(item.iso!)}
+                          activeOpacity={0.7}
+                        >
+                          <Text
+                            style={[
+                              styles.calendarCellText,
+                              (isStart || isEnd) && styles.calendarCellTextSelected,
+                              isInRange && styles.calendarCellTextInRange,
+                            ]}
+                          >
+                            {item.day}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {/* Quick Range Shortcuts */}
+                  <View style={styles.quickPillsRow}>
+                    <TouchableOpacity
+                      style={styles.quickPill}
+                      onPress={() => applyQuickRange(6)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.quickPillText}>Last 7 Days</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.quickPill}
+                      onPress={() => applyQuickRange(13)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.quickPillText}>Last 14 Days</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.quickPill}
+                      onPress={() => applyQuickRange(29)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.quickPillText}>Last 30 Days</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {validationError ? (
+                    <Text style={styles.errorText}>{validationError}</Text>
+                  ) : null}
+
+                  <TouchableOpacity
+                    style={styles.applyBtn}
+                    onPress={handleApplyCustom}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.applyBtnText}>Apply Custom Range</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </TouchableWithoutFeedback>
         </View>
@@ -489,16 +418,16 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   modalContainer: {
-    width: '100%',
-    maxWidth: 360,
+    width: '94%',
+    maxWidth: 420,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 18,
+    borderRadius: 18,
+    padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 10,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -510,45 +439,45 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F1F5F9',
   },
   modalTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontFamily: Typography.headingSemiBold,
     color: '#0F172A',
   },
-  optionsList: {
+
+  // 2x2 Compact Preset Grid
+  presetGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
-  optionItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  presetPill: {
+    flex: 1,
+    minWidth: '46%',
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  optionItemActive: {
-    backgroundColor: '#F1F5F9',
+  presetPillActive: {
+    backgroundColor: '#0F172A',
     borderColor: '#0F172A',
   },
-  optionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  optionText: {
-    fontSize: 14,
+  presetPillText: {
+    fontSize: 13,
     fontFamily: Typography.bodyMedium,
     color: '#475569',
   },
-  optionTextActive: {
+  presetPillTextActive: {
     fontFamily: Typography.headingSemiBold,
-    color: '#0F172A',
+    color: '#FFFFFF',
   },
+
   customSection: {
     marginTop: 14,
-    paddingTop: 12,
+    paddingTop: 14,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
     gap: 12,
@@ -588,43 +517,26 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     marginTop: 2,
   },
-  quickPillsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 6,
-  },
-  quickPill: {
-    flex: 1,
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 6,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  quickPillText: {
-    fontSize: 11,
-    fontFamily: Typography.bodyMedium,
-    color: '#334155',
-  },
   calendarNavRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 4,
-    marginTop: 4,
+    paddingHorizontal: 8,
+    marginTop: 2,
   },
   calendarNavTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: Typography.headingSemiBold,
     color: '#0F172A',
   },
   weekHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: 6,
+    marginTop: 4,
     paddingBottom: 4,
   },
   weekDayLabel: {
-    width: 32,
+    width: 36,
     textAlign: 'center',
     fontSize: 11,
     fontFamily: Typography.headingSemiBold,
@@ -637,14 +549,14 @@ const styles = StyleSheet.create({
   },
   calendarCellEmpty: {
     width: '14.28%',
-    height: 32,
+    height: 34,
   },
   calendarCell: {
     width: '14.28%',
-    height: 32,
+    height: 34,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: 8,
   },
   calendarCellInRange: {
     backgroundColor: '#E2E8F0',
@@ -652,10 +564,10 @@ const styles = StyleSheet.create({
   },
   calendarCellSelected: {
     backgroundColor: '#0F172A',
-    borderRadius: 6,
+    borderRadius: 8,
   },
   calendarCellText: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: Typography.bodyMedium,
     color: '#334155',
   },
@@ -667,46 +579,40 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontFamily: Typography.headingSemiBold,
   },
-  dateInputsRow: {
+  quickPillsRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     gap: 8,
-    marginTop: 6,
+    marginTop: 2,
   },
-  dateInputCol: {
+  quickPill: {
     flex: 1,
-    gap: 4,
-  },
-  inputLabel: {
-    fontSize: 10,
-    fontFamily: Typography.bodyMedium,
-    color: '#64748B',
-  },
-  dateInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 7,
     borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    fontSize: 12,
-    fontFamily: Typography.bodyMedium,
-    color: '#0F172A',
+    alignItems: 'center',
+  },
+  quickPillText: {
+    fontSize: 11,
+    fontFamily: Typography.headingSemiBold,
+    color: '#334155',
   },
   errorText: {
     fontSize: 11,
     fontFamily: Typography.bodyMedium,
     color: '#DC2626',
+    textAlign: 'center',
   },
   applyBtn: {
     backgroundColor: '#0F172A',
-    borderRadius: 10,
-    paddingVertical: 10,
+    borderRadius: 12,
+    paddingVertical: 12,
     alignItems: 'center',
     marginTop: 4,
   },
   applyBtnText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: Typography.headingSemiBold,
   },
 });

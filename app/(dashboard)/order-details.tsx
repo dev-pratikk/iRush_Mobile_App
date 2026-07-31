@@ -233,7 +233,7 @@ export default function OrderDetailsScreen() {
                 <Text style={styles.rowKey}>Quantity</Text>
               </View>
               <Text style={styles.rowValue}>
-                {lineQty} pcs · {formatCurrencyWithCents(unitPrice)} ea
+                {lineQty} pcs · {formatCurrencyWithCents(unitPrice)}/pc
               </Text>
             </View>
           </View>

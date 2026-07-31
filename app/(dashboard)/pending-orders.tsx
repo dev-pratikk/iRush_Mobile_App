@@ -28,6 +28,8 @@ import { usePendingOrders, type OpenOrderRowItem } from '../../hooks/useOpenOrde
 import { PaginationFooter } from '../../components/ui/PaginationFooter';
 import type { PendingOrdersSummary } from '../../types/api/open-orders';
 import { SkeletonRowItem, SkeletonSummaryCard } from '../../components/ui/SkeletonLoader';
+import { DateFilterPreset, getDateRangeForFilter } from '../../lib/date';
+import { DateFilterModal } from '../../components/ui/DateFilterModal';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';
@@ -39,21 +41,65 @@ const DEFAULT_SALESPERSONS = ['Imran', 'John', 'Sarah', 'Alex', 'Michael', 'Davi
 
 // ─── Header ──────────────────────────────────────────────────────────────────
 
-const Header = () => (
-  <View style={styles.header}>
-    <TouchableOpacity
-      style={styles.headerIconWrap}
-      onPress={() => router.push('/open-orders' as any)}
-      hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
-    >
-      <Ionicons name="arrow-back" size={20} color={PRIMARY} />
-    </TouchableOpacity>
-    <View style={styles.headerCenter} pointerEvents="none">
-      <Text style={styles.headerTitle}>Pending orders</Text>
+const Header = ({
+  activePreset,
+  customRange,
+  onOpenFilter,
+}: {
+  activePreset: DateFilterPreset;
+  customRange?: { startDate: string; endDate: string } | null;
+  onOpenFilter: () => void;
+}) => {
+  const getFilterLabel = () => {
+    if (activePreset === 'today') return 'Today';
+    if (activePreset === 'week') return 'This Week';
+    if (activePreset === 'month') return 'This Month';
+    if (activePreset === 'custom' && customRange) {
+      return `${customRange.startDate.slice(5)} - ${customRange.endDate.slice(5)}`;
+    }
+    return 'Custom';
+  };
+
+  return (
+    <View style={styles.header}>
+      <TouchableOpacity
+        style={styles.headerIconWrap}
+        onPress={() => router.push('/open-orders' as any)}
+        hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
+      >
+        <Ionicons name="arrow-back" size={20} color={PRIMARY} />
+      </TouchableOpacity>
+
+      {/* Left-aligned Title */}
+      <Text style={styles.headerTitleLeft}>Pending orders</Text>
+
+      <View style={styles.headerRightWrap}>
+        {/* Date Filter Button */}
+        <TouchableOpacity
+          style={styles.filterBtnPill}
+          onPress={onOpenFilter}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="calendar-outline" size={13} color={PRIMARY} />
+          <Text style={styles.filterBtnText}>{getFilterLabel()}</Text>
+          <Ionicons name="chevron-down" size={12} color={PRIMARY} />
+        </TouchableOpacity>
+
+        {/* Notification Bell */}
+        <TouchableOpacity
+          style={styles.headerIconInner}
+          onPress={() => router.push('/notifications' as any)}
+          hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
+        >
+          <Ionicons name="notifications-outline" size={20} color={PRIMARY} />
+          <View style={styles.badge} pointerEvents="none">
+            <Text style={styles.badgeText}>3</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
     </View>
-    <View style={styles.headerSpacer} />
-  </View>
-);
+  );
+};
 
 // ─── Detailed Summary Breakdown Card ──────────────────────────────────────────
 
@@ -314,6 +360,16 @@ export default function PendingOrdersScreen() {
     return () => subscription.remove();
   }, []);
 
+  // Date Filter State
+  const [activePreset, setActivePreset] = useState<DateFilterPreset>('today');
+  const [customRange, setCustomRange] = useState<{ startDate: string; endDate: string } | null>(null);
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+
+  const calculatedRange = useMemo(
+    () => getDateRangeForFilter(activePreset, customRange),
+    [activePreset, customRange]
+  );
+
   // Search & Filter State
   const [inputText, setInputText] = useState('');
   const [debouncedValue, setDebouncedValue] = useState('');
@@ -353,7 +409,7 @@ export default function PendingOrdersScreen() {
     fetchNextPage,
     refetch,
     isRefreshing,
-  } = usePendingOrders(token, searchParam);
+  } = usePendingOrders(token, searchParam, calculatedRange);
 
   const availableSalespersons = useMemo(() => {
     const fromItems = items
@@ -558,9 +614,21 @@ export default function PendingOrdersScreen() {
     return null;
   }, [isLoading, items.length, currentPage, totalPages, totalRecords, isFetchingNextPage, handlePrev, handleNext]);
 
+  const handleApplyFilter = (
+    preset: DateFilterPreset,
+    range: { startDate: string; endDate: string } | null
+  ) => {
+    setActivePreset(preset);
+    setCustomRange(range);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <Header />
+      <Header
+        activePreset={activePreset}
+        customRange={customRange}
+        onOpenFilter={() => setFilterModalVisible(true)}
+      />
       {showSuggestions && screenSuggestions.length > 0 ? (
         <View style={styles.suggestionsOverlay}>
           {screenSuggestions.map((sug, idx) => (
@@ -618,6 +686,14 @@ export default function PendingOrdersScreen() {
           />
         }
       />
+
+      <DateFilterModal
+        visible={filterModalVisible}
+        onClose={() => setFilterModalVisible(false)}
+        activePreset={activePreset}
+        customRange={customRange}
+        onApply={handleApplyFilter}
+      />
     </SafeAreaView>
   );
 }
@@ -637,16 +713,52 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     backgroundColor: PAGE_BG,
+    borderBottomWidth: hairline,
+    borderBottomColor: '#E7E6E2',
   },
-  headerIconWrap: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: {
+  headerIconWrap: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+  headerIconInner: { position: 'relative', width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+  headerTitleLeft: {
     fontSize: 19,
     fontFamily: Typography.titleSerif,
     fontWeight: '500',
     color: PRIMARY,
+    marginLeft: 4,
+    flex: 1,
   },
-  headerSpacer: { width: 40, height: 40 },
+  headerRightWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  filterBtnPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 5,
+  },
+  filterBtnText: {
+    fontSize: 12,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
+  },
+  badge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: PRIMARY,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeText: { color: '#FFFFFF', fontSize: 10, fontFamily: Typography.headingSemiBold },
 
   // Summary breakdown card
   summaryCard: {

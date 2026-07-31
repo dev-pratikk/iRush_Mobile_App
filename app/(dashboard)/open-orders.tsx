@@ -130,6 +130,56 @@ const BottomNav = () => {
   );
 };
 
+const FixedSummaryTable = ({
+  title,
+  count,
+  amount,
+  summary,
+}: {
+  title: string;
+  count: number;
+  amount: number;
+  summary?: any;
+}) => {
+  const statRows = [
+    { label: 'No of Orders', value: formatNumber(count) },
+    { label: 'Total Ordered Value', value: formatCurrencyWithCents(amount) },
+    { label: 'Orders Assigned To Vendors', value: formatNumber(summary?.ordersWithVendorCount ?? 0) },
+    {
+      label: 'Assigned Vendor Order Value',
+      value: formatCurrencyWithCents(summary?.ordersWithVendorAmount ?? summary?.vendorOrderAmount ?? 0),
+    },
+    { label: 'Orders Without Vendor Assignment', value: formatNumber(summary?.ordersWithoutVendorCount ?? 0) },
+    { label: 'Shipped Order Quantity Value', value: formatCurrencyWithCents(summary?.totalShippedAmount ?? 0) },
+    { label: 'Pending Order Quantity Value', value: formatCurrencyWithCents(summary?.totalPendingAmount ?? amount) },
+    { label: 'Invoiced Order Quantity Value', value: formatCurrencyWithCents(summary?.totalInvoicedAmount ?? 0) },
+    { label: 'Payment Received', value: formatCurrencyWithCents(summary?.totalPaymentsReceived ?? 0) },
+    { label: 'Advance Payment Received', value: formatCurrencyWithCents(summary?.advancePaymentReceived ?? 0) },
+  ];
+
+  return (
+    <View style={styles.breakdownCard}>
+      <View style={styles.breakdownHeaderFixed}>
+        <Text style={styles.breakdownTitle}>{title}</Text>
+        <Text style={styles.breakdownSubtitle}>
+          {formatNumber(count)} orders · {formatCurrencyWithCents(amount)}
+        </Text>
+      </View>
+      <View style={styles.breakdownContent}>
+        {statRows.map((row, index) => (
+          <View
+            key={index}
+            style={[styles.breakdownRow, index < statRows.length - 1 && styles.breakdownRowBorder]}
+          >
+            <Text style={styles.breakdownRowLabel}>{row.label}</Text>
+            <Text style={styles.breakdownRowValue}>{row.value}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+};
+
 export default function OpenOrdersScreen() {
   const colors = useThemeColors();
   const { user } = useAuthContext();
@@ -163,6 +213,12 @@ export default function OpenOrdersScreen() {
     loadData(true);
   }, [loadData]);
 
+  const pendingCount = data.pendingOrdersCount ?? data.pendingOrdersSummary?.totalOrders ?? 0;
+  const pendingAmount = data.pendingOrdersAmount ?? data.pendingOrdersSummary?.totalOrderedAmount ?? 0;
+
+  const partialCount = data.partialOrdersCount ?? data.partialOrdersSummary?.totalOrders ?? 0;
+  const partialAmount = data.partialOrdersAmount ?? data.partialOrdersSummary?.totalOrderedAmount ?? 0;
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
       <Header />
@@ -182,11 +238,29 @@ export default function OpenOrdersScreen() {
                 <SkeletonKpiCard />
                 <SkeletonKpiCard />
               </View>
+              <SkeletonSummaryCard />
+              <SkeletonSummaryCard />
             </>
           ) : (
             <>
               <SummaryCard data={data} />
               <PendingAndPartialKpiGrid data={data} />
+              
+              {/* Fixed Pending Orders Summary Table */}
+              <FixedSummaryTable
+                title="Pending Orders Summary"
+                count={pendingCount}
+                amount={pendingAmount}
+                summary={data.pendingOrdersSummary}
+              />
+
+              {/* Fixed Partial Orders Summary Table */}
+              <FixedSummaryTable
+                title="Partial Orders Summary"
+                count={partialCount}
+                amount={partialAmount}
+                summary={data.partialOrdersSummary}
+              />
             </>
           )}
           {!!error && !loading && (
@@ -305,6 +379,62 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: Typography.bodyMedium,
     color: '#64748B',
+  },
+
+  breakdownCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E7E6E2',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+    marginTop: 4,
+  },
+  breakdownHeaderFixed: {
+    backgroundColor: '#3A4151',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  breakdownTitle: {
+    fontSize: 15,
+    fontFamily: Typography.headingSemiBold,
+    color: '#FFFFFF',
+  },
+  breakdownSubtitle: {
+    fontSize: 12,
+    fontFamily: Typography.bodyMedium,
+    color: 'rgba(255, 255, 255, 0.75)',
+    marginTop: 2,
+  },
+  breakdownContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    backgroundColor: '#FFFFFF',
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  breakdownRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  breakdownRowLabel: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: '#64748B',
+  },
+  breakdownRowValue: {
+    fontSize: 13,
+    fontFamily: Typography.numberHeavy,
+    fontWeight: '700',
+    color: '#0F172A',
   },
 
   errorCard: {

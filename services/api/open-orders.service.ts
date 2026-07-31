@@ -166,12 +166,18 @@ export const fetchOpenOrdersPage = async (
     token?: string | null;
     page?: number;
     search?: OpenOrderSearchParam | null;
+    customRange?: { startDate: string; endDate: string } | null;
   }
 ): Promise<PaginatedResult<OpenOrderItem>> => {
   const page = options.page ?? 1;
   const limit = OPEN_ORDERS_PAGE_LIMIT; // ALWAYS explicit — never rely on backend default
 
   const query: Record<string, any> = { filter, page, limit };
+
+  if (options.customRange?.startDate && options.customRange?.endDate) {
+    query.startDate = options.customRange.startDate;
+    query.endDate = options.customRange.endDate;
+  }
 
   if (options.search && options.search.value.trim()) {
     const val = options.search.value.trim();

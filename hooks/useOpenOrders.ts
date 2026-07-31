@@ -87,10 +87,13 @@ const mapOpenOrderItem = (raw: OpenOrderItem): OpenOrderRowItem => {
  */
 export function usePendingOrders(
   token: string | null | undefined,
-  search?: OpenOrderSearchParam | null
+  search?: OpenOrderSearchParam | null,
+  customRange?: { startDate: string; endDate: string } | null
 ) {
   const searchValue = search?.value?.trim() ?? '';
   const searchType = search?.type ?? 'orderNo';
+  const startISO = customRange?.startDate ?? '';
+  const endISO = customRange?.endDate ?? '';
 
   const fetcher = useCallback(
     (page: number) =>
@@ -98,12 +101,13 @@ export function usePendingOrders(
         token: token ?? null,
         page,
         search: searchValue ? { type: searchType, value: searchValue } : null,
+        customRange: startISO && endISO ? { startDate: startISO, endDate: endISO } : null,
       }),
-    [token, searchType, searchValue]
+    [token, searchType, searchValue, startISO, endISO]
   );
 
   const result = useInfiniteResource<OpenOrderItem, OpenOrderRowItem>({
-    queryKey: ['open-orders', 'pending', token ?? null, searchType, searchValue],
+    queryKey: ['open-orders', 'pending', token ?? null, searchType, searchValue, startISO, endISO],
     fetcher,
     mapItem: mapOpenOrderItem,
   });
@@ -116,19 +120,16 @@ export function usePendingOrders(
 
 /**
  * usePartialOrders — infinite scroll hook for ?filter=partial
- *
- * Returns:
- *  - items: OpenOrderRowItem[] — mapped, ready for FlatList
- *  - summary: PartialOrdersSummary | null — KPI totals from page 1 meta
- *  - isLoading, isError, error, isFetchingNextPage, hasNextPage,
- *    fetchNextPage, refetch, isRefreshing
  */
 export function usePartialOrders(
   token: string | null | undefined,
-  search?: OpenOrderSearchParam | null
+  search?: OpenOrderSearchParam | null,
+  customRange?: { startDate: string; endDate: string } | null
 ) {
   const searchValue = search?.value?.trim() ?? '';
   const searchType = search?.type ?? 'orderNo';
+  const startISO = customRange?.startDate ?? '';
+  const endISO = customRange?.endDate ?? '';
 
   const fetcher = useCallback(
     (page: number) =>
@@ -136,12 +137,13 @@ export function usePartialOrders(
         token: token ?? null,
         page,
         search: searchValue ? { type: searchType, value: searchValue } : null,
+        customRange: startISO && endISO ? { startDate: startISO, endDate: endISO } : null,
       }),
-    [token, searchType, searchValue]
+    [token, searchType, searchValue, startISO, endISO]
   );
 
   const result = useInfiniteResource<OpenOrderItem, OpenOrderRowItem>({
-    queryKey: ['open-orders', 'partial', token ?? null, searchType, searchValue],
+    queryKey: ['open-orders', 'partial', token ?? null, searchType, searchValue, startISO, endISO],
     fetcher,
     mapItem: mapOpenOrderItem,
   });

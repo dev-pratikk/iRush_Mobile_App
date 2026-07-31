@@ -55,6 +55,7 @@ export const getLosAngelesFirstOfMonthISODate = (date: Date = new Date()): strin
 };
 
 export type DashboardPeriod = 'today' | 'month' | 'all';
+export type DateFilterPreset = 'today' | 'week' | 'month' | 'custom';
 
 /**
  * Calculates start and end date parameters (YYYY-MM-DD) for 'today', 'month', or 'all'
@@ -72,6 +73,39 @@ export const getDateRangeForPeriod = (
 
   if (period === 'all') {
     return { startDate: '2000-01-01', endDate: todayISO };
+  }
+
+  const firstOfMonthISO = getLosAngelesFirstOfMonthISODate(referenceDate);
+  return {
+    startDate: firstOfMonthISO,
+    endDate: todayISO,
+  };
+};
+
+/**
+ * Calculates start and end date parameters (YYYY-MM-DD) for filter presets:
+ * 'today' | 'week' | 'month' | 'custom'
+ */
+export const getDateRangeForFilter = (
+  preset: DateFilterPreset,
+  customRange?: { startDate: string; endDate: string } | null,
+  referenceDate: Date = new Date()
+): { startDate: string; endDate: string } => {
+  const todayISO = getLosAngelesISODate(referenceDate);
+
+  if (preset === 'custom' && customRange?.startDate && customRange?.endDate) {
+    return customRange;
+  }
+
+  if (preset === 'today') {
+    return { startDate: todayISO, endDate: todayISO };
+  }
+
+  if (preset === 'week') {
+    const d = new Date(referenceDate);
+    d.setDate(d.getDate() - 6);
+    const weekStartISO = getLosAngelesISODate(d);
+    return { startDate: weekStartISO, endDate: todayISO };
   }
 
   const firstOfMonthISO = getLosAngelesFirstOfMonthISODate(referenceDate);

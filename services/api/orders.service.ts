@@ -87,11 +87,12 @@ export const fetchOrdersPage = async (
     page?: number;
     limit?: number;
     search?: OrdersSearchParam | null;
+    customRange?: { startDate: string; endDate: string } | null;
   }
 ): Promise<PaginatedResult<OrderItem>> => {
   const page = options.page ?? 1;
   const limit = options.limit ?? ORDERS_PAGE_LIMIT;
-  const { startDate, endDate } = getDateRangeForPeriod(period);
+  const { startDate, endDate } = options.customRange ?? getDateRangeForPeriod(period);
 
   const query: Record<string, any> = { startDate, endDate, page, limit };
 

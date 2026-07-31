@@ -42,10 +42,13 @@ const mapOrderItem = (raw: OrderItem): OrdersRowItem => ({
 export function useOrders(
   period: DashboardPeriod,
   token: string | null | undefined,
-  search?: OrdersSearchParam | null
+  search?: OrdersSearchParam | null,
+  customRange?: { startDate: string; endDate: string } | null
 ) {
   const searchValue = search?.value?.trim() ?? '';
   const searchType = search?.type ?? 'orderNo';
+  const startISO = customRange?.startDate ?? '';
+  const endISO = customRange?.endDate ?? '';
 
   const fetcher = useCallback(
     (page: number) =>
@@ -53,12 +56,13 @@ export function useOrders(
         token: token ?? null,
         page,
         search: searchValue ? { type: searchType, value: searchValue } : null,
+        customRange: startISO && endISO ? { startDate: startISO, endDate: endISO } : null,
       }),
-    [period, token, searchType, searchValue]
+    [period, token, searchType, searchValue, startISO, endISO]
   );
 
   return useInfiniteResource<OrderItem, OrdersRowItem>({
-    queryKey: ['orders', period, token ?? null, searchType, searchValue],
+    queryKey: ['orders', period, token ?? null, searchType, searchValue, startISO, endISO],
     fetcher,
     mapItem: mapOrderItem,
   });

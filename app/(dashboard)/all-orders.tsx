@@ -29,6 +29,8 @@ import {
 import { useOrders, type OrdersRowItem } from '../../hooks/useOrders';
 import { PaginationFooter } from '../../components/ui/PaginationFooter';
 import { SkeletonRowItem, SkeletonSummaryCard, SkeletonKpiCard } from '../../components/ui/SkeletonLoader';
+import { DateFilterPreset, getDateRangeForFilter } from '../../lib/date';
+import { DateFilterModal } from '../../components/ui/DateFilterModal';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';
@@ -39,15 +41,25 @@ const DEFAULT_SALESPERSONS = ['Imran', 'John', 'Sarah', 'Alex', 'Michael', 'Davi
 
 // ─── Header Component ─────────────────────────────────────────────────────────
 
-type OrderPeriodTab = 'today' | 'month';
-
 const Header = ({
-  period,
-  setPeriod,
+  activePreset,
+  customRange,
+  onOpenFilter,
 }: {
-  period: OrderPeriodTab;
-  setPeriod: (p: OrderPeriodTab) => void;
+  activePreset: DateFilterPreset;
+  customRange?: { startDate: string; endDate: string } | null;
+  onOpenFilter: () => void;
 }) => {
+  const getFilterLabel = () => {
+    if (activePreset === 'today') return 'Today';
+    if (activePreset === 'week') return 'This Week';
+    if (activePreset === 'month') return 'This Month';
+    if (activePreset === 'custom' && customRange) {
+      return `${customRange.startDate.slice(5)} - ${customRange.endDate.slice(5)}`;
+    }
+    return 'Custom';
+  };
+
   return (
     <View style={styles.header}>
       <TouchableOpacity
@@ -61,29 +73,17 @@ const Header = ({
       {/* Left Aligned Header Title */}
       <Text style={styles.headerTitleLeft}>All orders</Text>
 
-      {/* Right Controls: Today / Month Toggle & Bell Icon */}
+      {/* Right Controls: Date Filter Button & Bell Icon */}
       <View style={styles.headerRightWrap}>
-        <View style={styles.headerPillRow}>
-          <TouchableOpacity
-            style={[styles.headerPill, period === 'today' && styles.headerPillActive]}
-            onPress={() => setPeriod('today')}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.headerPillText, period === 'today' && styles.headerPillTextActive]}>
-              Today
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.headerPill, period === 'month' && styles.headerPillActive]}
-            onPress={() => setPeriod('month')}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.headerPillText, period === 'month' && styles.headerPillTextActive]}>
-              Month
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.filterBtnPill}
+          onPress={onOpenFilter}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="calendar-outline" size={13} color={PRIMARY} />
+          <Text style={styles.filterBtnText}>{getFilterLabel()}</Text>
+          <Ionicons name="chevron-down" size={12} color={PRIMARY} />
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.headerIconInner}
@@ -103,17 +103,26 @@ const Header = ({
 // ─── White KPI Summary Card (Count & Revenue Overview) ──────────────────────
 
 const SummaryOverviewCard = ({
-  period,
+  activePreset,
+  customRange,
   totalRecords,
   totalAmount,
   loading,
 }: {
-  period: OrderPeriodTab;
+  activePreset: DateFilterPreset;
+  customRange?: { startDate: string; endDate: string } | null;
   totalRecords: number;
   totalAmount: number;
   loading: boolean;
 }) => {
-  const periodLabel = period === 'today' ? 'Today' : 'This month';
+  const periodLabel =
+    activePreset === 'today'
+      ? 'Today'
+      : activePreset === 'week'
+      ? 'This week'
+      : activePreset === 'month'
+      ? 'This month'
+      : 'Custom range';
 
   if (loading && totalRecords === 0) {
     return (
@@ -326,8 +335,15 @@ const OrderRow = React.memo(function OrderRow({ item }: { item: OrdersRowItem })
 
 // ─── Empty States ─────────────────────────────────────────────────────────────
 
-const DefaultEmptyState = ({ period, usingSample }: { period: DatePeriod; usingSample: boolean }) => {
-  const title = period === 'today' ? 'No orders today' : 'No orders this month';
+const DefaultEmptyState = ({ activePreset, usingSample }: { activePreset: DateFilterPreset; usingSample: boolean }) => {
+  const title =
+    activePreset === 'today'
+      ? 'No orders today'
+      : activePreset === 'week'
+      ? 'No orders this week'
+      : activePreset === 'month'
+      ? 'No orders this month'
+      : 'No orders for selected range';
   return (
     <View style={styles.emptyState}>
       <Ionicons name="cube-outline" size={36} color={SECONDARY} />
@@ -368,20 +384,21 @@ export default function AllOrdersScreen() {
   const { user } = useAuthContext();
   const token = (user as any)?.token ?? null;
   const params = useLocalSearchParams<{ period?: string }>();
-  const initialPeriod: OrderPeriodTab =
-    params.period === 'month' ? 'month' : 'today';
-
-  const [period, setPeriod] = useState<OrderPeriodTab>(initialPeriod);
+  const [activePreset, setActivePreset] = useState<DateFilterPreset>(
+    params.period === 'month' ? 'month' : 'today'
+  );
+  const [customRange, setCustomRange] = useState<{ startDate: string; endDate: string } | null>(null);
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
 
   useEffect(() => {
     if (params.period === 'today' || params.period === 'month') {
-      setPeriod(params.period);
+      setActivePreset(params.period as DateFilterPreset);
+      setCustomRange(null);
     }
   }, [params.period]);
 
   const [inputText, setInputText] = useState('');
   const [debouncedValue, setDebouncedValue] = useState('');
-  // Suggestions overlay state (lifted to screen to avoid FlatList clipping)
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSalesperson, setSelectedSalesperson] = useState<string | null>(null);
 
@@ -396,6 +413,7 @@ export default function AllOrdersScreen() {
     setInputText('');
     setDebouncedValue('');
     setSelectedSalesperson(null);
+    setCurrentPage(1);
   }, []);
 
   const searchParam = useMemo((): OrdersSearchParam | null => {
@@ -405,7 +423,12 @@ export default function AllOrdersScreen() {
     return { type: detectedType, value: trimmed };
   }, [debouncedValue, selectedSalesperson]);
 
-  const apiPeriod: DatePeriod = period;
+  const calculatedRange = useMemo(
+    () => getDateRangeForFilter(activePreset, customRange),
+    [activePreset, customRange]
+  );
+
+  const apiPeriod: DatePeriod = activePreset === 'today' ? 'today' : 'month';
 
   // Fetch orders from custom hook
   const {
@@ -420,7 +443,7 @@ export default function AllOrdersScreen() {
     fetchNextPage,
     refetch,
     isRefreshing,
-  } = useOrders(apiPeriod, token, searchParam);
+  } = useOrders(apiPeriod, token, searchParam, calculatedRange);
 
   const totalAmountCalculated = useMemo(() => {
     if (meta?.totalAmount && meta.totalAmount > 0) return meta.totalAmount;
@@ -443,7 +466,7 @@ export default function AllOrdersScreen() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [period, searchParam]);
+  }, [activePreset, customRange, searchParam]);
 
   useEffect(() => {
     if (pendingAdvanceRef.current && !isFetchingNextPage) {
@@ -554,7 +577,7 @@ export default function AllOrdersScreen() {
     return list;
   }, [items]);
 
-  // Compute live suggestions at screen level (lifted from SearchBarSection)
+  // Compute live suggestions at screen level
   const screenSuggestions = useMemo(() => {
     const query = inputText.trim().toLowerCase();
     if (!query || !showSuggestions) return [];
@@ -571,7 +594,8 @@ export default function AllOrdersScreen() {
     () => (
       <View style={{ paddingTop: 12 }}>
         <SummaryOverviewCard
-          period={period}
+          activePreset={activePreset}
+          customRange={customRange}
           totalRecords={totalRecords}
           totalAmount={totalAmountCalculated}
           loading={isLoading}
@@ -595,7 +619,8 @@ export default function AllOrdersScreen() {
       </View>
     ),
     [
-      period,
+      activePreset,
+      customRange,
       totalRecords,
       totalAmountCalculated,
       isLoading,
@@ -608,9 +633,21 @@ export default function AllOrdersScreen() {
     ]
   );
 
+  const handleApplyFilter = (
+    preset: DateFilterPreset,
+    range: { startDate: string; endDate: string } | null
+  ) => {
+    setActivePreset(preset);
+    setCustomRange(range);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <Header period={period} setPeriod={setPeriod} />
+      <Header
+        activePreset={activePreset}
+        customRange={customRange}
+        onOpenFilter={() => setFilterModalVisible(true)}
+      />
 
       {/* Screen-level suggestions overlay — rendered OUTSIDE FlatList to avoid clipping */}
       {showSuggestions && screenSuggestions.length > 0 ? (
@@ -668,7 +705,7 @@ export default function AllOrdersScreen() {
                 onClear={handleClearSearch}
               />
             ) : (
-              <DefaultEmptyState period={period} usingSample={usingSample} />
+              <DefaultEmptyState activePreset={activePreset} usingSample={usingSample} />
             )
           }
           ItemSeparatorComponent={ItemSeparator}
@@ -698,6 +735,14 @@ export default function AllOrdersScreen() {
           onNext={handleNext}
         />
       </View>
+
+      <DateFilterModal
+        visible={filterModalVisible}
+        onClose={() => setFilterModalVisible(false)}
+        activePreset={activePreset}
+        customRange={customRange}
+        onApply={handleApplyFilter}
+      />
     </SafeAreaView>
   );
 }
@@ -736,6 +781,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  filterBtnPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 5,
+  },
+  filterBtnText: {
+    fontSize: 12,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
   },
   headerPillRow: {
     flexDirection: 'row',

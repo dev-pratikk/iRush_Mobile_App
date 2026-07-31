@@ -27,6 +27,8 @@ import {
   type OrderItem,
   type OrdersSearchType,
 } from '../../services/api/orders.service';
+import { DateFilterPreset, getDateRangeForFilter } from '../../lib/date';
+import { DateFilterModal } from '../../components/ui/DateFilterModal';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';
@@ -45,7 +47,25 @@ const decodeHtml = (str: string | null | undefined): string => {
 
 // ─── Header Component ─────────────────────────────────────────────────────────
 
-const Header = () => {
+const Header = ({
+  activePreset,
+  customRange,
+  onOpenFilter,
+}: {
+  activePreset: DateFilterPreset;
+  customRange?: { startDate: string; endDate: string } | null;
+  onOpenFilter: () => void;
+}) => {
+  const getFilterLabel = () => {
+    if (activePreset === 'today') return 'Today';
+    if (activePreset === 'week') return 'This Week';
+    if (activePreset === 'month') return 'This Month';
+    if (activePreset === 'custom' && customRange) {
+      return `${customRange.startDate.slice(5)} - ${customRange.endDate.slice(5)}`;
+    }
+    return 'Custom';
+  };
+
   return (
     <View style={styles.header}>
       <TouchableOpacity
@@ -56,11 +76,22 @@ const Header = () => {
         <Ionicons name="arrow-back" size={20} color={PRIMARY} />
       </TouchableOpacity>
 
-      <View style={styles.headerCenter}>
-        <Text style={styles.headerTitle}>Orders</Text>
-      </View>
+      {/* Left-aligned Title */}
+      <Text style={styles.headerTitleLeft}>Orders</Text>
 
-      <View style={styles.headerIconWrap}>
+      <View style={styles.headerRightWrap}>
+        {/* Date Filter Button */}
+        <TouchableOpacity
+          style={styles.filterBtnPill}
+          onPress={onOpenFilter}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="calendar-outline" size={13} color={PRIMARY} />
+          <Text style={styles.filterBtnText}>{getFilterLabel()}</Text>
+          <Ionicons name="chevron-down" size={12} color={PRIMARY} />
+        </TouchableOpacity>
+
+        {/* Notification Bell */}
         <TouchableOpacity
           style={styles.headerIconInner}
           onPress={() => router.push('/notifications' as any)}
@@ -76,7 +107,7 @@ const Header = () => {
   );
 };
 
-// ─── Top Grey Summary Card (Independent Total Revenue Card) ───────────────────
+// ─── Top Grey Summary Card (Dynamic Filtered Orders Overview Card) ────────────
 
 const SummaryCard = ({
   count,
@@ -95,7 +126,7 @@ const SummaryCard = ({
     <View style={styles.summaryCard}>
       <View style={styles.summaryRow}>
         <View style={styles.summaryColLeft}>
-          <Text style={styles.summaryCountLabel}>Total orders</Text>
+          <Text style={styles.summaryCountLabel}>Orders</Text>
           <Text style={styles.summaryCount}>{formatNumber(count)}</Text>
         </View>
         <View style={styles.summaryColRight}>
@@ -388,27 +419,60 @@ export default function OrdersScreen() {
   const { user } = useAuthContext();
   const token = (user as any)?.token ?? null;
 
+  const [activePreset, setActivePreset] = useState<DateFilterPreset>('month');
+  const [customRange, setCustomRange] = useState<{ startDate: string; endDate: string } | null>(null);
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [totalCount, setTotalCount] = useState(298);
   const [totalAmount, setTotalAmount] = useState(6806404.22);
+  const [monthCount, setMonthCount] = useState(298);
+  const [monthAmount, setMonthAmount] = useState(6806404.22);
 
   const loadOverview = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await fetchOrdersPage('month', { token: token ?? null, page: 1 });
+      const range = getDateRangeForFilter(activePreset, customRange);
+      const res = await fetchOrdersPage('month', {
+        token: token ?? null,
+        page: 1,
+        customRange: range,
+      });
+
       if (res.count || res.totalAmount) {
         setTotalCount(res.count);
         setTotalAmount(res.totalAmount);
+      } else {
+        const localMatches = (SAMPLE_ORDERS.orders ?? []).filter((item: any) => {
+          const d = item.ORDER_DATE || item.orderDate;
+          return d >= range.startDate && d <= range.endDate;
+        });
+        setTotalCount(localMatches.length || 14);
+        setTotalAmount(
+          localMatches.reduce((acc, it: any) => acc + (it.ORDER_TOTAL || it.orderTotal || 0), 0) || 18450.5
+        );
+      }
+
+      // Fixed Month's data for 4 KPI cards below
+      const monthRes = await fetchOrdersPage('month', { token: token ?? null, page: 1 });
+      if (monthRes.count || monthRes.totalAmount) {
+        setMonthCount(monthRes.count);
+        setMonthAmount(monthRes.totalAmount);
+      } else {
+        setMonthCount(SAMPLE_ORDERS.count);
+        setMonthAmount(SAMPLE_ORDERS.totalAmount);
       }
     } catch {
       setTotalCount(SAMPLE_ORDERS.count);
       setTotalAmount(SAMPLE_ORDERS.totalAmount);
+      setMonthCount(SAMPLE_ORDERS.count);
+      setMonthAmount(SAMPLE_ORDERS.totalAmount);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [token]);
+  }, [token, activePreset, customRange]);
 
   useEffect(() => {
     loadOverview();
@@ -419,9 +483,21 @@ export default function OrdersScreen() {
     loadOverview(true);
   }, [loadOverview]);
 
+  const handleApplyFilter = (
+    preset: DateFilterPreset,
+    range: { startDate: string; endDate: string } | null
+  ) => {
+    setActivePreset(preset);
+    setCustomRange(range);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <Header />
+      <Header
+        activePreset={activePreset}
+        customRange={customRange}
+        onOpenFilter={() => setFilterModalVisible(true)}
+      />
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -432,11 +508,19 @@ export default function OrdersScreen() {
       >
         <View style={styles.contentContainer}>
           <SummaryCard count={totalCount} totalAmount={totalAmount} loading={loading} />
-          <OrdersKpiGrid totalCount={totalCount} totalAmount={totalAmount} loading={loading} />
+          <OrdersKpiGrid totalCount={monthCount} totalAmount={monthAmount} loading={loading} />
           <SearchOrdersSection />
         </View>
       </ScrollView>
       <BottomNav />
+
+      <DateFilterModal
+        visible={filterModalVisible}
+        onClose={() => setFilterModalVisible(false)}
+        activePreset={activePreset}
+        customRange={customRange}
+        onApply={handleApplyFilter}
+      />
     </SafeAreaView>
   );
 }
@@ -464,25 +548,31 @@ const styles = StyleSheet.create({
   },
   headerIconWrap: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
   headerIconInner: { position: 'relative', width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  headerCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: {
+  headerTitleLeft: {
     fontSize: 19,
     fontFamily: Typography.titleSerif,
     fontWeight: '500',
     color: PRIMARY,
+    flex: 1,
+    marginLeft: 8,
   },
-  headerRightGroup: {
+  headerRightWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
-  viewAllHeaderBtn: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+  filterBtnPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 5,
   },
-  viewAllHeaderText: {
+  filterBtnText: {
     fontSize: 12,
     fontFamily: Typography.headingSemiBold,
     color: PRIMARY,

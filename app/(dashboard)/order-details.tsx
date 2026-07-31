@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   Text,
   BackHandler,
+  Linking,
+  Alert,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,13 +15,12 @@ import { Typography } from '../../constants/Typography';
 import { router, useLocalSearchParams } from 'expo-router';
 import { formatCurrencyWithCents } from '../../services/api/orders.service';
 
-const PRIMARY = '#2C2C2A';
-const SECONDARY = '#9C9B95';
-const PAGE_BG = '#FFFFFF';
-const SUMMARY_CARD_BG = '#3A4151';
+const PRIMARY = '#0F172A';
+const SECONDARY = '#64748B';
+const PAGE_BG = '#F8FAFC';
 const CARD_BG = '#FFFFFF';
-const CARD_BORDER = '#E7E6E2';
-const RED_TEXT = '#8A1C1C';
+const CARD_BORDER = '#E2E8F0';
+const RED_TEXT = '#DC2626';
 
 // Helper to decode HTML entities like &amp; -> &
 const decodeHtml = (str: string | null | undefined): string => {
@@ -31,22 +32,6 @@ const decodeHtml = (str: string | null | undefined): string => {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .trim();
-};
-
-// Formats date string to "Jul 9, 2026" or "Jul 17"
-const formatDateFormatted = (dateStr: string | null | undefined, includeYear = true): string => {
-  if (!dateStr) return '';
-  try {
-    const d = new Date(dateStr);
-    if (Number.isNaN(d.getTime())) return dateStr;
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const month = months[d.getMonth()];
-    const day = d.getDate();
-    if (!includeYear) return `${month} ${day}`;
-    return `${month} ${day}, ${d.getFullYear()}`;
-  } catch {
-    return dateStr || '';
-  }
 };
 
 export default function OrderDetailsScreen() {
@@ -70,7 +55,7 @@ export default function OrderDetailsScreen() {
     return () => subscription.remove();
   }, [handleBack]);
 
-  // Parse raw order payload or fallback to sample structure provided by user
+  // Parse raw order payload or fallback to sample structure matching image
   const order = useMemo(() => {
     if (params.orderData) {
       try {
@@ -82,18 +67,16 @@ export default function OrderDetailsScreen() {
     return null;
   }, [params.orderData]);
 
-  // Extract fields with full fallbacks matching user sample data
+  // Extract fields matching image & fallback
   const orderNo = order?.ORDER_NO || order?.orderNo || '482663';
   const companyName = decodeHtml(order?.COMPANY_NAME || order?.companyName || 'Higher Ground, LLC');
   const orderTotal = Number.isFinite(order?.ORDER_TOTAL || order?.orderTotal)
     ? order?.ORDER_TOTAL || order?.orderTotal
     : 1069.92;
   const orderStatus = order?.ORDER_STATUS || order?.orderStatus || 'Open';
-  const orderDate = formatDateFormatted(order?.ORDER_DATE || order?.orderDate || '2026-07-09');
 
   // Order info
   const orderType = (order?.ORDER_TYPE_NAME || order?.orderTypeName || 'PCB Parts').trim();
-  const category = (order?.ORDER_CATEGORY || order?.orderCategory || 'New').trim();
   const quoteNo = (order?.QUOTE_NO || order?.quoteNo || 'PCB304352').trim();
   const salesperson = (order?.SALESPERSON_NAME || order?.salespersonName || 'Jodi').trim();
 
@@ -101,23 +84,18 @@ export default function OrderDetailsScreen() {
   const details = order?.orderDetails && order.orderDetails.length > 0 ? order.orderDetails[0] : null;
   const lineQty = details?.QUANTITY ?? 38;
   const unitPrice = details?.UNIT_PRICE ?? 22.65;
-  const lineTotal = details?.LINE_TOTAL ?? 860.7;
-  const promisedDateStr = formatDateFormatted(details?.PROMISED_DATE || '2026-07-17', false);
-  const invoicedQty = details?.INVOICED_QTY ?? 1;
 
   // Vendor
   const vendorObj = order?.orderVendors && order.orderVendors.length > 0 ? order.orderVendors[0] : null;
   const vendorName = decodeHtml(vendorObj?.vendor?.vendorCompanyName || 'R&D Tech');
   const vendorCost = vendorObj?.VENDOR_ALLTOTALCOST || vendorObj?.VENDOR_TOTALCOST || 556.7;
-  const vendorCity = vendorObj?.vendor?.city || 'Milpitas';
-  const vendorState = vendorObj?.vendor?.state || 'CA';
 
   // Shipping & Contact
   const ship = order?.shippingAddress || {};
-  const addr1 = ship.addressText1 || '2595 E Bayshore Rd';
-  const addr2 = ship.addressText2 ? `, ${ship.addressText2}` : ', Ste 200';
   const city = ship.cityName || 'Palo Alto';
   const state = ship.stateName ? ship.stateName.toUpperCase() : 'CA';
+  const addr1 = ship.addressText1 || '2595 E Bayshore Rd';
+  const addr2 = ship.addressText2 ? `, ${ship.addressText2}` : ', Ste 200';
   const zip = ship.zipCode || '94303';
 
   const contact = order?.customerContact || {};
@@ -137,7 +115,34 @@ export default function OrderDetailsScreen() {
 
   const pack = order?.orderPackingSlips && order.orderPackingSlips.length > 0 ? order.orderPackingSlips[0] : null;
   const trackingNo = pack?.TRACK_NUMBER || '123';
-  const shipDateStr = formatDateFormatted(pack?.SHIPOUT_DATETIME || pack?.SHIP_DATE || '2026-07-22', false);
+
+  // Actions
+  const handleCall = () => {
+    if (rawPhone) {
+      Linking.openURL(`tel:${rawPhone}`);
+    } else {
+      Alert.alert('Call', 'No phone number available for this order contact.');
+    }
+  };
+
+  const handleEmail = () => {
+    if (contactEmail) {
+      Linking.openURL(`mailto:${contactEmail}?subject=Order %23${orderNo}`);
+    } else {
+      Alert.alert('Email', 'No email address available for this order contact.');
+    }
+  };
+
+  const handleTrack = () => {
+    Alert.alert('Tracking Information', `Order #${orderNo}\nTracking No: ${trackingNo}`);
+  };
+
+  const handleInvoiceAction = () => {
+    Alert.alert(
+      'Invoice Information',
+      `Invoice #${invNumber}\nStatus: ${invStatus}\nAmount: ${formatCurrencyWithCents(invAmount)}`
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -150,144 +155,161 @@ export default function OrderDetailsScreen() {
         >
           <Ionicons name="arrow-back" size={20} color={PRIMARY} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order Details</Text>
-        <View style={{ width: 40 }} />
+        <Text style={styles.headerTitleLeft}>Order Details</Text>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* 1. Top Summary Card (Matching App Grey Box Theme) */}
-        <View style={styles.topSummaryCard}>
-          <View style={styles.topHeaderRow}>
-            <View style={styles.topHeaderLeft}>
-              <Text style={styles.orderNoTitle}>#{orderNo}</Text>
-              <Text style={styles.companySubTitle}>{companyName}</Text>
-            </View>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusBadgeText}>{orderStatus}</Text>
-            </View>
-          </View>
+        {/* Top Hero Section */}
+        <View style={styles.heroSection}>
+          <Text style={styles.heroCompanyName}>{companyName}</Text>
+          <Text style={styles.heroAmount}>{formatCurrencyWithCents(orderTotal)}</Text>
+          <Text style={styles.heroSubtitle}>
+            Order #{orderNo} · {orderStatus}
+          </Text>
 
-          <View style={styles.topHeaderBottomRow}>
-            <Text style={styles.totalAmountText}>{formatCurrencyWithCents(orderTotal)}</Text>
-            <Text style={styles.orderDateText}>{orderDate}</Text>
-          </View>
-        </View>
+          {/* Quick Action Buttons Row */}
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.actionItem} onPress={handleCall} activeOpacity={0.7}>
+              <View style={styles.actionCircle}>
+                <Ionicons name="call-outline" size={20} color={PRIMARY} />
+              </View>
+              <Text style={styles.actionLabel}>Call</Text>
+            </TouchableOpacity>
 
-        {/* 2. Order info Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Ionicons name="document-text-outline" size={18} color={SECONDARY} />
-            <Text style={styles.cardTitle}>Order info</Text>
-          </View>
+            <TouchableOpacity style={styles.actionItem} onPress={handleEmail} activeOpacity={0.7}>
+              <View style={styles.actionCircle}>
+                <Ionicons name="mail-outline" size={20} color={PRIMARY} />
+              </View>
+              <Text style={styles.actionLabel}>Email</Text>
+            </TouchableOpacity>
 
-          <View style={styles.kvList}>
-            <View style={styles.kvRow}>
-              <Text style={styles.kvKey}>Type</Text>
-              <Text style={styles.kvValueBold}>{orderType}</Text>
-            </View>
-            <View style={styles.kvRow}>
-              <Text style={styles.kvKey}>Category</Text>
-              <Text style={styles.kvValueBold}>{category}</Text>
-            </View>
-            <View style={styles.kvRow}>
-              <Text style={styles.kvKey}>Quote no</Text>
-              <Text style={styles.kvValueBold}>{quoteNo}</Text>
-            </View>
-            <View style={styles.kvRow}>
-              <Text style={styles.kvKey}>Salesperson</Text>
-              <Text style={styles.kvValueBold}>{salesperson}</Text>
-            </View>
+            <TouchableOpacity style={styles.actionItem} onPress={handleTrack} activeOpacity={0.7}>
+              <View style={styles.actionCircle}>
+                <Ionicons name="bus-outline" size={20} color={PRIMARY} />
+              </View>
+              <Text style={styles.actionLabel}>Track</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionItem} onPress={handleInvoiceAction} activeOpacity={0.7}>
+              <View style={styles.actionCircle}>
+                <Ionicons name="document-text-outline" size={20} color={PRIMARY} />
+              </View>
+              <Text style={styles.actionLabel}>Invoice</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* 3. Line items Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Ionicons name="list-outline" size={18} color={SECONDARY} />
-            <Text style={styles.cardTitle}>Line items</Text>
-          </View>
+        {/* Section 1: ORDER */}
+        <View style={styles.sectionWrap}>
+          <Text style={styles.sectionHeaderTitle}>ORDER</Text>
+          <View style={styles.cardGroup}>
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="pricetag-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Type</Text>
+              </View>
+              <Text style={styles.rowValue}>{orderType}</Text>
+            </View>
 
-          <View style={styles.sectionBody}>
-            <View style={styles.rowBetween}>
-              <Text style={styles.itemTitleText}>
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="document-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Quote</Text>
+              </View>
+              <Text style={styles.rowValue}>{quoteNo}</Text>
+            </View>
+
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="person-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Salesperson</Text>
+              </View>
+              <Text style={styles.rowValue}>{salesperson}</Text>
+            </View>
+
+            <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="cube-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Quantity</Text>
+              </View>
+              <Text style={styles.rowValue}>
                 {lineQty} pcs · {formatCurrencyWithCents(unitPrice)} ea
               </Text>
-              <Text style={styles.itemAmountText}>{formatCurrencyWithCents(lineTotal)}</Text>
             </View>
-            <Text style={styles.itemSubText}>
-              Promised {promisedDateStr} · invoiced {invoicedQty} of {lineQty}
-            </Text>
           </View>
         </View>
 
-        {/* 4. Vendor Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Ionicons name="car-outline" size={18} color={SECONDARY} />
-            <Text style={styles.cardTitle}>Vendor</Text>
-          </View>
-
-          <View style={styles.sectionBody}>
-            <View style={styles.rowBetween}>
-              <Text style={styles.itemTitleText}>{vendorName}</Text>
-              <Text style={styles.itemAmountText}>{formatCurrencyWithCents(vendorCost)}</Text>
-            </View>
-            <Text style={styles.itemSubText}>
-              {vendorCity}, {vendorState}
-            </Text>
-          </View>
-        </View>
-
-        {/* 5. Shipping and contact Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Ionicons name="location-outline" size={18} color={SECONDARY} />
-            <Text style={styles.cardTitle}>Shipping and contact</Text>
-          </View>
-
-          <View style={styles.sectionBody}>
-            <Text style={styles.itemTitleText}>
-              {addr1}{addr2}
-            </Text>
-            <Text style={styles.itemTitleText}>
-              {city}, {state} {zip}
-            </Text>
-
-            <View style={styles.cardDivider} />
-
-            <Text style={styles.contactNameText}>{contactName}</Text>
-            <Text style={styles.contactDetailText}>
-              {contactEmail} · {formattedPhone}
-            </Text>
-          </View>
-        </View>
-
-        {/* 6. Invoice and shipment Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Ionicons name="receipt-outline" size={18} color={SECONDARY} />
-            <Text style={styles.cardTitle}>Invoice and shipment</Text>
-          </View>
-
-          <View style={styles.sectionBody}>
-            <View style={styles.rowBetween}>
-              <Text style={styles.itemTitleText}>Invoice {invNumber}</Text>
-              <View style={styles.invoiceRightCol}>
-                <Text style={styles.unpaidText}>{invStatus}</Text>
-                <Text style={styles.itemAmountText}>{formatCurrencyWithCents(invAmount)}</Text>
+        {/* Section 2: VENDOR & SHIPPING */}
+        <View style={styles.sectionWrap}>
+          <Text style={styles.sectionHeaderTitle}>VENDOR & SHIPPING</Text>
+          <View style={styles.cardGroup}>
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="business-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Vendor</Text>
               </View>
+              <Text style={styles.rowValue}>
+                {vendorName} · {formatCurrencyWithCents(vendorCost)}
+              </Text>
             </View>
-            <Text style={styles.itemSubText}>
-              Tracking {trackingNo} · shipped {shipDateStr}
-            </Text>
+
+            <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="location-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Ship to</Text>
+              </View>
+              <Text style={styles.rowValue}>
+                {city}, {state}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Section 3: INVOICE */}
+        <View style={styles.sectionWrap}>
+          <Text style={styles.sectionHeaderTitle}>INVOICE</Text>
+          <View style={styles.cardGroup}>
+            <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="alert-circle-outline" size={17} color={RED_TEXT} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>{invNumber}</Text>
+              </View>
+              <Text style={[styles.rowValue, { color: RED_TEXT }]}>
+                {invStatus} · {formatCurrencyWithCents(invAmount)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Section 4: SHIPPING ADDRESS & CONTACT */}
+        <View style={styles.sectionWrap}>
+          <Text style={styles.sectionHeaderTitle}>SHIPPING ADDRESS & CONTACT</Text>
+          <View style={styles.cardGroup}>
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="map-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Address</Text>
+              </View>
+              <Text style={[styles.rowValue, { flexShrink: 1, textAlign: 'right' }]}>
+                {addr1}{addr2}, {city}, {state} {zip}
+              </Text>
+            </View>
+
+            <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="call-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Contact</Text>
+              </View>
+              <Text style={styles.rowValue}>
+                {contactName} · {formattedPhone}
+              </Text>
+            </View>
           </View>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const hairline = StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5;
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -298,194 +320,133 @@ const styles = StyleSheet.create({
     height: 52,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    borderBottomWidth: hairline,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: CARD_BORDER,
-    backgroundColor: PAGE_BG,
+    backgroundColor: CARD_BG,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerTitle: {
+  headerTitleLeft: {
     fontSize: 18,
     fontFamily: Typography.titleSerif,
     fontWeight: '500',
     color: PRIMARY,
+    marginLeft: 4,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    gap: 14,
-    paddingBottom: 32,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 36,
+    gap: 18,
   },
 
-  // 1. Top Summary Card (Matching App Theme)
-  topSummaryCard: {
-    backgroundColor: SUMMARY_CARD_BG,
-    borderRadius: 16,
-    padding: 20,
-    gap: 16,
+  // Hero section
+  heroSection: {
+    alignItems: 'center',
+    paddingVertical: 8,
   },
-  topHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  topHeaderLeft: {
-    gap: 4,
-    flex: 1,
-    paddingRight: 10,
-  },
-  orderNoTitle: {
-    fontSize: 24,
-    fontFamily: Typography.numberHeavy,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  companySubTitle: {
+  heroCompanyName: {
     fontSize: 14,
-    fontFamily: Typography.body,
-    color: 'rgba(255, 255, 255, 0.75)',
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
   },
-  statusBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
+  heroAmount: {
+    fontSize: 32,
+    fontFamily: Typography.titleSerif,
+    fontWeight: '700',
+    color: PRIMARY,
+    marginVertical: 4,
   },
-  statusBadgeText: {
+  heroSubtitle: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: '#475569',
+  },
+
+  // Action buttons
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 24,
+    marginTop: 20,
+  },
+  actionItem: {
+    alignItems: 'center',
+  },
+  actionCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: CARD_BG,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  actionLabel: {
+    fontSize: 12,
+    fontFamily: Typography.bodyMedium,
+    color: '#475569',
+    marginTop: 6,
+  },
+
+  // Sections
+  sectionWrap: {
+    gap: 6,
+  },
+  sectionHeaderTitle: {
     fontSize: 12,
     fontFamily: Typography.headingSemiBold,
-    color: '#FFFFFF',
+    color: SECONDARY,
+    letterSpacing: 0.8,
+    marginLeft: 2,
   },
-  topHeaderBottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginTop: 4,
-  },
-  totalAmountText: {
-    fontSize: 26,
-    fontFamily: Typography.numberHeavy,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  orderDateText: {
-    fontSize: 13,
-    fontFamily: Typography.body,
-    color: 'rgba(255, 255, 255, 0.75)',
-  },
-
-  // Generic White Cards (App Light Theme)
-  card: {
+  cardGroup: {
     backgroundColor: CARD_BG,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: CARD_BORDER,
-    padding: 16,
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    overflow: 'hidden',
   },
-  cardHeaderRow: {
+  rowItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-  cardTitle: {
-    fontSize: 14,
-    fontFamily: Typography.headingSemiBold,
-    color: PRIMARY,
-  },
-
-  // Key-Value List inside Card
-  kvList: {
+  rowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
-    paddingTop: 2,
   },
-  kvRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  rowIcon: {
+    width: 20,
   },
-  kvKey: {
+  rowKey: {
     fontSize: 14,
-    fontFamily: Typography.body,
-    color: SECONDARY,
+    fontFamily: Typography.bodyMedium,
+    color: '#475569',
   },
-  kvValueBold: {
+  rowValue: {
     fontSize: 14,
     fontFamily: Typography.headingSemiBold,
-    fontWeight: '600',
     color: PRIMARY,
-  },
-
-  // Section Body
-  sectionBody: {
-    gap: 4,
-    paddingTop: 2,
-  },
-  rowBetween: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  itemTitleText: {
-    fontSize: 14,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '600',
-    color: PRIMARY,
-  },
-  itemAmountText: {
-    fontSize: 14,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '600',
-    color: PRIMARY,
-  },
-  itemSubText: {
-    fontSize: 13,
-    fontFamily: Typography.body,
-    color: SECONDARY,
-    marginTop: 4,
-  },
-
-  cardDivider: {
-    height: hairline,
-    backgroundColor: CARD_BORDER,
-    marginVertical: 10,
-  },
-
-  contactNameText: {
-    fontSize: 14,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '600',
-    color: PRIMARY,
-  },
-  contactDetailText: {
-    fontSize: 13,
-    fontFamily: Typography.body,
-    color: SECONDARY,
-    marginTop: 2,
-  },
-
-  invoiceRightCol: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  unpaidText: {
-    fontSize: 12,
-    fontFamily: Typography.headingSemiBold,
-    color: RED_TEXT,
-    marginRight: 4,
   },
 });

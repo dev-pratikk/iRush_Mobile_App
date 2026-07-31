@@ -33,6 +33,16 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
+const formatDateForDisplay = (isoStr: string) => {
+  if (!isoStr) return 'Select Date';
+  const parts = isoStr.split('-');
+  if (parts.length !== 3) return isoStr;
+  const mIdx = parseInt(parts[1], 10) - 1;
+  const dNum = parseInt(parts[2], 10);
+  const shortMonth = MONTH_NAMES[mIdx]?.slice(0, 3) || parts[1];
+  return `${shortMonth} ${dNum}, ${parts[0]}`;
+};
+
 export const DateFilterModal: React.FC<DateFilterModalProps> = ({
   visible,
   onClose,
@@ -326,7 +336,7 @@ export const DateFilterModal: React.FC<DateFilterModalProps> = ({
                         activeOpacity={0.8}
                       >
                         <Text style={styles.rangeTabSub}>From Date</Text>
-                        <Text style={styles.rangeTabValue}>{startDateInput || 'YYYY-MM-DD'}</Text>
+                        <Text style={styles.rangeTabValue}>{formatDateForDisplay(startDateInput)}</Text>
                       </TouchableOpacity>
 
                       <Ionicons name="arrow-forward" size={14} color="#94A3B8" />
@@ -340,7 +350,7 @@ export const DateFilterModal: React.FC<DateFilterModalProps> = ({
                         activeOpacity={0.8}
                       >
                         <Text style={styles.rangeTabSub}>To Date</Text>
-                        <Text style={styles.rangeTabValue}>{endDateInput || 'YYYY-MM-DD'}</Text>
+                        <Text style={styles.rangeTabValue}>{formatDateForDisplay(endDateInput)}</Text>
                       </TouchableOpacity>
                     </View>
 

@@ -29,7 +29,7 @@ import { PaginationFooter } from '../../components/ui/PaginationFooter';
 import type { PartialOrdersSummary } from '../../types/api/open-orders';
 import { SkeletonRowItem, SkeletonSummaryCard } from '../../components/ui/SkeletonLoader';
 
-import { DateFilterPreset, getDateRangeForFilter } from '../../lib/date';
+import { DateFilterPreset, getDateRangeForFilter, formatCustomRangeLabel } from '../../lib/date';
 import { DateFilterModal } from '../../components/ui/DateFilterModal';
 
 const PRIMARY = '#2C2C2A';
@@ -65,7 +65,7 @@ const Header = ({
     if (activePreset === 'week') return 'This Week';
     if (activePreset === 'month') return 'This Month';
     if (activePreset === 'custom' && customRange) {
-      return `${customRange.startDate.slice(5)} - ${customRange.endDate.slice(5)}`;
+      return formatCustomRangeLabel(customRange.startDate, customRange.endDate);
     }
     return 'Custom';
   };
@@ -561,7 +561,6 @@ export default function PartialOrdersScreen() {
   const ListHeader = useMemo(
     () => (
       <View style={{ paddingTop: 12 }}>
-        <SummaryBreakdownCard summary={summary} loading={isLoading} usingSample={usingSample} />
         <SearchBarSection
           inputText={inputText}
           setInputText={setInputText}

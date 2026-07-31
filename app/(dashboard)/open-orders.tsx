@@ -135,11 +135,13 @@ const FixedSummaryTable = ({
   count,
   amount,
   summary,
+  onPress,
 }: {
   title: string;
   count: number;
   amount: number;
   summary?: any;
+  onPress: () => void;
 }) => {
   const statRows = [
     { label: 'No of Orders', value: formatNumber(count) },
@@ -158,12 +160,12 @@ const FixedSummaryTable = ({
   ];
 
   return (
-    <View style={styles.breakdownCard}>
+    <TouchableOpacity style={styles.breakdownCard} onPress={onPress} activeOpacity={0.85}>
       <View style={styles.breakdownHeaderFixed}>
-        <Text style={styles.breakdownTitle}>{title}</Text>
-        <Text style={styles.breakdownSubtitle}>
-          {formatNumber(count)} orders · {formatCurrencyWithCents(amount)}
-        </Text>
+        <View style={styles.breakdownTitleRow}>
+          <Text style={styles.breakdownTitle}>{title}</Text>
+          <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+        </View>
       </View>
       <View style={styles.breakdownContent}>
         {statRows.map((row, index) => (
@@ -176,7 +178,7 @@ const FixedSummaryTable = ({
           </View>
         ))}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -246,20 +248,20 @@ export default function OpenOrdersScreen() {
               <SummaryCard data={data} />
               <PendingAndPartialKpiGrid data={data} />
               
-              {/* Fixed Pending Orders Summary Table */}
               <FixedSummaryTable
                 title="Pending Orders Summary"
                 count={pendingCount}
                 amount={pendingAmount}
                 summary={data.pendingOrdersSummary}
+                onPress={() => router.push('/pending-orders' as any)}
               />
 
-              {/* Fixed Partial Orders Summary Table */}
               <FixedSummaryTable
                 title="Partial Orders Summary"
                 count={partialCount}
                 amount={partialAmount}
                 summary={data.partialOrdersSummary}
+                onPress={() => router.push('/partial-orders' as any)}
               />
             </>
           )}
@@ -398,6 +400,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#3A4151',
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  breakdownTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   breakdownTitle: {
     fontSize: 15,

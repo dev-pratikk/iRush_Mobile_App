@@ -27,7 +27,7 @@ import {
   type OrderItem,
   type OrdersSearchType,
 } from '../../services/api/orders.service';
-import { DateFilterPreset, getDateRangeForFilter } from '../../lib/date';
+import { DateFilterPreset, getDateRangeForFilter, formatCustomRangeLabel } from '../../lib/date';
 import { DateFilterModal } from '../../components/ui/DateFilterModal';
 
 const PRIMARY = '#2C2C2A';
@@ -61,7 +61,7 @@ const Header = ({
     if (activePreset === 'week') return 'This Week';
     if (activePreset === 'month') return 'This Month';
     if (activePreset === 'custom' && customRange) {
-      return `${customRange.startDate.slice(5)} - ${customRange.endDate.slice(5)}`;
+      return formatCustomRangeLabel(customRange.startDate, customRange.endDate);
     }
     return 'Custom';
   };

@@ -114,3 +114,25 @@ export const getDateRangeForFilter = (
     endDate: todayISO,
   };
 };
+
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * Formats YYYY-MM-DD range into readable month & day string, e.g. "Jul 23 - Jul 31"
+ */
+export const formatCustomRangeLabel = (startDate: string, endDate: string): string => {
+  if (!startDate || !endDate) return 'Custom';
+  try {
+    const parsePart = (iso: string) => {
+      const parts = iso.split('-');
+      if (parts.length !== 3) return iso;
+      const mIdx = parseInt(parts[1], 10) - 1;
+      const dNum = parseInt(parts[2], 10);
+      const monthStr = SHORT_MONTHS[mIdx] || parts[1];
+      return `${monthStr} ${dNum}`;
+    };
+    return `${parsePart(startDate)} - ${parsePart(endDate)}`;
+  } catch {
+    return `${startDate.slice(5)} - ${endDate.slice(5)}`;
+  }
+};

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Text,
   BackHandler,
-  Linking,
   Alert,
   Modal,
   TouchableWithoutFeedback,
@@ -34,6 +33,138 @@ const decodeHtml = (str: string | null | undefined): string => {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .trim();
+};
+
+// ─── Location / Address Modal Component ───────────────────────────────────────
+
+const LocationModal = ({
+  visible,
+  onClose,
+  orderNo,
+  address,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  orderNo: string;
+  address: string;
+}) => {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback>
+            <View style={styles.modalCard}>
+              {/* Header */}
+              <View style={styles.modalHeader}>
+                <View style={styles.modalHeaderLeft}>
+                  <View style={styles.modalIconCircle}>
+                    <Ionicons name="location-outline" size={20} color="#0F172A" />
+                  </View>
+                  <View>
+                    <Text style={styles.modalTitle}>Shipping Address</Text>
+                    <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.modalCloseBtn}
+                  onPress={onClose}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="close" size={20} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Address Body */}
+              <View style={styles.modalBodyGrid}>
+                <Text style={styles.gridKey}>Destination Address</Text>
+                <Text style={[styles.gridValueBold, { fontSize: 14, lineHeight: 20, marginTop: 4 }]}>
+                  {address}
+                </Text>
+              </View>
+
+              {/* Primary Close Button */}
+              <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
+                <Text style={styles.primaryActionBtnText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
+};
+
+// ─── Contact Info Modal Component (No Dialer execution) ───────────────────────
+
+const ContactModal = ({
+  visible,
+  onClose,
+  orderNo,
+  contactName,
+  contactPhone,
+  contactEmail,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  orderNo: string;
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+}) => {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback>
+            <View style={styles.modalCard}>
+              {/* Header */}
+              <View style={styles.modalHeader}>
+                <View style={styles.modalHeaderLeft}>
+                  <View style={styles.modalIconCircle}>
+                    <Ionicons name="person-outline" size={20} color="#0F172A" />
+                  </View>
+                  <View>
+                    <Text style={styles.modalTitle}>Contact Information</Text>
+                    <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.modalCloseBtn}
+                  onPress={onClose}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="close" size={20} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Info Grid */}
+              <View style={styles.modalBodyGrid}>
+                <View style={styles.modalGridRow}>
+                  <Text style={styles.gridKey}>Contact Name</Text>
+                  <Text style={styles.gridValueBold}>{contactName}</Text>
+                </View>
+
+                <View style={styles.modalGridRow}>
+                  <Text style={styles.gridKey}>Phone</Text>
+                  <Text style={styles.gridValue}>{contactPhone}</Text>
+                </View>
+
+                <View style={styles.modalGridRow}>
+                  <Text style={styles.gridKey}>Email</Text>
+                  <Text style={styles.gridValue}>{contactEmail}</Text>
+                </View>
+              </View>
+
+              {/* Primary Close Button */}
+              <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
+                <Text style={styles.primaryActionBtnText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
 };
 
 // ─── Tracking Modal Component ──────────────────────────────────────────────────
@@ -70,7 +201,12 @@ const TrackModal = ({
                     <Ionicons name="bus-outline" size={20} color="#0F172A" />
                   </View>
                   <View>
-                    <Text style={styles.modalTitle}>Shipment Tracking</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={styles.modalTitle}>Shipment Tracking</Text>
+                      <View style={styles.demoTagPill}>
+                        <Text style={styles.demoTagText}>Demo Data</Text>
+                      </View>
+                    </View>
                     <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
                   </View>
                 </View>
@@ -254,6 +390,8 @@ const InvoiceModal = ({
 
 export default function OrderDetailsScreen() {
   const params = useLocalSearchParams<{ orderData?: string; from?: string }>();
+  const [locationModalVisible, setLocationModalVisible] = useState(false);
+  const [contactModalVisible, setContactModalVisible] = useState(false);
   const [trackModalVisible, setTrackModalVisible] = useState(false);
   const [invoiceModalVisible, setInvoiceModalVisible] = useState(false);
 
@@ -317,6 +455,7 @@ export default function OrderDetailsScreen() {
   const addr1 = ship.addressText1 || '2595 E Bayshore Rd';
   const addr2 = ship.addressText2 ? `, ${ship.addressText2}` : ', Ste 200';
   const zip = ship.zipCode || '94303';
+  const fullAddress = `${addr1}${addr2}, ${city}, ${state} ${zip}`;
 
   const contact = order?.customerContact || {};
   const contactName = `${contact.firstName || 'Darren'} ${contact.lastName || 'Reis'}`.trim();
@@ -336,23 +475,6 @@ export default function OrderDetailsScreen() {
   const pack = order?.orderPackingSlips && order.orderPackingSlips.length > 0 ? order.orderPackingSlips[0] : null;
   const trackingNo = pack?.TRACK_NUMBER || '123';
 
-  // Actions
-  const handleCall = () => {
-    if (rawPhone) {
-      Linking.openURL(`tel:${rawPhone}`);
-    } else {
-      Alert.alert('Call', 'No phone number available for this order contact.');
-    }
-  };
-
-  const handleEmail = () => {
-    if (contactEmail) {
-      Linking.openURL(`mailto:${contactEmail}?subject=Order %23${orderNo}`);
-    } else {
-      Alert.alert('Email', 'No email address available for this order contact.');
-    }
-  };
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       {/* Header Bar */}
@@ -368,28 +490,27 @@ export default function OrderDetailsScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Top Hero Section */}
+        {/* Top Hero Section - Highlight Order # */}
         <View style={styles.heroSection}>
-          <Text style={styles.heroCompanyName}>{companyName}</Text>
-          <Text style={styles.heroAmount}>{formatCurrencyWithCents(orderTotal)}</Text>
+          <Text style={styles.heroAmount}>Order #{orderNo}</Text>
           <Text style={styles.heroSubtitle}>
-            Order #{orderNo} · {orderStatus}
+            {companyName} · {formatCurrencyWithCents(orderTotal)} · {orderStatus}
           </Text>
 
-          {/* Quick Action Buttons Row */}
+          {/* Top Quick Action Icons Row: Location, Contact, Track, Invoice */}
           <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.actionItem} onPress={handleCall} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.actionItem} onPress={() => setLocationModalVisible(true)} activeOpacity={0.7}>
+              <View style={styles.actionCircle}>
+                <Ionicons name="location-outline" size={20} color={PRIMARY} />
+              </View>
+              <Text style={styles.actionLabel}>Location</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionItem} onPress={() => setContactModalVisible(true)} activeOpacity={0.7}>
               <View style={styles.actionCircle}>
                 <Ionicons name="call-outline" size={20} color={PRIMARY} />
               </View>
-              <Text style={styles.actionLabel}>Call</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.actionItem} onPress={handleEmail} activeOpacity={0.7}>
-              <View style={styles.actionCircle}>
-                <Ionicons name="mail-outline" size={20} color={PRIMARY} />
-              </View>
-              <Text style={styles.actionLabel}>Email</Text>
+              <Text style={styles.actionLabel}>Contact</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionItem} onPress={() => setTrackModalVisible(true)} activeOpacity={0.7}>
@@ -492,35 +613,25 @@ export default function OrderDetailsScreen() {
             </View>
           </TouchableOpacity>
         </View>
-
-        {/* Section 4: SHIPPING ADDRESS & CONTACT */}
-        <View style={styles.sectionWrap}>
-          <Text style={styles.sectionHeaderTitle}>SHIPPING ADDRESS & CONTACT</Text>
-          <View style={styles.cardGroup}>
-            <View style={styles.rowItem}>
-              <View style={styles.rowLeft}>
-                <Ionicons name="map-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                <Text style={styles.rowKey}>Address</Text>
-              </View>
-              <Text style={[styles.rowValue, { flexShrink: 1, textAlign: 'right' }]}>
-                {addr1}{addr2}, {city}, {state} {zip}
-              </Text>
-            </View>
-
-            <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
-              <View style={styles.rowLeft}>
-                <Ionicons name="call-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                <Text style={styles.rowKey}>Contact</Text>
-              </View>
-              <Text style={styles.rowValue}>
-                {contactName} · {formattedPhone}
-              </Text>
-            </View>
-          </View>
-        </View>
       </ScrollView>
 
       {/* Pop-up Modals */}
+      <LocationModal
+        visible={locationModalVisible}
+        onClose={() => setLocationModalVisible(false)}
+        orderNo={orderNo}
+        address={fullAddress}
+      />
+
+      <ContactModal
+        visible={contactModalVisible}
+        onClose={() => setContactModalVisible(false)}
+        orderNo={orderNo}
+        contactName={contactName}
+        contactPhone={formattedPhone}
+        contactEmail={contactEmail}
+      />
+
       <TrackModal
         visible={trackModalVisible}
         onClose={() => setTrackModalVisible(false)}
@@ -583,11 +694,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
   },
-  heroCompanyName: {
-    fontSize: 14,
-    fontFamily: Typography.bodyMedium,
-    color: SECONDARY,
-  },
   heroAmount: {
     fontSize: 32,
     fontFamily: Typography.titleSerif,
@@ -606,7 +712,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 24,
+    gap: 20,
     marginTop: 20,
   },
   actionItem: {
@@ -737,6 +843,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+
+  demoTagPill: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  demoTagText: {
+    fontSize: 10,
+    fontFamily: Typography.headingSemiBold,
+    color: '#64748B',
   },
 
   // Tracking Modal Styles

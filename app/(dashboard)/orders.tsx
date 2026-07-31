@@ -281,7 +281,7 @@ const SearchOrdersSection = () => {
   return (
     <View style={styles.searchSection}>
       <View style={styles.searchHeaderRow}>
-        <Text style={styles.searchSectionTitle}>Orders Overall</Text>
+        <Text style={styles.searchSectionTitle}>Orders</Text>
         <TouchableOpacity
           onPress={() => router.push('/all-orders' as any)}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -289,7 +289,7 @@ const SearchOrdersSection = () => {
           <Text style={styles.viewAllListLink}>View All List ›</Text>
         </TouchableOpacity>
       </View>
-      
+
       {/* Search Input Bar */}
       <View style={styles.searchInputWrap}>
         <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
@@ -314,16 +314,8 @@ const SearchOrdersSection = () => {
         ) : null}
       </View>
 
-      {/* Searched Results or Empty Search Prompt */}
-      {query.trim().length === 0 ? (
-        <View style={styles.searchPromptContainer}>
-          <Ionicons name="search-outline" size={28} color={SECONDARY} style={{ opacity: 0.6 }} />
-          <Text style={styles.searchPromptTitle}>Type an order number or company name</Text>
-          <Text style={styles.searchPromptSub}>
-            Results will appear here automatically when you start searching.
-          </Text>
-        </View>
-      ) : isSearching ? (
+      {/* Searched Results */}
+      {query.trim().length === 0 ? null : isSearching ? (
         <View style={{ paddingTop: 8 }}>
           <SkeletonRowItem />
           <SkeletonRowItem />
@@ -507,9 +499,9 @@ export default function OrdersScreen() {
         }
       >
         <View style={styles.contentContainer}>
+          <SearchOrdersSection />
           <SummaryCard count={totalCount} totalAmount={totalAmount} loading={loading} />
           <OrdersKpiGrid totalCount={monthCount} totalAmount={monthAmount} loading={loading} />
-          <SearchOrdersSection />
         </View>
       </ScrollView>
       <BottomNav />

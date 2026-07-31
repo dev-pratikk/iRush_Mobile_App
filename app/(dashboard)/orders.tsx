@@ -281,7 +281,7 @@ const SearchOrdersSection = () => {
   return (
     <View style={styles.searchSection}>
       <View style={styles.searchHeaderRow}>
-        <Text style={styles.searchSectionTitle}>Search Orders Overall</Text>
+        <Text style={styles.searchSectionTitle}>Orders Overall</Text>
         <TouchableOpacity
           onPress={() => router.push('/all-orders' as any)}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

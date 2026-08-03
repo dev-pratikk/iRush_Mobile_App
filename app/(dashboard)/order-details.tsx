@@ -493,9 +493,9 @@ export default function OrderDetailsScreen() {
         {/* Top Hero Section */}
         <View style={styles.heroSection}>
           <Text style={styles.heroCompanyName}>{companyName}</Text>
-          <Text style={styles.heroAmount}>{formatCurrencyWithCents(orderTotal)}</Text>
+          <Text style={styles.heroAmount}>Order #{orderNo}</Text>
           <Text style={styles.heroSubtitle}>
-            Order #{orderNo} · {orderStatus}
+            {formatCurrencyWithCents(orderTotal)} · {orderStatus}
           </Text>
 
           {/* Quick Action Buttons Row */}

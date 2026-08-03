@@ -151,7 +151,7 @@ export const getOpenOrders = async (
 // Separate call per filter (pending | partial), always sends limit=10 explicitly.
 // Returns PaginatedResult<OpenOrderItem> + summary objects in the extra fields.
 export type OpenOrderFilter = 'pending' | 'partial';
-export type OpenOrderSearchType = 'orderNo' | 'companyName' | 'salesperson';
+export type OpenOrderSearchType = 'orderNo' | 'companyName' | 'partNumber' | 'salesperson';
 
 export interface OpenOrderSearchParam {
   type: OpenOrderSearchType;
@@ -185,18 +185,41 @@ export const fetchOpenOrdersPage = async (
       query.orderNo = val;
     } else if (options.search.type === 'companyName') {
       query.companyName = val;
+    } else if (options.search.type === 'partNumber') {
+      query.partNumber = val;
+      query.pcbpartNo = val;
+      query.partNo = val;
     } else if (options.search.type === 'salesperson') {
       query.salespPerson = val; // Note backend typo: salespPerson
     }
   }
 
   try {
-    const data = await apiClient.get<OpenOrdersPageResponse>({
-      path: '/dashboard/open-orders',
-      query,
-      token: options.token,
-      timeoutMs: 20000,
-    });
+    let data: any = null;
+
+    // Direct fetch by part number endpoint: /dashboard/partnumbers/:partNumber
+    if (options.search?.type === 'partNumber' && options.search.value.trim()) {
+      const partVal = options.search.value.trim();
+      try {
+        data = await apiClient.get<any>({
+          path: `/dashboard/partnumbers/${encodeURIComponent(partVal)}`,
+          query: { filter },
+          token: options.token,
+          timeoutMs: 15000,
+        });
+      } catch (pnErr) {
+        if (__DEV__) console.log('[OpenOrders] Partnumber endpoint fallback:', pnErr);
+      }
+    }
+
+    if (!data) {
+      data = await apiClient.get<OpenOrdersPageResponse>({
+        path: '/dashboard/open-orders',
+        query,
+        token: options.token,
+        timeoutMs: 20000,
+      });
+    }
 
     if (!data || typeof data !== 'object') {
       throw new Error('Invalid response format');

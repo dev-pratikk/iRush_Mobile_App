@@ -71,12 +71,28 @@ export const getDashboardOrders = async (
 };
 
 // ─── Paginated fetcher for useInfiniteResource ──────────────────────────────
-export type OrdersSearchType = 'orderNo' | 'companyName' | 'salesperson';
+export type OrdersSearchType = 'orderNo' | 'companyName' | 'partNumber' | 'salesperson';
 
 export interface OrdersSearchParam {
   type: OrdersSearchType;
   value: string;
 }
+
+export const getOrdersByPartNumber = async (
+  partNumber: string,
+  options?: { token?: string | null; timeoutMs?: number }
+): Promise<OrdersListResponse> => {
+  try {
+    const data = await apiClient.get<any>({
+      path: `/dashboard/partnumbers/${encodeURIComponent(partNumber.trim())}`,
+      token: options?.token,
+      timeoutMs: options?.timeoutMs ?? 15000,
+    });
+    return normalizeOrdersResponse(data);
+  } catch (error) {
+    throw toServiceError(error);
+  }
+};
 
 export const ORDERS_PAGE_LIMIT = 10;
 
@@ -102,18 +118,38 @@ export const fetchOrdersPage = async (
       query.orderNo = val;
     } else if (options.search.type === 'companyName') {
       query.companyName = val;
+    } else if (options.search.type === 'partNumber') {
+      query.partNumber = val;
+      query.pcbpartNo = val;
     } else if (options.search.type === 'salesperson') {
       query.salesPerson = val; // Note: /dashboard/orders endpoint uses salesPerson (no typo!)
     }
   }
 
   try {
-    const data = await apiClient.get<OrdersListResponse & { page?: number; limit?: number; totalRecords?: number }>({
-      path: '/dashboard/orders',
-      query,
-      token: options.token,
-      timeoutMs: 15000,
-    });
+    let data: any = null;
+
+    if (options.search?.type === 'partNumber' && options.search.value.trim()) {
+      const partVal = options.search.value.trim();
+      try {
+        data = await apiClient.get<any>({
+          path: `/dashboard/partnumbers/${encodeURIComponent(partVal)}`,
+          token: options.token,
+          timeoutMs: 15000,
+        });
+      } catch (pnErr) {
+        if (__DEV__) console.log('[Orders] Partnumber endpoint fallback:', pnErr);
+      }
+    }
+
+    if (!data) {
+      data = await apiClient.get<OrdersListResponse & { page?: number; limit?: number; totalRecords?: number }>({
+        path: '/dashboard/orders',
+        query,
+        token: options.token,
+        timeoutMs: 15000,
+      });
+    }
 
     const normalized = normalizeOrdersResponse(data);
 

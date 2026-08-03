@@ -154,6 +154,7 @@ const SearchOverlayModal = ({
       .map((item: any) => {
         const orderNoStr = String(item.orderNo || item.ORDER_NO || '').toLowerCase();
         const companyStr = decodeHtml(item.companyName || item.COMPANY_NAME || '').toLowerCase();
+        const partNoStr = String(item.pcbpartNo || item.PCBPARTNO || item.orderSpecifications?.[0]?.PCBPARTNO || '').toLowerCase();
 
         let score = -1;
 
@@ -164,11 +165,18 @@ const SearchOverlayModal = ({
           // Priority 2: Order number contains query digits
           const idx = orderNoStr.indexOf(q);
           score = 5000 - idx * 10 - (orderNoStr.length - q.length);
+        } else if (partNoStr.startsWith(q)) {
+          // Priority 3: PCB Part number starts with query
+          score = 3000 - (partNoStr.length - q.length);
+        } else if (partNoStr.includes(q)) {
+          // Priority 4: PCB Part number contains query
+          const idx = partNoStr.indexOf(q);
+          score = 2500 - idx * 10;
         } else if (companyStr.startsWith(q)) {
-          // Priority 3: Company name starts with query
+          // Priority 5: Company name starts with query
           score = 2000 - (companyStr.length - q.length);
         } else if (companyStr.includes(q)) {
-          // Priority 4: Company name contains query
+          // Priority 6: Company name contains query
           const idx = companyStr.indexOf(q);
           score = 1000 - idx * 10;
         }
@@ -198,7 +206,7 @@ const SearchOverlayModal = ({
               style={styles.searchOverlayInput}
               value={query}
               onChangeText={setQuery}
-              placeholder="Search by order no or company name…"
+              placeholder="Search by order #, company, or part #…"
               placeholderTextColor="#94A3B8"
               autoCapitalize="none"
               autoCorrect={false}

@@ -364,7 +364,15 @@ export default function PendingOrdersScreen() {
     }
     const trimmed = debouncedValue.trim();
     if (!trimmed) return null;
-    const detectedType: OpenOrderSearchType = /[a-zA-Z]/.test(trimmed) ? 'companyName' : 'orderNo';
+    const isDigitsOnly = /^\d+$/.test(trimmed);
+    const hasPartHyphenOrRev = /[-_]/.test(trimmed) || /rev/i.test(trimmed);
+    
+    let detectedType: OpenOrderSearchType = 'orderNo';
+    if (hasPartHyphenOrRev || (trimmed.length >= 7 && !isDigitsOnly)) {
+      detectedType = 'partNumber';
+    } else if (!isDigitsOnly) {
+      detectedType = 'companyName';
+    }
     return { type: detectedType, value: trimmed };
   }, [debouncedValue, selectedSalesperson]);
 

@@ -624,7 +624,7 @@ export default function OrderDetailsScreen() {
 
             <View style={styles.specRowItem}>
               <Text style={styles.specRowKey}>Revision</Text>
-              <Text style={styles.specRowValue}>Rev {rev}</Text>
+              <Text style={styles.specRowValue}>{rev}</Text>
             </View>
 
             <View style={styles.specRowItem}>
@@ -634,7 +634,7 @@ export default function OrderDetailsScreen() {
 
             <View style={styles.specRowItem}>
               <Text style={styles.specRowKey}>Layer Count</Text>
-              <Text style={styles.specRowValue}>{layerCount} Layers</Text>
+              <Text style={styles.specRowValue}>{layerCount}</Text>
             </View>
 
             <View style={styles.specRowItem}>
@@ -649,12 +649,12 @@ export default function OrderDetailsScreen() {
 
             <View style={styles.specRowItem}>
               <Text style={styles.specRowKey}>Board Dimensions</Text>
-              <Text style={styles.specRowValue}>{boardSize} in</Text>
+              <Text style={styles.specRowValue}>{boardSize}</Text>
             </View>
 
             <View style={styles.specRowItem}>
               <Text style={styles.specRowKey}>Panel Dimensions</Text>
-              <Text style={styles.specRowValue}>{panelSize ? `${panelSize} in` : 'N/A'}</Text>
+              <Text style={styles.specRowValue}>{panelSize || 'N/A'}</Text>
             </View>
 
             <View style={styles.specRowItem}>
@@ -692,7 +692,7 @@ export default function OrderDetailsScreen() {
 
                 <View style={styles.specRowItem}>
                   <Text style={styles.specRowKey}>SMD Placement</Text>
-                  <Text style={styles.specRowValue}>{smdSided} Sided</Text>
+                  <Text style={styles.specRowValue}>{smdSided}</Text>
                 </View>
 
                 <View style={styles.specRowItem}>
@@ -716,8 +716,13 @@ export default function OrderDetailsScreen() {
                 </View>
 
                 <View style={styles.specRowItem}>
-                  <Text style={styles.specRowKey}>Min Trace / Space</Text>
-                  <Text style={styles.specRowValue}>{minTrace} / {minSpace}</Text>
+                  <Text style={styles.specRowKey}>Min Trace</Text>
+                  <Text style={styles.specRowValue}>{minTrace}</Text>
+                </View>
+
+                <View style={styles.specRowItem}>
+                  <Text style={styles.specRowKey}>Min Space</Text>
+                  <Text style={styles.specRowValue}>{minSpace}</Text>
                 </View>
 
                 <View style={styles.specRowItem}>

@@ -41,25 +41,7 @@ const DEFAULT_SALESPERSONS = ['Imran', 'John', 'Sarah', 'Alex', 'Michael', 'Davi
 
 // ─── Header ──────────────────────────────────────────────────────────────────
 
-const Header = ({
-  activePreset,
-  customRange,
-  onOpenFilter,
-}: {
-  activePreset: DateFilterPreset;
-  customRange?: { startDate: string; endDate: string } | null;
-  onOpenFilter: () => void;
-}) => {
-  const getFilterLabel = () => {
-    if (activePreset === 'today') return 'Today';
-    if (activePreset === 'week') return 'This Week';
-    if (activePreset === 'month') return 'This Month';
-    if (activePreset === 'custom' && customRange) {
-      return formatCustomRangeLabel(customRange.startDate, customRange.endDate);
-    }
-    return 'Custom';
-  };
-
+const Header = () => {
   return (
     <View style={styles.header}>
       <TouchableOpacity
@@ -70,21 +52,12 @@ const Header = ({
         <Ionicons name="arrow-back" size={20} color={PRIMARY} />
       </TouchableOpacity>
 
-      {/* Left-aligned Title */}
-      <Text style={styles.headerTitleLeft}>Pending orders</Text>
+      {/* Centered Title */}
+      <View style={styles.headerCenter}>
+        <Text style={styles.headerTitleCenter}>Pending orders</Text>
+      </View>
 
       <View style={styles.headerRightWrap}>
-        {/* Date Filter Button */}
-        <TouchableOpacity
-          style={styles.filterBtnPill}
-          onPress={onOpenFilter}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="calendar-outline" size={13} color={PRIMARY} />
-          <Text style={styles.filterBtnText}>{getFilterLabel()}</Text>
-          <Ionicons name="chevron-down" size={12} color={PRIMARY} />
-        </TouchableOpacity>
-
         {/* Notification Bell */}
         <TouchableOpacity
           style={styles.headerIconInner}
@@ -409,7 +382,7 @@ export default function PendingOrdersScreen() {
     fetchNextPage,
     refetch,
     isRefreshing,
-  } = usePendingOrders(token, searchParam, calculatedRange);
+  } = usePendingOrders(token, searchParam);
 
   const availableSalespersons = useMemo(() => {
     const fromItems = items
@@ -623,11 +596,7 @@ export default function PendingOrdersScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <Header
-        activePreset={activePreset}
-        customRange={customRange}
-        onOpenFilter={() => setFilterModalVisible(true)}
-      />
+      <Header />
       {showSuggestions && screenSuggestions.length > 0 ? (
         <View style={styles.suggestionsOverlay}>
           {screenSuggestions.map((sug, idx) => (
@@ -686,13 +655,7 @@ export default function PendingOrdersScreen() {
         }
       />
 
-      <DateFilterModal
-        visible={filterModalVisible}
-        onClose={() => setFilterModalVisible(false)}
-        activePreset={activePreset}
-        customRange={customRange}
-        onApply={handleApplyFilter}
-      />
+
     </SafeAreaView>
   );
 }
@@ -715,20 +678,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: hairline,
     borderBottomColor: '#E7E6E2',
   },
-  headerIconWrap: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+  headerIconWrap: { width: 36, height: 36, justifyContent: 'center', alignItems: 'flex-start' },
   headerIconInner: { position: 'relative', width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  headerTitleLeft: {
-    fontSize: 19,
+  headerCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  headerTitleCenter: {
+    fontSize: 18,
     fontFamily: Typography.titleSerif,
-    fontWeight: '500',
+    fontWeight: '600',
     color: PRIMARY,
-    marginLeft: 4,
-    flex: 1,
   },
   headerRightWrap: {
+    width: 36,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'flex-end',
   },
   filterBtnPill: {
     flexDirection: 'row',

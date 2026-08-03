@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Alert,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,6 +27,7 @@ import {
   fetchOrdersPage,
   SAMPLE_ORDERS,
   type OrderItem,
+  type OrdersSearchType,
 } from '../../services/api/orders.service';
 import { DateFilterPreset, getDateRangeForFilter, formatCustomRangeLabel } from '../../lib/date';
 import { DateFilterModal } from '../../components/ui/DateFilterModal';
@@ -128,15 +130,19 @@ const SearchOverlayModal = ({
   onClose,
   query,
   setQuery,
+  token,
   onSelectOrder,
 }: {
   visible: boolean;
   onClose: () => void;
   query: string;
   setQuery: (q: string) => void;
+  token?: string | null;
   onSelectOrder: (item: OrderItem) => void;
 }) => {
   const inputRef = useRef<TextInput>(null);
+  const [fetchedOrders, setFetchedOrders] = useState<OrderItem[]>([]);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -144,13 +150,49 @@ const SearchOverlayModal = ({
     }
   }, [visible]);
 
+  useEffect(() => {
+    let active = true;
+    if (!visible) return;
+
+    const performLiveSearch = async () => {
+      setSearching(true);
+      try {
+        const q = query.trim();
+        const detectedType: OrdersSearchType = /[-_]/.test(q) || /rev/i.test(q) || q.length >= 7
+          ? 'partNumber'
+          : /[a-zA-Z]/.test(q)
+          ? 'companyName'
+          : 'orderNo';
+
+        const res = await fetchOrdersPage('month', {
+          token: token ?? null,
+          page: 1,
+          limit: 30,
+          search: q ? { type: detectedType, value: q } : null,
+        });
+
+        if (active) {
+          setFetchedOrders(res.data ?? []);
+        }
+      } catch (e) {
+        if (__DEV__) console.log('[SearchOverlay] Live search error:', e);
+      } finally {
+        if (active) setSearching(false);
+      }
+    };
+
+    const timer = setTimeout(performLiveSearch, 200);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [query, visible, token]);
+
   const searchResults = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const allOrders = SAMPLE_ORDERS.orders ?? [];
+    if (!q) return fetchedOrders;
 
-    if (!q) return allOrders;
-
-    const scored = allOrders
+    const scored = fetchedOrders
       .map((item: any) => {
         const orderNoStr = String(item.orderNo || item.ORDER_NO || '').toLowerCase();
         const companyStr = decodeHtml(item.companyName || item.COMPANY_NAME || '').toLowerCase();
@@ -159,24 +201,18 @@ const SearchOverlayModal = ({
         let score = -1;
 
         if (orderNoStr.startsWith(q)) {
-          // Highest Priority: Order number starts with exact typed digits
           score = 10000 - (orderNoStr.length - q.length);
         } else if (orderNoStr.includes(q)) {
-          // Priority 2: Order number contains query digits
           const idx = orderNoStr.indexOf(q);
           score = 5000 - idx * 10 - (orderNoStr.length - q.length);
         } else if (partNoStr.startsWith(q)) {
-          // Priority 3: PCB Part number starts with query
           score = 3000 - (partNoStr.length - q.length);
         } else if (partNoStr.includes(q)) {
-          // Priority 4: PCB Part number contains query
           const idx = partNoStr.indexOf(q);
           score = 2500 - idx * 10;
         } else if (companyStr.startsWith(q)) {
-          // Priority 5: Company name starts with query
           score = 2000 - (companyStr.length - q.length);
         } else if (companyStr.includes(q)) {
-          // Priority 6: Company name contains query
           const idx = companyStr.indexOf(q);
           score = 1000 - idx * 10;
         }
@@ -185,14 +221,13 @@ const SearchOverlayModal = ({
       })
       .filter((entry) => entry.score >= 0);
 
-    // Sort by highest match score first
     scored.sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       return b.orderNoStr.localeCompare(a.orderNoStr);
     });
 
     return scored.map((entry) => entry.item);
-  }, [query]);
+  }, [query, fetchedOrders]);
 
   return (
     <Modal visible={visible} animationType="fade" transparent={false} onRequestClose={onClose}>
@@ -226,44 +261,58 @@ const SearchOverlayModal = ({
         {/* Blank Screen with Live Suggestions */}
         <ScrollView style={styles.searchSuggestionsScroll} keyboardShouldPersistTaps="handled">
           <View style={styles.searchSuggestionsContainer}>
-            {query.trim().length === 0 ? (
-              <Text style={styles.suggestionSectionTitle}>Recent Suggestions</Text>
+            {searching ? (
+              <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color={PRIMARY} />
+                <Text style={{ fontSize: 13, color: SECONDARY, marginTop: 8 }}>Searching live orders…</Text>
+              </View>
+            ) : searchResults.length > 0 ? (
+              searchResults.map((item: any, idx: number) => {
+                const orderNoDisplay = item.orderNo || item.ORDER_NO || item.id;
+                const companyDisplay = decodeHtml(item.companyName || item.COMPANY_NAME || 'Higher Ground, LLC');
+                const statusDisplay = item.orderStatus || item.ORDER_STATUS || 'Open';
+                const partNoDisplay = item.pcbpartNo || item.PCBPARTNO || item.orderSpecifications?.[0]?.PCBPARTNO;
+
+                return (
+                  <TouchableOpacity
+                    key={item.ORDER_ID || item.id || idx}
+                    style={styles.suggestionCard}
+                    onPress={() => onSelectOrder(item)}
+                    activeOpacity={0.75}
+                  >
+                    <View style={styles.suggestionLeftCol}>
+                      <Text style={styles.suggestionOrderNo}>Order #{orderNoDisplay}</Text>
+                      <Text style={styles.suggestionCompany} numberOfLines={1}>
+                        {companyDisplay}
+                      </Text>
+                      {partNoDisplay ? (
+                        <Text style={{ fontSize: 11, color: SECONDARY, marginTop: 2 }} numberOfLines={1}>
+                          Part: {partNoDisplay}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View style={styles.suggestionStatusPill}>
+                        <Text style={styles.suggestionStatusText}>{statusDisplay}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color="#94A3B8" style={{ marginLeft: 6 }} />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            ) : query.trim().length > 0 ? (
+              <View style={styles.emptySearchWrap}>
+                <Ionicons name="search-outline" size={32} color="#94A3B8" />
+                <Text style={styles.emptySearchTitle}>No matching orders found</Text>
+                <Text style={styles.emptySearchSub}>Try searching for a different order number or company name.</Text>
+              </View>
             ) : (
-              <Text style={styles.suggestionSectionTitle}>
-                {searchResults.length} matching {searchResults.length === 1 ? 'order' : 'orders'}
-              </Text>
+              <View style={styles.emptySearchWrap}>
+                <Ionicons name="hardware-chip-outline" size={32} color="#94A3B8" />
+                <Text style={styles.emptySearchTitle}>Type an order number or part #</Text>
+                <Text style={styles.emptySearchSub}>Live order suggestions will appear automatically as you type.</Text>
+              </View>
             )}
-
-            {searchResults.map((item: any, idx: number) => {
-              const orderNo = item.orderNo || item.ORDER_NO || '482663';
-              const companyName = decodeHtml(item.companyName || item.COMPANY_NAME || 'Higher Ground, LLC');
-              const status = item.orderStatus || item.ORDER_STATUS || 'Open';
-
-              return (
-                <TouchableOpacity
-                  key={idx}
-                  style={styles.suggestionCard}
-                  onPress={() => {
-                    onClose();
-                    onSelectOrder(item);
-                  }}
-                  activeOpacity={0.75}
-                >
-                  {/* Left Side: Order # & Company */}
-                  <View style={styles.suggestionLeftCol}>
-                    <Text style={styles.suggestionOrderNo}>Order #{orderNo}</Text>
-                    <Text style={styles.suggestionCompany} numberOfLines={1}>
-                      {companyName}
-                    </Text>
-                  </View>
-
-                  {/* Right Side: Status Badge */}
-                  <View style={styles.suggestionStatusPill}>
-                    <Text style={styles.suggestionStatusText}>{status}</Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -529,6 +578,7 @@ export default function OrdersScreen() {
         }}
         query={query}
         setQuery={setQuery}
+        token={token}
         onSelectOrder={handleSelectOrder}
       />
 
@@ -728,6 +778,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Typography.headingSemiBold,
     color: PRIMARY,
+  },
+  emptySearchWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 24,
+    gap: 8,
+  },
+  emptySearchTitle: {
+    fontSize: 16,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  emptySearchSub: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 
   // Top Grey Summary Card

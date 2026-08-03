@@ -68,18 +68,16 @@ const RevenueOverview = ({
   period,
   stats,
   loading,
-  usingSample,
 }: {
   period: DatePeriod;
   stats: DashboardStatsResponse | null;
   loading: boolean;
-  usingSample: boolean;
 }) => {
   const title = period === 'today' ? "Today's Revenue Overview" : "This Month's Revenue Overview";
   const revenueValue = useMemo(() => {
-    const activeStats = stats ?? SAMPLE_STATS;
     const periodKey = period === 'year' ? 'month' : period;
-    return formatCurrency(activeStats[periodKey].revenue);
+    const rev = stats ? stats[periodKey]?.revenue ?? 0 : 0;
+    return formatCurrency(rev);
   }, [stats, period]);
 
   if (loading && !stats) {
@@ -91,12 +89,6 @@ const RevenueOverview = ({
       <View style={styles.revenueContent}>
         <View style={styles.revenueTitleRow}>
           <Text style={styles.revenueTitle}>{title}</Text>
-          {usingSample && !loading ? (
-            <View style={styles.sampleBadge}>
-              <Ionicons name="cloud-offline-outline" size={12} color="#FFD43B" />
-              <Text style={styles.sampleBadgeText}>Demo data</Text>
-            </View>
-          ) : null}
         </View>
         <Text style={styles.revenueValue}>{revenueValue}</Text>
       </View>
@@ -109,9 +101,10 @@ const getKpiValueFromStats = (
   stats: DashboardStatsResponse | null,
   period: DatePeriod
 ): string | number => {
-  const activeStats = stats ?? SAMPLE_STATS;
+  if (!stats) return '0';
   const periodKey = period === 'year' ? 'month' : period;
-  const periodData = activeStats[periodKey];
+  const periodData = stats[periodKey];
+  if (!periodData) return '0';
 
   switch (label) {
     case 'Orders':
@@ -271,7 +264,7 @@ export default function DashboardScreen() {
             ) : null}
 
             {/* Today Section */}
-            <RevenueOverview period="today" stats={stats} loading={loading} usingSample={usingSample} />
+            <RevenueOverview period="today" stats={stats} loading={loading} />
             <View style={styles.kpiGrid}>
               {loading && !stats
                 ? [1, 2, 3, 4].map((i) => (
@@ -293,7 +286,7 @@ export default function DashboardScreen() {
 
             {/* This Month Section */}
             <View style={{ marginTop: 16 }}>
-              <RevenueOverview period="month" stats={stats} loading={loading} usingSample={usingSample} />
+              <RevenueOverview period="month" stats={stats} loading={loading} />
             </View>
             <View style={styles.kpiGrid}>
               {loading && !stats

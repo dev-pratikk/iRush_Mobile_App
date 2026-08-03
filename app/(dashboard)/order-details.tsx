@@ -394,6 +394,7 @@ export default function OrderDetailsScreen() {
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [trackModalVisible, setTrackModalVisible] = useState(false);
   const [invoiceModalVisible, setInvoiceModalVisible] = useState(false);
+  const [showAllSpecs, setShowAllSpecs] = useState(false);
 
   const handleBack = React.useCallback(() => {
     if (params.from) {
@@ -443,12 +444,15 @@ export default function OrderDetailsScreen() {
   const lineQty = details?.QUANTITY ?? order?.orderedQuantity ?? 38;
   const unitPrice = details?.UNIT_PRICE ?? 22.65;
 
-  // Specifications
+  // Specifications (Full 25-parameter technical set)
   const spec = order?.orderSpecifications && order.orderSpecifications.length > 0 ? order.orderSpecifications[0] : null;
+
   const partNo = (spec?.PCBPARTNO || order?.pcbpartNo || '000-906-9030-001 Rev A').trim();
-  const rev = (spec?.REV || '').trim();
+  const rev = spec?.REV != null ? String(spec.REV).trim() : '0';
+  const orderTypeSpec = (spec?.OrderType || order?.ORDER_TYPE_NAME || order?.orderType || 'Full Turnkey').trim();
   const boardSize = (spec?.BoardSize || '9.6 x 6.125').trim();
-  const panelSize = (spec?.PanelSize || '').trim();
+  const panelSize = (spec?.PanelSize || '9.6 x 6.925').trim();
+  const boardsPerPanel = spec?.BoardPerPanel != null ? String(spec.BoardPerPanel).trim() : '1';
   const layerCount = (spec?.Layer || '6').trim();
   const ipcClass = (spec?.IpcClass || 'IPC CLASS-II').trim();
   const maskColor = (spec?.MaskColor || 'GREEN').trim();
@@ -458,10 +462,20 @@ export default function OrderDetailsScreen() {
   const innerCopper = (spec?.InnerCopper || '1OZ').trim();
   const outerCopper = (spec?.OuterCopper || '1OZ').trim();
   const plating = (spec?.Plating || 'ENIG').trim();
+  const approxHoles = spec?.ApproxHoles != null ? String(spec.ApproxHoles).trim() : '986';
+  const smallestHoles = (spec?.SmallestHoles || '9.84 MIL').trim();
+  const minTrace = (spec?.MinTrace || '10.00 MIL').trim();
+  const minSpace = (spec?.MinSpace || '5.00 MIL').trim();
   const smdPitch = (spec?.SmdPitch || '19.68 MIL').trim();
+  const smdPads = spec?.NoOfSmdPads != null ? String(spec.NoOfSmdPads).trim() : '4300';
   const smdSided = (spec?.SmdSided || 'BOTH').trim();
-  const isItar = spec?.ITAR === 1;
+  const isItar = spec?.ITAR === 1 || String(spec?.ITAR).toLowerCase() === 'yes';
   const testing = (spec?.Testing || 'YES').trim();
+  const routing = (spec?.Routing || 'ROUTE & RETAIN').trim();
+  const controlledImpedance = (spec?.ControlledImpedence || 'NO').trim();
+  const platedEdges = (spec?.PlatedEdges || 'No').trim();
+  const rohs = (spec?.Rohs || 'Yes').trim();
+  const blindBuriedVias = (spec?.BlindOrBuriedVias || 'No').trim();
 
   // Vendor
   const vendorObj = order?.orderVendors && order.orderVendors.length > 0 ? order.orderVendors[0] : null;
@@ -602,85 +616,162 @@ export default function OrderDetailsScreen() {
             ) : null}
           </View>
           <View style={styles.cardGroup}>
-            <View style={styles.rowItem}>
-              <View style={styles.rowLeft}>
-                <Ionicons name="hardware-chip-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                <Text style={styles.rowKey}>Part # / Rev</Text>
-              </View>
-              <Text style={styles.rowValueBold}>
-                {partNo} {rev ? `(Rev ${rev})` : ''}
-              </Text>
+            {/* Primary Parameters */}
+            <View style={styles.specRowItem}>
+              <Text style={styles.specRowKey}>Part Number</Text>
+              <Text style={styles.specRowValueBold}>{partNo}</Text>
             </View>
 
-            <View style={styles.rowItem}>
-              <View style={styles.rowLeft}>
-                <Ionicons name="layers-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                <Text style={styles.rowKey}>Layers & Material</Text>
-              </View>
-              <Text style={styles.rowValue}>
-                {layerCount} Layers · {material}
-              </Text>
+            <View style={styles.specRowItem}>
+              <Text style={styles.specRowKey}>Revision</Text>
+              <Text style={styles.specRowValue}>Rev {rev}</Text>
             </View>
 
-            <View style={styles.rowItem}>
-              <View style={styles.rowLeft}>
-                <Ionicons name="resize-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                <Text style={styles.rowKey}>Board Size</Text>
-              </View>
-              <Text style={styles.rowValue}>
-                {boardSize} in {panelSize ? `(Panel: ${panelSize})` : ''}
-              </Text>
+            <View style={styles.specRowItem}>
+              <Text style={styles.specRowKey}>Order Type</Text>
+              <Text style={styles.specRowValue}>{orderTypeSpec}</Text>
             </View>
 
-            <View style={styles.rowItem}>
-              <View style={styles.rowLeft}>
-                <Ionicons name="construct-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                <Text style={styles.rowKey}>Finish & Thickness</Text>
-              </View>
-              <Text style={styles.rowValue}>
-                {plating} Finish · {thickness}
-              </Text>
+            <View style={styles.specRowItem}>
+              <Text style={styles.specRowKey}>Layer Count</Text>
+              <Text style={styles.specRowValue}>{layerCount} Layers</Text>
             </View>
 
-            <View style={styles.rowItem}>
-              <View style={styles.rowLeft}>
-                <Ionicons name="color-palette-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                <Text style={styles.rowKey}>Mask & Silk</Text>
-              </View>
-              <Text style={styles.rowValue}>
-                Mask: {maskColor} · Silk: {silkColor}
-              </Text>
+            <View style={styles.specRowItem}>
+              <Text style={styles.specRowKey}>Base Material</Text>
+              <Text style={styles.specRowValue}>{material}</Text>
             </View>
 
-            <View style={styles.rowItem}>
-              <View style={styles.rowLeft}>
-                <Ionicons name="flash-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                <Text style={styles.rowKey}>Copper Weight</Text>
-              </View>
-              <Text style={styles.rowValue}>
-                Inner: {innerCopper} · Outer: {outerCopper}
-              </Text>
+            <View style={styles.specRowItem}>
+              <Text style={styles.specRowKey}>Board Thickness</Text>
+              <Text style={styles.specRowValue}>{thickness}</Text>
             </View>
 
-            <View style={styles.rowItem}>
-              <View style={styles.rowLeft}>
-                <Ionicons name="options-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                <Text style={styles.rowKey}>SMD & Pitch</Text>
-              </View>
-              <Text style={styles.rowValue}>
-                {smdSided} Sided · {smdPitch} Pitch
-              </Text>
+            <View style={styles.specRowItem}>
+              <Text style={styles.specRowKey}>Board Dimensions</Text>
+              <Text style={styles.specRowValue}>{boardSize} in</Text>
             </View>
 
-            <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
-              <View style={styles.rowLeft}>
-                <Ionicons name="checkmark-done-circle-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                <Text style={styles.rowKey}>Class & Testing</Text>
-              </View>
-              <Text style={styles.rowValue}>
-                {ipcClass} · Testing: {testing}
-              </Text>
+            <View style={styles.specRowItem}>
+              <Text style={styles.specRowKey}>Panel Dimensions</Text>
+              <Text style={styles.specRowValue}>{panelSize ? `${panelSize} in` : 'N/A'}</Text>
             </View>
+
+            <View style={styles.specRowItem}>
+              <Text style={styles.specRowKey}>Plating Finish</Text>
+              <Text style={styles.specRowValue}>{plating}</Text>
+            </View>
+
+            <View style={styles.specRowItem}>
+              <Text style={styles.specRowKey}>Solder Mask Color</Text>
+              <Text style={styles.specRowValue}>{maskColor}</Text>
+            </View>
+
+            <View style={styles.specRowItem}>
+              <Text style={styles.specRowKey}>Silkscreen Color</Text>
+              <Text style={styles.specRowValue}>{silkColor}</Text>
+            </View>
+
+            {/* Extended Specs (Shown when expanded) */}
+            {showAllSpecs && (
+              <>
+                <View style={styles.specRowItem}>
+                  <Text style={styles.specRowKey}>Boards per Panel</Text>
+                  <Text style={styles.specRowValue}>{boardsPerPanel}</Text>
+                </View>
+
+                <View style={styles.specRowItem}>
+                  <Text style={styles.specRowKey}>Inner Copper Weight</Text>
+                  <Text style={styles.specRowValue}>{innerCopper}</Text>
+                </View>
+
+                <View style={styles.specRowItem}>
+                  <Text style={styles.specRowKey}>Outer Copper Weight</Text>
+                  <Text style={styles.specRowValue}>{outerCopper}</Text>
+                </View>
+
+                <View style={styles.specRowItem}>
+                  <Text style={styles.specRowKey}>SMD Placement</Text>
+                  <Text style={styles.specRowValue}>{smdSided} Sided</Text>
+                </View>
+
+                <View style={styles.specRowItem}>
+                  <Text style={styles.specRowKey}>SMD Pitch</Text>
+                  <Text style={styles.specRowValue}>{smdPitch}</Text>
+                </View>
+
+                <View style={styles.specRowItem}>
+                  <Text style={styles.specRowKey}>SMD Pads Count</Text>
+                  <Text style={styles.specRowValue}>{smdPads}</Text>
+                </View>
+
+                <View style={styles.specRowItem}>
+                  <Text style={styles.specRowKey}>Total Hole Count</Text>
+                  <Text style={styles.specRowValue}>{approxHoles}</Text>
+                </View>
+
+                <View style={styles.specRowItem}>
+                  <Text style={styles.specRowKey}>Smallest Hole Size</Text>
+                  <Text style={styles.specRowValue}>{smallestHoles}</Text>
+                </View>
+
+                <View style={styles.specRowItem}>
+                  <Text style={styles.specRowKey}>Min Trace / Space</Text>
+                  <Text style={styles.specRowValue}>{minTrace} / {minSpace}</Text>
+                </View>
+
+                <View style={styles.specRowItem}>
+                  <Text style={styles.specRowKey}>IPC Class</Text>
+                  <Text style={styles.specRowValue}>{ipcClass}</Text>
+                </View>
+
+                <View style={styles.specRowItem}>
+                  <Text style={styles.specRowKey}>Electrical Testing</Text>
+                  <Text style={styles.specRowValue}>{testing}</Text>
+                </View>
+
+                <View style={styles.specRowItem}>
+                  <Text style={styles.specRowKey}>Routing Method</Text>
+                  <Text style={styles.specRowValue}>{routing}</Text>
+                </View>
+
+                <View style={styles.specRowItem}>
+                  <Text style={styles.specRowKey}>Controlled Impedance</Text>
+                  <Text style={styles.specRowValue}>{controlledImpedance}</Text>
+                </View>
+
+                <View style={styles.specRowItem}>
+                  <Text style={styles.specRowKey}>Plated Edges</Text>
+                  <Text style={styles.specRowValue}>{platedEdges}</Text>
+                </View>
+
+                <View style={styles.specRowItem}>
+                  <Text style={styles.specRowKey}>RoHS Compliant</Text>
+                  <Text style={styles.specRowValue}>{rohs}</Text>
+                </View>
+
+                <View style={[styles.specRowItem, { borderBottomWidth: 0 }]}>
+                  <Text style={styles.specRowKey}>Blind / Buried Vias</Text>
+                  <Text style={styles.specRowValue}>{blindBuriedVias}</Text>
+                </View>
+              </>
+            )}
+
+            {/* Toggle Button */}
+            <TouchableOpacity
+              style={styles.specToggleBtn}
+              onPress={() => setShowAllSpecs(!showAllSpecs)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.specToggleBtnText}>
+                {showAllSpecs ? 'Show Less' : 'Show All Specifications (25 Parameters)'}
+              </Text>
+              <Ionicons
+                name={showAllSpecs ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color="#0F172A"
+              />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -898,6 +989,52 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '700',
+    color: PRIMARY,
+  },
+  specRowItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  specRowKey: {
+    flex: 1,
+    fontSize: 13.5,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+    paddingRight: 10,
+  },
+  specRowValue: {
+    flex: 1.3,
+    fontSize: 13.5,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
+    textAlign: 'right',
+  },
+  specRowValueBold: {
+    flex: 1.3,
+    fontSize: 13.5,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '700',
+    color: PRIMARY,
+    textAlign: 'right',
+  },
+  specToggleBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 14,
+    backgroundColor: '#F8FAFC',
+    gap: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  specToggleBtnText: {
+    fontSize: 13,
+    fontFamily: Typography.headingSemiBold,
     color: PRIMARY,
   },
   cardGroup: {

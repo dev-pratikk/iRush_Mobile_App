@@ -44,7 +44,7 @@ export const getDashboardStats = async (options?: {
     const response = await apiClient.get<DashboardStatsResponse>({
       path: '/dashboard/stats',
       token: options?.token,
-      timeoutMs: options?.timeoutMs,
+      timeoutMs: options?.timeoutMs ?? 30000,
     });
 
     if (!response || typeof response !== 'object') {

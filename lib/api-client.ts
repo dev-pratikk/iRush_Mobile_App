@@ -34,7 +34,7 @@ export interface ApiRequestOptions {
   baseURL?: string;
 }
 
-const DEFAULT_TIMEOUT_MS = 10000;
+const DEFAULT_TIMEOUT_MS = 30000;
 
 const configuredBaseURL =
   Constants.expoConfig?.extra?.apiBaseUrl ||

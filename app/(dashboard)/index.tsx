@@ -255,11 +255,6 @@ export default function DashboardScreen() {
                   <Ionicons name="refresh-outline" size={14} color="#FFFFFF" />
                   <Text style={styles.retryChipText}>Tap to retry</Text>
                 </View>
-                {attempts > 0 && usingSample && (
-                  <Text style={[styles.sampleHint, { color: colors.textMuted }]}>
-                    ✨ Showing demo data from your example response while you retry
-                  </Text>
-                )}
               </TouchableOpacity>
             ) : null}
 

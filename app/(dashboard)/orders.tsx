@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,6 +8,7 @@ import {
   TextInput,
   RefreshControl,
   Alert,
+  Modal,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,7 +18,6 @@ import { useAuthContext } from '../../context/AuthContext';
 import {
   SkeletonSummaryCard,
   SkeletonKpiCard,
-  SkeletonRowItem,
 } from '../../components/ui/SkeletonLoader';
 import { router, usePathname } from 'expo-router';
 import {
@@ -30,7 +30,7 @@ import {
 import { DateFilterPreset, getDateRangeForFilter, formatCustomRangeLabel } from '../../lib/date';
 import { DateFilterModal } from '../../components/ui/DateFilterModal';
 
-const PRIMARY = '#2C2C2A';
+const PRIMARY = '#0F172A';
 const SECONDARY = '#64748B';
 
 const decodeHtml = (str: string | null | undefined): string => {
@@ -106,38 +106,129 @@ const Header = ({
   );
 };
 
-// ─── Search Input Bar Component (Positioned at Top) ───────────────────────────
+// ─── Main Dashboard Search Bar Button ─────────────────────────────────────────
 
-const OrderSearchBar = ({
+const OrderSearchBar = ({ onPress }: { onPress: () => void }) => {
+  return (
+    <TouchableOpacity
+      style={styles.searchInputWrap}
+      onPress={onPress}
+      activeOpacity={0.9}
+    >
+      <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
+      <Text style={styles.searchPlaceholderText}>Search by order no or company name…</Text>
+    </TouchableOpacity>
+  );
+};
+
+// ─── Dedicated Search Overlay Modal ────────────────────────────────────────────
+
+const SearchOverlayModal = ({
+  visible,
+  onClose,
   query,
   setQuery,
+  onSelectOrder,
 }: {
+  visible: boolean;
+  onClose: () => void;
   query: string;
   setQuery: (q: string) => void;
+  onSelectOrder: (item: OrderItem) => void;
 }) => {
+  const inputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    if (visible) {
+      setTimeout(() => inputRef.current?.focus(), 120);
+    }
+  }, [visible]);
+
+  const searchResults = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return SAMPLE_ORDERS.orders; // Show full list or suggestions when empty
+
+    return (SAMPLE_ORDERS.orders ?? []).filter((item: any) => {
+      const orderNoStr = String(item.orderNo || item.ORDER_NO || '').toLowerCase();
+      const companyStr = decodeHtml(item.companyName || item.COMPANY_NAME || '').toLowerCase();
+      return orderNoStr.includes(q) || companyStr.includes(q);
+    });
+  }, [query]);
+
   return (
-    <View style={styles.searchInputWrap}>
-      <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
-      <TextInput
-        style={styles.searchInput}
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Search by order no or company name…"
-        placeholderTextColor={SECONDARY}
-        autoCapitalize="none"
-        autoCorrect={false}
-        returnKeyType="search"
-      />
-      {query.length > 0 ? (
-        <TouchableOpacity
-          onPress={() => setQuery('')}
-          style={styles.clearBtn}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="close-circle" size={18} color={SECONDARY} />
-        </TouchableOpacity>
-      ) : null}
-    </View>
+    <Modal visible={visible} animationType="fade" transparent={false} onRequestClose={onClose}>
+      <SafeAreaView style={styles.searchOverlaySafeArea} edges={['top', 'bottom']}>
+        {/* Top Search Input Bar */}
+        <View style={styles.searchOverlayHeader}>
+          <View style={styles.searchOverlayInputWrap}>
+            <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
+            <TextInput
+              ref={inputRef}
+              style={styles.searchOverlayInput}
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search by order no or company name…"
+              placeholderTextColor="#94A3B8"
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+            />
+            {query.length > 0 ? (
+              <TouchableOpacity onPress={() => setQuery('')} style={styles.clearBtn}>
+                <Ionicons name="close-circle" size={18} color="#94A3B8" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <TouchableOpacity onPress={onClose} style={styles.searchCancelBtn} activeOpacity={0.7}>
+            <Text style={styles.searchCancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Blank Screen with Live Suggestions */}
+        <ScrollView style={styles.searchSuggestionsScroll} keyboardShouldPersistTaps="handled">
+          <View style={styles.searchSuggestionsContainer}>
+            {query.trim().length === 0 ? (
+              <Text style={styles.suggestionSectionTitle}>Recent Suggestions</Text>
+            ) : (
+              <Text style={styles.suggestionSectionTitle}>
+                {searchResults.length} matching {searchResults.length === 1 ? 'order' : 'orders'}
+              </Text>
+            )}
+
+            {searchResults.map((item: any, idx: number) => {
+              const orderNo = item.orderNo || item.ORDER_NO || '482663';
+              const companyName = decodeHtml(item.companyName || item.COMPANY_NAME || 'Higher Ground, LLC');
+              const status = item.orderStatus || item.ORDER_STATUS || 'Open';
+
+              return (
+                <TouchableOpacity
+                  key={idx}
+                  style={styles.suggestionCard}
+                  onPress={() => {
+                    onClose();
+                    onSelectOrder(item);
+                  }}
+                  activeOpacity={0.75}
+                >
+                  {/* Left Side: Order # & Company */}
+                  <View style={styles.suggestionLeftCol}>
+                    <Text style={styles.suggestionOrderNo}>Order #{orderNo}</Text>
+                    <Text style={styles.suggestionCompany} numberOfLines={1}>
+                      {companyName}
+                    </Text>
+                  </View>
+
+                  {/* Right Side: Status Badge */}
+                  <View style={styles.suggestionStatusPill}>
+                    <Text style={styles.suggestionStatusText}>{status}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
   );
 };
 
@@ -239,121 +330,6 @@ const OrdersKpiGrid = ({
   );
 };
 
-// ─── Search Results Component (Positioned Below All KPIs) ─────────────────────
-
-const SearchResultsSection = ({
-  query,
-}: {
-  query: string;
-}) => {
-  const { user } = useAuthContext();
-  const token = (user as any)?.token ?? null;
-
-  const [isSearching, setIsSearching] = useState(false);
-  const [apiResults, setApiResults] = useState<OrderItem[]>([]);
-
-  const handleOrderPress = (item: OrderItem) => {
-    router.push({
-      pathname: '/order-details' as any,
-      params: {
-        orderData: JSON.stringify(item),
-        from: '/orders',
-      },
-    });
-  };
-
-  const searchResults = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-
-    const mockMatches = (SAMPLE_ORDERS.orders ?? []).filter((item: any) => {
-      const orderNoStr = String(item.orderNo || item.ORDER_NO || '').toLowerCase();
-      const companyStr = decodeHtml(item.companyName || item.COMPANY_NAME || '').toLowerCase();
-      return orderNoStr.includes(q) || companyStr.includes(q);
-    });
-
-    const combined = [...mockMatches, ...apiResults];
-    const uniqueMap = new Map<string, OrderItem>();
-    combined.forEach((item: any) => {
-      const key = String(item.ORDER_ID || item.ORDER_NO || item.id || item.orderNo);
-      if (!uniqueMap.has(key)) {
-        uniqueMap.set(key, item);
-      }
-    });
-
-    return Array.from(uniqueMap.values());
-  }, [query, apiResults]);
-
-  if (query.trim().length === 0) {
-    return (
-      <View style={styles.viewAllRowContainer}>
-        <TouchableOpacity
-          style={styles.viewAllButton}
-          onPress={() => router.push('/all-orders' as any)}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.viewAllButtonText}>View All Orders List</Text>
-          <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.resultsWrap}>
-      {isSearching ? (
-        <View style={{ paddingTop: 8 }}>
-          <SkeletonRowItem />
-          <SkeletonRowItem />
-        </View>
-      ) : searchResults.length > 0 ? (
-        <View style={styles.resultsContainer}>
-          <Text style={styles.resultsHeader}>
-            Found {searchResults.length} matching {searchResults.length === 1 ? 'order' : 'orders'}
-          </Text>
-          {searchResults.map((item: any, idx) => {
-            const orderNo = item.orderNo || item.ORDER_NO || '482663';
-            const companyName = decodeHtml(item.companyName || item.COMPANY_NAME || 'Higher Ground, LLC');
-            const total = item.orderTotal || item.ORDER_TOTAL || 1069.92;
-            const status = item.orderStatus || item.ORDER_STATUS || 'Sourced';
-
-            return (
-              <TouchableOpacity
-                key={idx}
-                style={styles.searchResultCard}
-                onPress={() => handleOrderPress(item)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.resultRowHeader}>
-                  <Text style={styles.resultOrderNo}>#{orderNo}</Text>
-                  <View style={styles.statusBadgeInline}>
-                    <Text style={styles.statusBadgeTextInline}>{status}</Text>
-                  </View>
-                </View>
-
-                <Text style={styles.resultCompany} numberOfLines={1}>
-                  {companyName}
-                </Text>
-
-                <View style={styles.resultRowFooter}>
-                  <Text style={styles.resultTotal}>{formatCurrencyWithCents(total)}</Text>
-                  <Text style={styles.resultArrow}>View Details ›</Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      ) : (
-        <View style={styles.noResultsContainer}>
-          <Ionicons name="alert-circle-outline" size={28} color={SECONDARY} />
-          <Text style={styles.noResultsTitle}>No matching orders</Text>
-          <Text style={styles.noResultsSub}>No orders match "{query.trim()}"</Text>
-        </View>
-      )}
-    </View>
-  );
-};
-
 // ─── Bottom Navigation ────────────────────────────────────────────────────────
 
 const BottomNav = () => {
@@ -399,6 +375,7 @@ export default function OrdersScreen() {
   const [activePreset, setActivePreset] = useState<DateFilterPreset>('today');
   const [customRange, setCustomRange] = useState<{ startDate: string; endDate: string } | null>(null);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [searchModalVisible, setSearchModalVisible] = useState(false);
   const [query, setQuery] = useState('');
 
   const [loading, setLoading] = useState(true);
@@ -440,7 +417,7 @@ export default function OrdersScreen() {
     }
   }, [activePreset, customRange, token]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     loadOverview();
   }, [loadOverview]);
 
@@ -455,6 +432,16 @@ export default function OrdersScreen() {
   ) => {
     setActivePreset(preset);
     setCustomRange(range);
+  };
+
+  const handleSelectOrder = (item: OrderItem) => {
+    router.push({
+      pathname: '/order-details' as any,
+      params: {
+        orderData: JSON.stringify(item),
+        from: '/orders',
+      },
+    });
   };
 
   return (
@@ -473,17 +460,39 @@ export default function OrdersScreen() {
         }
       >
         <View style={styles.contentContainer}>
-          {/* 1. Search Bar at Top with Breathing Space */}
-          <OrderSearchBar query={query} setQuery={setQuery} />
+          {/* 1. Search Bar at Top (Opens Dedicated Search View) */}
+          <OrderSearchBar onPress={() => setSearchModalVisible(true)} />
 
           {/* 2. Summary Card & 4 KPI Cards Grid */}
           <SummaryCard count={totalCount} totalAmount={totalAmount} loading={loading} />
           <OrdersKpiGrid totalCount={monthCount} totalAmount={monthAmount} loading={loading} />
 
-          {/* 3. Search Results or View All Button (Below KPIs) */}
-          <SearchResultsSection query={query} />
+          {/* 3. View All Orders List Button */}
+          <View style={styles.viewAllRowContainer}>
+            <TouchableOpacity
+              style={styles.viewAllButton}
+              onPress={() => router.push('/all-orders' as any)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.viewAllButtonText}>View All Orders List</Text>
+              <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
+
+      {/* Dedicated Full Screen Search Overlay Modal */}
+      <SearchOverlayModal
+        visible={searchModalVisible}
+        onClose={() => {
+          setSearchModalVisible(false);
+          setQuery('');
+        }}
+        query={query}
+        setQuery={setQuery}
+        onSelectOrder={handleSelectOrder}
+      />
+
       <BottomNav />
 
       <DateFilterModal
@@ -562,7 +571,7 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: '#FFFFFF', fontSize: 10, fontFamily: Typography.headingSemiBold },
 
-  // Search Input Bar
+  // Search Input Bar (Dashboard)
   searchInputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -574,13 +583,113 @@ const styles = StyleSheet.create({
     height: 44,
   },
   searchIcon: { marginRight: 8 },
-  searchInput: {
+  searchPlaceholderText: {
+    fontSize: 14,
+    fontFamily: Typography.body,
+    color: SECONDARY,
+  },
+  clearBtn: { padding: 4 },
+
+  // ─── Search Overlay Modal Styles ──────────────────────────────────────────────
+  searchOverlaySafeArea: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  searchOverlayHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 12,
+    borderBottomWidth: hairline,
+    borderBottomColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  searchOverlayInputWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 42,
+  },
+  searchOverlayInput: {
     flex: 1,
     fontSize: 14,
     fontFamily: Typography.body,
     color: PRIMARY,
   },
-  clearBtn: { padding: 4 },
+  searchCancelBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+  },
+  searchCancelText: {
+    fontSize: 15,
+    fontFamily: Typography.headingSemiBold,
+    color: '#2563EB',
+  },
+  searchSuggestionsScroll: {
+    flex: 1,
+  },
+  searchSuggestionsContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 32,
+    gap: 10,
+  },
+  suggestionSectionTitle: {
+    fontSize: 13,
+    fontFamily: Typography.headingSemiBold,
+    color: SECONDARY,
+    marginBottom: 4,
+    marginLeft: 2,
+  },
+  suggestionCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  suggestionLeftCol: {
+    flex: 1,
+    paddingRight: 12,
+    gap: 3,
+  },
+  suggestionOrderNo: {
+    fontSize: 15,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '700',
+    color: PRIMARY,
+  },
+  suggestionCompany: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+  },
+  suggestionStatusPill: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  suggestionStatusText: {
+    fontSize: 12,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
+  },
 
   // Top Grey Summary Card
   summaryCard: {
@@ -641,81 +750,6 @@ const styles = StyleSheet.create({
   kpiSubText: {
     fontSize: 12,
     fontFamily: Typography.bodyMedium,
-    color: SECONDARY,
-  },
-
-  // Search Results & View All Button
-  resultsWrap: { gap: 10, marginTop: 4 },
-  resultsContainer: { gap: 8 },
-  resultsHeader: {
-    fontSize: 13,
-    fontFamily: Typography.headingSemiBold,
-    color: SECONDARY,
-  },
-  searchResultCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 14,
-    gap: 6,
-  },
-  resultRowHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  resultOrderNo: {
-    fontSize: 15,
-    fontFamily: Typography.headingSemiBold,
-    color: PRIMARY,
-  },
-  statusBadgeInline: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  statusBadgeTextInline: {
-    fontSize: 11,
-    fontFamily: Typography.headingSemiBold,
-    color: '#475569',
-  },
-  resultCompany: {
-    fontSize: 13.5,
-    fontFamily: Typography.bodyMedium,
-    color: SECONDARY,
-  },
-  resultRowFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  resultTotal: {
-    fontSize: 14,
-    fontFamily: Typography.headingSemiBold,
-    color: PRIMARY,
-  },
-  resultArrow: {
-    fontSize: 12,
-    fontFamily: Typography.headingSemiBold,
-    color: '#2563EB',
-  },
-
-  noResultsContainer: {
-    alignItems: 'center',
-    paddingVertical: 24,
-    gap: 6,
-  },
-  noResultsTitle: {
-    fontSize: 15,
-    fontFamily: Typography.headingSemiBold,
-    color: PRIMARY,
-  },
-  noResultsSub: {
-    fontSize: 13,
-    fontFamily: Typography.body,
     color: SECONDARY,
   },
 

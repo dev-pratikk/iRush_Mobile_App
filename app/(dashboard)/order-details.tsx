@@ -440,8 +440,28 @@ export default function OrderDetailsScreen() {
 
   // Line items
   const details = order?.orderDetails && order.orderDetails.length > 0 ? order.orderDetails[0] : null;
-  const lineQty = details?.QUANTITY ?? 38;
+  const lineQty = details?.QUANTITY ?? order?.orderedQuantity ?? 38;
   const unitPrice = details?.UNIT_PRICE ?? 22.65;
+
+  // Specifications
+  const spec = order?.orderSpecifications && order.orderSpecifications.length > 0 ? order.orderSpecifications[0] : null;
+  const partNo = (spec?.PCBPARTNO || order?.pcbpartNo || '000-906-9030-001 Rev A').trim();
+  const rev = (spec?.REV || '').trim();
+  const boardSize = (spec?.BoardSize || '9.6 x 6.125').trim();
+  const panelSize = (spec?.PanelSize || '').trim();
+  const layerCount = (spec?.Layer || '6').trim();
+  const ipcClass = (spec?.IpcClass || 'IPC CLASS-II').trim();
+  const maskColor = (spec?.MaskColor || 'GREEN').trim();
+  const silkColor = (spec?.SilkscreenColor || 'WHITE').trim();
+  const material = (spec?.Material || 'FR4 TG170').trim();
+  const thickness = (spec?.Thickness || '0.093" +/- 10 %').trim();
+  const innerCopper = (spec?.InnerCopper || '1OZ').trim();
+  const outerCopper = (spec?.OuterCopper || '1OZ').trim();
+  const plating = (spec?.Plating || 'ENIG').trim();
+  const smdPitch = (spec?.SmdPitch || '19.68 MIL').trim();
+  const smdSided = (spec?.SmdSided || 'BOTH').trim();
+  const isItar = spec?.ITAR === 1;
+  const testing = (spec?.Testing || 'YES').trim();
 
   // Vendor
   const vendorObj = order?.orderVendors && order.orderVendors.length > 0 ? order.orderVendors[0] : null;
@@ -565,6 +585,100 @@ export default function OrderDetailsScreen() {
               </View>
               <Text style={styles.rowValue}>
                 {lineQty} pcs · {formatCurrencyWithCents(unitPrice)}/pc
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Section 2: SPECIFICATIONS */}
+        <View style={styles.sectionWrap}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionHeaderTitle}>SPECIFICATIONS</Text>
+            {isItar ? (
+              <View style={styles.itarBadge}>
+                <Ionicons name="shield-checkmark" size={12} color="#DC2626" />
+                <Text style={styles.itarBadgeText}>ITAR RESTRICTED</Text>
+              </View>
+            ) : null}
+          </View>
+          <View style={styles.cardGroup}>
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="hardware-chip-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Part # / Rev</Text>
+              </View>
+              <Text style={styles.rowValueBold}>
+                {partNo} {rev ? `(Rev ${rev})` : ''}
+              </Text>
+            </View>
+
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="layers-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Layers & Material</Text>
+              </View>
+              <Text style={styles.rowValue}>
+                {layerCount} Layers · {material}
+              </Text>
+            </View>
+
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="resize-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Board Size</Text>
+              </View>
+              <Text style={styles.rowValue}>
+                {boardSize} in {panelSize ? `(Panel: ${panelSize})` : ''}
+              </Text>
+            </View>
+
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="construct-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Finish & Thickness</Text>
+              </View>
+              <Text style={styles.rowValue}>
+                {plating} Finish · {thickness}
+              </Text>
+            </View>
+
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="color-palette-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Mask & Silk</Text>
+              </View>
+              <Text style={styles.rowValue}>
+                Mask: {maskColor} · Silk: {silkColor}
+              </Text>
+            </View>
+
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="flash-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Copper Weight</Text>
+              </View>
+              <Text style={styles.rowValue}>
+                Inner: {innerCopper} · Outer: {outerCopper}
+              </Text>
+            </View>
+
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="options-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>SMD & Pitch</Text>
+              </View>
+              <Text style={styles.rowValue}>
+                {smdSided} Sided · {smdPitch} Pitch
+              </Text>
+            </View>
+
+            <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="checkmark-done-circle-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Class & Testing</Text>
+              </View>
+              <Text style={styles.rowValue}>
+                {ipcClass} · Testing: {testing}
               </Text>
             </View>
           </View>
@@ -750,12 +864,41 @@ const styles = StyleSheet.create({
   sectionWrap: {
     gap: 6,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingRight: 2,
+  },
   sectionHeaderTitle: {
     fontSize: 12,
     fontFamily: Typography.headingSemiBold,
     color: SECONDARY,
     letterSpacing: 0.8,
     marginLeft: 2,
+  },
+  itarBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  itarBadgeText: {
+    fontSize: 10,
+    fontFamily: Typography.headingSemiBold,
+    color: '#DC2626',
+    letterSpacing: 0.5,
+  },
+  rowValueBold: {
+    fontSize: 14,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '700',
+    color: PRIMARY,
   },
   cardGroup: {
     backgroundColor: CARD_BG,

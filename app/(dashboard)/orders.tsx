@@ -146,13 +146,44 @@ const SearchOverlayModal = ({
 
   const searchResults = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return SAMPLE_ORDERS.orders; // Show full list or suggestions when empty
+    const allOrders = SAMPLE_ORDERS.orders ?? [];
 
-    return (SAMPLE_ORDERS.orders ?? []).filter((item: any) => {
-      const orderNoStr = String(item.orderNo || item.ORDER_NO || '').toLowerCase();
-      const companyStr = decodeHtml(item.companyName || item.COMPANY_NAME || '').toLowerCase();
-      return orderNoStr.includes(q) || companyStr.includes(q);
+    if (!q) return allOrders;
+
+    const scored = allOrders
+      .map((item: any) => {
+        const orderNoStr = String(item.orderNo || item.ORDER_NO || '').toLowerCase();
+        const companyStr = decodeHtml(item.companyName || item.COMPANY_NAME || '').toLowerCase();
+
+        let score = -1;
+
+        if (orderNoStr.startsWith(q)) {
+          // Highest Priority: Order number starts with exact typed digits
+          score = 10000 - (orderNoStr.length - q.length);
+        } else if (orderNoStr.includes(q)) {
+          // Priority 2: Order number contains query digits
+          const idx = orderNoStr.indexOf(q);
+          score = 5000 - idx * 10 - (orderNoStr.length - q.length);
+        } else if (companyStr.startsWith(q)) {
+          // Priority 3: Company name starts with query
+          score = 2000 - (companyStr.length - q.length);
+        } else if (companyStr.includes(q)) {
+          // Priority 4: Company name contains query
+          const idx = companyStr.indexOf(q);
+          score = 1000 - idx * 10;
+        }
+
+        return { item, score, orderNoStr };
+      })
+      .filter((entry) => entry.score >= 0);
+
+    // Sort by highest match score first
+    scored.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return b.orderNoStr.localeCompare(a.orderNoStr);
     });
+
+    return scored.map((entry) => entry.item);
   }, [query]);
 
   return (

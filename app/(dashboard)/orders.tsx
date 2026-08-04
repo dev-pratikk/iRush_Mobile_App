@@ -448,31 +448,40 @@ export default function OrdersScreen() {
   const [totalCount, setTotalCount] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
 
-  const loadOverview = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
-    try {
-      const range = getDateRangeForFilter(activePreset, customRange);
-      const res = await fetchOrdersPage('month', {
-        token: token ?? null,
-        page: 1,
-        customRange: range,
-      });
+  const fetchOrdersForPreset = useCallback(
+    async (preset: DateFilterPreset, range: { startDate: string; endDate: string } | null, silent = false) => {
+      if (!silent) setLoading(true);
+      try {
+        const calculatedRange = getDateRangeForFilter(preset, range);
+        const res = await fetchOrdersPage('month', {
+          token: token ?? null,
+          page: 1,
+          customRange: calculatedRange,
+        });
 
-      const count = res.totalRecords ?? res.count ?? res.data?.length ?? 0;
-      const amount = res.totalAmount ?? 0;
+        const count = res.totalRecords ?? res.count ?? res.data?.length ?? 0;
+        const amount = res.totalAmount ?? 0;
 
-      setTotalCount(count);
-      setTotalAmount(amount);
-    } catch (err) {
-      if (__DEV__) console.log('[OrdersScreen] loadOverview error:', err);
-      setTotalCount(0);
-      setTotalAmount(0);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [activePreset, customRange, token]);
+        setTotalCount(count);
+        setTotalAmount(amount);
+      } catch (err) {
+        if (__DEV__) console.log('[OrdersScreen] fetchOrders error:', err);
+        setTotalCount(0);
+        setTotalAmount(0);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [token]
+  );
 
+  // Update data when activePreset or customRange is changed by user on screen
+  useEffect(() => {
+    fetchOrdersForPreset(activePreset, customRange);
+  }, [activePreset, customRange, fetchOrdersForPreset]);
+
+  // Reset to default 'today' state ONLY when screen gains focus (re-entering page)
   useFocusEffect(
     useCallback(() => {
       setActivePreset('today');
@@ -480,14 +489,14 @@ export default function OrdersScreen() {
       setQuery('');
       setFilterModalVisible(false);
       setSearchModalVisible(false);
-      loadOverview();
-    }, [loadOverview])
+      fetchOrdersForPreset('today', null);
+    }, [fetchOrdersForPreset])
   );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    loadOverview(true);
-  }, [loadOverview]);
+    fetchOrdersForPreset(activePreset, customRange, true);
+  }, [activePreset, customRange, fetchOrdersForPreset]);
 
   const handleApplyFilter = (
     preset: DateFilterPreset,

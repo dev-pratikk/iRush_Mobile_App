@@ -102,16 +102,32 @@ export const getDateRangeForFilter = (
   }
 
   if (preset === 'week') {
-    const d = new Date(referenceDate);
-    d.setDate(d.getDate() - 6);
-    const weekStartISO = getLosAngelesISODate(d);
-    return { startDate: weekStartISO, endDate: todayISO };
+    // Week starts on Sunday (12:00 AM) and ends on Saturday (11:59 PM) in LA time
+    const { year, month, day } = getLosAngelesDateParts(referenceDate);
+    const laDate = new Date(year, month - 1, day);
+    const dayOfWeek = laDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+
+    const sunday = new Date(laDate);
+    sunday.setDate(laDate.getDate() - dayOfWeek);
+
+    const saturday = new Date(sunday);
+    saturday.setDate(sunday.getDate() + 6);
+
+    return {
+      startDate: getLosAngelesISODate(sunday),
+      endDate: getLosAngelesISODate(saturday),
+    };
   }
 
-  const firstOfMonthISO = getLosAngelesFirstOfMonthISODate(referenceDate);
+  // Month starts on 1st day and ends on last day of month in LA time
+  const { year, month } = getLosAngelesDateParts(referenceDate);
+  const lastDayNum = new Date(year, month, 0).getDate();
+  const m = String(month).padStart(2, '0');
+  const lastD = String(lastDayNum).padStart(2, '0');
+
   return {
-    startDate: firstOfMonthISO,
-    endDate: todayISO,
+    startDate: `${year}-${m}-01`,
+    endDate: `${year}-${m}-${lastD}`,
   };
 };
 

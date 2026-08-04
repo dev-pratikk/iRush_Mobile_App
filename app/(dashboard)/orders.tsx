@@ -350,24 +350,24 @@ const SummaryCard = ({
   );
 };
 
-// ─── 4 Non-Clickable KPI Cards Grid ──────────────────────────────────────────
+// ─── NEW & REPEAT KPI Cards Grid ──────────────────────────────────────────
 
 const OrdersKpiGrid = ({
-  totalCount,
-  totalAmount,
+  newCount = 0,
+  newAmount = 0,
+  repeatCount = 0,
+  repeatAmount = 0,
   loading = false,
 }: {
-  totalCount: number;
-  totalAmount: number;
+  newCount?: number;
+  newAmount?: number;
+  repeatCount?: number;
+  repeatAmount?: number;
   loading?: boolean;
 }) => {
-  if (loading && totalCount === 0) {
+  if (loading) {
     return (
       <View style={styles.kpiContainer}>
-        <View style={styles.kpiRow}>
-          <SkeletonKpiCard />
-          <SkeletonKpiCard />
-        </View>
         <View style={styles.kpiRow}>
           <SkeletonKpiCard />
           <SkeletonKpiCard />
@@ -376,42 +376,19 @@ const OrdersKpiGrid = ({
     );
   }
 
-  const openCount = Math.round(totalCount * 0.77) || 214;
-  const openAmount = totalAmount * 0.75 || 1940000;
-
-  const closedCount = Math.max(1, totalCount - openCount) || 6;
-  const closedAmount = totalAmount * 0.05 || 47900;
-
-  const noVendorCount = Math.round(totalCount * 0.2) || 58;
-  const partialVendorCount = Math.round(totalCount * 0.16) || 46;
-
   return (
     <View style={styles.kpiContainer}>
-      {/* Row 1: OPEN & CLOSED */}
       <View style={styles.kpiRow}>
         <View style={styles.kpiCard}>
-          <Text style={styles.kpiHeaderLabel}>OPEN</Text>
-          <Text style={styles.kpiValueText}>{formatNumber(openCount)}</Text>
-          <Text style={styles.kpiSubText}>{formatCurrencyWithCents(openAmount)}</Text>
+          <Text style={styles.kpiHeaderLabel}>NEW</Text>
+          <Text style={styles.kpiValueText}>{formatNumber(newCount)}</Text>
+          <Text style={styles.kpiSubText}>{formatCurrencyWithCents(newAmount)}</Text>
         </View>
 
         <View style={styles.kpiCard}>
-          <Text style={styles.kpiHeaderLabel}>CLOSED</Text>
-          <Text style={styles.kpiValueText}>{formatNumber(closedCount)}</Text>
-          <Text style={styles.kpiSubText}>{formatCurrencyWithCents(closedAmount)}</Text>
-        </View>
-      </View>
-
-      {/* Row 2: NO VENDOR & PARTIAL VENDOR */}
-      <View style={styles.kpiRow}>
-        <View style={styles.kpiCard}>
-          <Text style={styles.kpiHeaderLabel}>NO VENDOR</Text>
-          <Text style={styles.kpiValueText}>{formatNumber(noVendorCount)}</Text>
-        </View>
-
-        <View style={styles.kpiCard}>
-          <Text style={styles.kpiHeaderLabel}>PARTIAL VENDOR</Text>
-          <Text style={styles.kpiValueText}>{formatNumber(partialVendorCount)}</Text>
+          <Text style={styles.kpiHeaderLabel}>REPEAT</Text>
+          <Text style={styles.kpiValueText}>{formatNumber(repeatCount)}</Text>
+          <Text style={styles.kpiSubText}>{formatCurrencyWithCents(repeatAmount)}</Text>
         </View>
       </View>
     </View>
@@ -468,10 +445,8 @@ export default function OrdersScreen() {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [totalCount, setTotalCount] = useState(298);
-  const [totalAmount, setTotalAmount] = useState(6806404.22);
-  const [monthCount, setMonthCount] = useState(298);
-  const [monthAmount, setMonthAmount] = useState(6806404.22);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalAmount, setTotalAmount] = useState(0);
 
   const loadOverview = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -483,22 +458,15 @@ export default function OrdersScreen() {
         customRange: range,
       });
 
-      if (res.count || res.totalAmount) {
-        setTotalCount(res.count);
-        setTotalAmount(res.totalAmount);
-      } else {
-        const localMatches = (SAMPLE_ORDERS.orders ?? []).filter((item: any) => {
-          const d = item.ORDER_DATE || item.orderDate;
-          return d >= range.startDate && d <= range.endDate;
-        });
-        const c = localMatches.length || 298;
-        const a = localMatches.reduce((acc, x) => acc + (x.ORDER_TOTAL || x.orderTotal || 0), 0) || 6806404.22;
-        setTotalCount(c);
-        setTotalAmount(a);
-      }
-    } catch {
-      setTotalCount(298);
-      setTotalAmount(6806404.22);
+      const count = res.totalRecords ?? res.count ?? res.data?.length ?? 0;
+      const amount = res.totalAmount ?? 0;
+
+      setTotalCount(count);
+      setTotalAmount(amount);
+    } catch (err) {
+      if (__DEV__) console.log('[OrdersScreen] loadOverview error:', err);
+      setTotalCount(0);
+      setTotalAmount(0);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -551,9 +519,9 @@ export default function OrdersScreen() {
           {/* 1. Search Bar at Top (Opens Dedicated Search View) */}
           <OrderSearchBar onPress={() => setSearchModalVisible(true)} />
 
-          {/* 2. Summary Card & 4 KPI Cards Grid */}
+          {/* 2. Summary Card & NEW / REPEAT KPI Cards */}
           <SummaryCard count={totalCount} totalAmount={totalAmount} loading={loading} />
-          <OrdersKpiGrid totalCount={monthCount} totalAmount={monthAmount} loading={loading} />
+          <OrdersKpiGrid newCount={0} newAmount={0} repeatCount={0} repeatAmount={0} loading={loading} />
 
           {/* 3. View All Orders List Button */}
           <View style={styles.viewAllRowContainer}>

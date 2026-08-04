@@ -403,68 +403,70 @@ const AllSpecificationsModal = ({
 }) => {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.modalOverlay}>
-          <TouchableWithoutFeedback>
-            <View style={[styles.modalCard, { maxHeight: '82%', paddingHorizontal: 0, paddingBottom: 0 }]}>
-              {/* Header */}
-              <View style={[styles.modalHeader, { paddingHorizontal: 20 }]}>
-                <View style={styles.modalHeaderLeft}>
-                  <View style={styles.modalIconCircle}>
-                    <Ionicons name="list-outline" size={20} color="#0F172A" />
-                  </View>
-                  <View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={styles.modalTitle}>All Specifications</Text>
-                      {isItar ? (
-                        <View style={styles.itarBadge}>
-                          <Ionicons name="shield-checkmark" size={10} color="#DC2626" />
-                          <Text style={styles.itarBadgeText}>ITAR</Text>
-                        </View>
-                      ) : null}
-                    </View>
-                    <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  style={styles.modalCloseBtn}
-                  onPress={onClose}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons name="close" size={20} color="#64748B" />
-                </TouchableOpacity>
+      <View style={styles.modalOverlay}>
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
+        <View style={styles.specsModalCard}>
+          {/* Header */}
+          <View style={styles.specsModalHeader}>
+            <View style={styles.modalHeaderLeft}>
+              <View style={styles.modalIconCircle}>
+                <Ionicons name="list-outline" size={20} color="#0F172A" />
               </View>
-
-              {/* Scrollable Specs List */}
-              <ScrollView style={{ paddingHorizontal: 20 }} showsVerticalScrollIndicator={false}>
-                <View style={[styles.cardGroup, { marginVertical: 12 }]}>
-                  {specsList.map((item, index) => (
-                    <View
-                      key={index}
-                      style={[
-                        styles.specRowItem,
-                        index === specsList.length - 1 ? { borderBottomWidth: 0 } : null,
-                      ]}
-                    >
-                      <Text style={styles.specRowKey}>{item.label}</Text>
-                      <Text style={item.isBold ? styles.specRowValueBold : styles.specRowValue}>
-                        {item.value}
-                      </Text>
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.modalTitle}>All Specifications</Text>
+                  {isItar ? (
+                    <View style={styles.itarBadge}>
+                      <Ionicons name="shield-checkmark" size={10} color="#DC2626" />
+                      <Text style={styles.itarBadgeText}>ITAR</Text>
                     </View>
-                  ))}
+                  ) : null}
                 </View>
-              </ScrollView>
-
-              {/* Footer Close Button */}
-              <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: '#F1F5F9' }}>
-                <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
-                  <Text style={styles.primaryActionBtnText}>Done</Text>
-                </TouchableOpacity>
+                <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
               </View>
             </View>
-          </TouchableWithoutFeedback>
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close" size={20} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Scrollable Specs List */}
+          <ScrollView
+            style={styles.specsScrollView}
+            contentContainerStyle={styles.specsScrollContent}
+            showsVerticalScrollIndicator={true}
+            bounces={true}
+          >
+            <View style={styles.cardGroup}>
+              {specsList.map((item, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.specRowItem,
+                    index === specsList.length - 1 ? { borderBottomWidth: 0 } : null,
+                  ]}
+                >
+                  <Text style={styles.specRowKey}>{item.label}</Text>
+                  <Text style={item.isBold ? styles.specRowValueBold : styles.specRowValue}>
+                    {item.value}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+
+          {/* Footer Close Button */}
+          <View style={styles.specsModalFooter}>
+            <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
+              <Text style={styles.primaryActionBtnText}>Done</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </TouchableWithoutFeedback>
+      </View>
     </Modal>
   );
 };
@@ -1456,5 +1458,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+
+  // Full Specifications Modal
+  specsModalCard: {
+    width: '100%',
+    height: '88%',
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+  },
+  specsModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  specsScrollView: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  specsScrollContent: {
+    paddingVertical: 14,
+  },
+  specsModalFooter: {
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
   },
 });

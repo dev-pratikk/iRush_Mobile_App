@@ -390,7 +390,6 @@ const InvoiceModal = ({
 
 export default function OrderDetailsScreen() {
   const params = useLocalSearchParams<{ orderData?: string; from?: string }>();
-  const [activeTab, setActiveTab] = useState<'summary' | 'specifications'>('summary');
   const [locationModalVisible, setLocationModalVisible] = useState(false);
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [trackModalVisible, setTrackModalVisible] = useState(false);
@@ -525,123 +524,125 @@ export default function OrderDetailsScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Top Hero Section */}
-        <View style={styles.heroSection}>
-          <Text style={styles.heroCompanyName}>{companyName}</Text>
-          <Text style={styles.heroOrderNo}>Order #{orderNo}</Text>
-          <View style={styles.heroSubtitleRow}>
-            <Text style={styles.heroAmount}>{formatCurrencyWithCents(orderTotal)}</Text>
-            <Text style={styles.heroDot}> • </Text>
-            <Text style={[styles.heroStatus, orderStatus.toLowerCase() === 'open' && { color: '#16A34A' }]}>
-              {orderStatus}
+        {/* Top Hero Section matching exact screenshot */}
+        <View style={styles.heroHeaderContainer}>
+          {/* Left Column: Company, Order #, Amount & Status */}
+          <View style={styles.heroLeftCol}>
+            <Text style={styles.heroCompanyName} numberOfLines={1}>
+              {companyName}
             </Text>
+            <Text style={styles.heroOrderNo} numberOfLines={1}>
+              Order #{orderNo}
+            </Text>
+            <View style={styles.heroStatusRow}>
+              <Text style={styles.heroAmountText}>
+                {formatCurrencyWithCents(orderTotal)}
+              </Text>
+              <Text style={styles.heroDotText}> · </Text>
+              <Text style={[styles.heroStatusText, orderStatus.toLowerCase() === 'open' ? styles.statusOpen : styles.statusOther]}>
+                {orderStatus}
+              </Text>
+            </View>
           </View>
-          {partNo ? <Text style={styles.heroPartNo}>P/N: {partNo}</Text> : null}
 
-          {/* Quick Action Buttons Row */}
-          <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.actionItem} onPress={() => setLocationModalVisible(true)} activeOpacity={0.7}>
-              <View style={styles.actionCircle}>
-                <Ionicons name="location-outline" size={20} color={PRIMARY} />
-              </View>
-              <Text style={styles.actionLabel}>Location</Text>
-            </TouchableOpacity>
+          {/* Right Column: 2x2 Grid Action Buttons */}
+          <View style={styles.actionGridContainer}>
+            {/* Row 1: Location & Contact */}
+            <View style={styles.actionGridRow}>
+              <TouchableOpacity
+                style={styles.actionCard}
+                onPress={() => setLocationModalVisible(true)}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="location-outline" size={20} color="#0F172A" />
+                <Text style={styles.actionCardLabel}>Location</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionItem} onPress={() => setContactModalVisible(true)} activeOpacity={0.7}>
-              <View style={styles.actionCircle}>
-                <Ionicons name="call-outline" size={20} color={PRIMARY} />
-              </View>
-              <Text style={styles.actionLabel}>Contact</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionCard}
+                onPress={() => setContactModalVisible(true)}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="call-outline" size={20} color="#0F172A" />
+                <Text style={styles.actionCardLabel}>Contact</Text>
+              </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity style={styles.actionItem} onPress={() => setTrackModalVisible(true)} activeOpacity={0.7}>
-              <View style={styles.actionCircle}>
-                <Ionicons name="bus-outline" size={20} color={PRIMARY} />
-              </View>
-              <Text style={styles.actionLabel}>Track</Text>
-            </TouchableOpacity>
+            {/* Row 2: Track & Invoice */}
+            <View style={styles.actionGridRow}>
+              <TouchableOpacity
+                style={styles.actionCard}
+                onPress={() => setTrackModalVisible(true)}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="bus-outline" size={20} color="#0F172A" />
+                <Text style={styles.actionCardLabel}>Track</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionItem} onPress={() => setInvoiceModalVisible(true)} activeOpacity={0.7}>
-              <View style={styles.actionCircle}>
-                <Ionicons name="document-text-outline" size={20} color={PRIMARY} />
-              </View>
-              <Text style={styles.actionLabel}>Invoice</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionCard}
+                onPress={() => setInvoiceModalVisible(true)}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="document-text-outline" size={20} color="#0F172A" />
+                <Text style={styles.actionCardLabel}>Invoice</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
-        {/* Tab Switcher: Summary vs Specifications */}
-        <View style={styles.tabBarWrap}>
-          <TouchableOpacity
-            style={styles.tabButton}
-            onPress={() => setActiveTab('summary')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.tabLabel, activeTab === 'summary' && styles.tabLabelActive]}>
-              Summary
-            </Text>
-            {activeTab === 'summary' ? <View style={styles.tabActiveIndicator} /> : null}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.tabButton}
-            onPress={() => setActiveTab('specifications')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.tabLabel, activeTab === 'specifications' && styles.tabLabelActive]}>
-              Specifications
-            </Text>
-            {activeTab === 'specifications' ? <View style={styles.tabActiveIndicator} /> : null}
-          </TouchableOpacity>
-        </View>
-
-        {/* Tab Content: Summary or Specifications */}
-        {activeTab === 'summary' ? (
+        {/* Section 1: ORDER */}
+        <View style={styles.sectionWrap}>
+          <Text style={styles.sectionHeaderTitle}>ORDER</Text>
           <View style={styles.cardGroup}>
-            <View style={styles.summaryRowItem}>
-              <View style={styles.summaryRowLeft}>
-                <Ionicons name="pricetag-outline" size={18} color={SECONDARY} style={styles.rowIcon} />
-                <Text style={styles.summaryRowKey}>Type</Text>
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="pricetag-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Type</Text>
               </View>
-              <Text style={styles.summaryRowValueBold}>{orderType}</Text>
+              <Text style={styles.rowValue}>{orderType}</Text>
             </View>
 
-            <View style={styles.summaryRowItem}>
-              <View style={styles.summaryRowLeft}>
-                <Ionicons name="document-outline" size={18} color={SECONDARY} style={styles.rowIcon} />
-                <Text style={styles.summaryRowKey}>Quote</Text>
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="document-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Quote</Text>
               </View>
-              <Text style={styles.summaryRowValueBold}>{quoteNo}</Text>
+              <Text style={styles.rowValue}>{quoteNo}</Text>
             </View>
 
-            <View style={styles.summaryRowItem}>
-              <View style={styles.summaryRowLeft}>
-                <Ionicons name="person-outline" size={18} color={SECONDARY} style={styles.rowIcon} />
-                <Text style={styles.summaryRowKey}>Salesperson</Text>
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="person-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Salesperson</Text>
               </View>
-              <Text style={styles.summaryRowValueBold}>{salesperson}</Text>
+              <Text style={styles.rowValue}>{salesperson}</Text>
             </View>
 
-            <View style={[styles.summaryRowItem, { borderBottomWidth: 0 }]}>
-              <View style={styles.summaryRowLeft}>
-                <Ionicons name="cube-outline" size={18} color={SECONDARY} style={styles.rowIcon} />
-                <Text style={styles.summaryRowKey}>Quantity</Text>
+            <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="cube-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Quantity</Text>
               </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.summaryRowValueBold}>{lineQty} pcs</Text>
-                <Text style={styles.summaryRowSubValue}>{formatCurrencyWithCents(unitPrice)}/pc</Text>
-              </View>
+              <Text style={styles.rowValue}>
+                {lineQty} pcs · {formatCurrencyWithCents(unitPrice)}/pc
+              </Text>
             </View>
           </View>
-        ) : (
-          <View style={styles.cardGroup}>
+        </View>
+
+        {/* Section 2: SPECIFICATIONS */}
+        <View style={styles.sectionWrap}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionHeaderTitle}>SPECIFICATIONS</Text>
             {isItar ? (
-              <View style={styles.itarBadgeRow}>
-                <Ionicons name="shield-checkmark" size={13} color="#DC2626" />
+              <View style={styles.itarBadge}>
+                <Ionicons name="shield-checkmark" size={12} color="#DC2626" />
                 <Text style={styles.itarBadgeText}>ITAR RESTRICTED</Text>
               </View>
             ) : null}
-
+          </View>
+          <View style={styles.cardGroup}>
             {/* Primary Parameters */}
             <View style={styles.specRowItem}>
               <Text style={styles.specRowKey}>Part Number</Text>
@@ -804,7 +805,7 @@ export default function OrderDetailsScreen() {
               />
             </TouchableOpacity>
           </View>
-        )}
+        </View>
 
         {/* Section 2: VENDOR & SHIPPING */}
         <View style={styles.sectionWrap}>
@@ -926,167 +927,91 @@ const styles = StyleSheet.create({
     gap: 18,
   },
 
-  // Hero section
-  heroSection: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  heroCompanyName: {
-    fontSize: 14,
-    fontFamily: Typography.headingSemiBold,
-    color: SECONDARY,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  heroOrderNo: {
-    fontSize: 22,
-    fontFamily: Typography.titleSerif,
-    fontWeight: '700',
-    color: PRIMARY,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  heroSubtitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroAmount: {
-    fontSize: 14,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '600',
-    color: PRIMARY,
-  },
-  heroDot: {
-    fontSize: 14,
-    color: SECONDARY,
-  },
-  heroStatus: {
-    fontSize: 14,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '700',
-    color: '#16A34A',
-  },
-  heroPartNo: {
-    fontSize: 13,
-    fontFamily: Typography.bodyMedium,
-    color: SECONDARY,
-    marginTop: 4,
-    textAlign: 'center',
-  },
-
-  // Tab Switcher
-  tabBarWrap: {
-    flexDirection: 'row',
-    backgroundColor: CARD_BG,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  tabLabel: {
-    fontSize: 15,
-    fontFamily: Typography.bodyMedium,
-    color: SECONDARY,
-  },
-  tabLabelActive: {
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '700',
-    color: PRIMARY,
-  },
-  tabActiveIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    left: 20,
-    right: 20,
-    height: 3,
-    backgroundColor: '#2563EB',
-    borderRadius: 2,
-  },
-
-  // Summary Row Items
-  summaryRowItem: {
+  // Top Hero Container matching exact screenshot
+  heroHeaderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    paddingVertical: 12,
+    paddingHorizontal: 2,
+    marginBottom: 4,
   },
-  summaryRowLeft: {
+  heroLeftCol: {
+    flex: 1,
+    paddingRight: 10,
+    justifyContent: 'center',
+  },
+  heroCompanyName: {
+    fontSize: 15,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '600',
+    color: '#334155',
+    marginBottom: 2,
+  },
+  heroOrderNo: {
+    fontSize: 24,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.4,
+    marginBottom: 4,
+  },
+  heroStatusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
   },
-  summaryRowKey: {
-    fontSize: 14,
-    fontFamily: Typography.bodyMedium,
-    color: SECONDARY,
+  heroAmountText: {
+    fontSize: 15,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '600',
+    color: '#475569',
   },
-  summaryRowValueBold: {
-    fontSize: 14,
+  heroDotText: {
+    fontSize: 15,
+    fontFamily: Typography.headingSemiBold,
+    color: '#94A3B8',
+  },
+  heroStatusText: {
+    fontSize: 15,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '700',
-    color: PRIMARY,
   },
-  summaryRowSubValue: {
-    fontSize: 12,
-    fontFamily: Typography.bodyMedium,
-    color: SECONDARY,
-    marginTop: 2,
+  statusOpen: {
+    color: '#16A34A',
   },
-  itarBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
-    marginBottom: 12,
+  statusOther: {
+    color: '#3B82F6',
   },
 
-  // Action buttons
-  actionRow: {
+  // Right Side 2x2 Grid Action Cards
+  actionGridContainer: {
+    gap: 6,
+  },
+  actionGridRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 20,
-    marginTop: 20,
+    gap: 6,
   },
-  actionItem: {
-    alignItems: 'center',
-  },
-  actionCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: CARD_BG,
+  actionCard: {
+    width: 82,
+    height: 64,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
+    borderColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    gap: 3,
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 3,
     elevation: 1,
   },
-  actionLabel: {
+  actionCardLabel: {
     fontSize: 12,
-    fontFamily: Typography.bodyMedium,
-    color: '#475569',
-    marginTop: 6,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '600',
+    color: '#334155',
   },
 
   // Sections

@@ -386,6 +386,89 @@ const InvoiceModal = ({
   );
 };
 
+// ─── Full Specifications Modal Component ─────────────────────────────────────
+
+const AllSpecificationsModal = ({
+  visible,
+  onClose,
+  orderNo,
+  isItar,
+  specsList,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  orderNo: string;
+  isItar: boolean;
+  specsList: { label: string; value: string; isBold?: boolean }[];
+}) => {
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback>
+            <View style={[styles.modalCard, { maxHeight: '82%', paddingHorizontal: 0, paddingBottom: 0 }]}>
+              {/* Header */}
+              <View style={[styles.modalHeader, { paddingHorizontal: 20 }]}>
+                <View style={styles.modalHeaderLeft}>
+                  <View style={styles.modalIconCircle}>
+                    <Ionicons name="list-outline" size={20} color="#0F172A" />
+                  </View>
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={styles.modalTitle}>All Specifications</Text>
+                      {isItar ? (
+                        <View style={styles.itarBadge}>
+                          <Ionicons name="shield-checkmark" size={10} color="#DC2626" />
+                          <Text style={styles.itarBadgeText}>ITAR</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.modalCloseBtn}
+                  onPress={onClose}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="close" size={20} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Scrollable Specs List */}
+              <ScrollView style={{ paddingHorizontal: 20 }} showsVerticalScrollIndicator={false}>
+                <View style={[styles.cardGroup, { marginVertical: 12 }]}>
+                  {specsList.map((item, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.specRowItem,
+                        index === specsList.length - 1 ? { borderBottomWidth: 0 } : null,
+                      ]}
+                    >
+                      <Text style={styles.specRowKey}>{item.label}</Text>
+                      <Text style={item.isBold ? styles.specRowValueBold : styles.specRowValue}>
+                        {item.value}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
+
+              {/* Footer Close Button */}
+              <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: '#F1F5F9' }}>
+                <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
+                  <Text style={styles.primaryActionBtnText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
+};
+
 // ─── Main Screen Component ────────────────────────────────────────────────────
 
 export default function OrderDetailsScreen() {
@@ -394,7 +477,7 @@ export default function OrderDetailsScreen() {
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [trackModalVisible, setTrackModalVisible] = useState(false);
   const [invoiceModalVisible, setInvoiceModalVisible] = useState(false);
-  const [showAllSpecs, setShowAllSpecs] = useState(false);
+  const [specsModalVisible, setSpecsModalVisible] = useState(false);
 
   const handleBack = React.useCallback(() => {
     if (params.from) {
@@ -476,6 +559,69 @@ export default function OrderDetailsScreen() {
   const platedEdges = (spec?.PlatedEdges || 'No').trim();
   const rohs = (spec?.Rohs || 'Yes').trim();
   const blindBuriedVias = (spec?.BlindOrBuriedVias || 'No').trim();
+
+  const allSpecsList = useMemo(
+    () => [
+      { label: 'Part Number', value: partNo, isBold: true },
+      { label: 'Revision', value: rev },
+      { label: 'Order Type', value: orderTypeSpec },
+      { label: 'Layer Count', value: layerCount },
+      { label: 'Base Material', value: material },
+      { label: 'Board Thickness', value: thickness },
+      { label: 'Board Dimensions', value: boardSize },
+      { label: 'Panel Dimensions', value: panelSize || 'N/A' },
+      { label: 'Boards per Panel', value: boardsPerPanel },
+      { label: 'Plating Finish', value: plating },
+      { label: 'Solder Mask Color', value: maskColor },
+      { label: 'Silkscreen Color', value: silkColor },
+      { label: 'Inner Copper Weight', value: innerCopper },
+      { label: 'Outer Copper Weight', value: outerCopper },
+      { label: 'SMD Placement', value: smdSided },
+      { label: 'SMD Pitch', value: smdPitch },
+      { label: 'SMD Pads Count', value: smdPads },
+      { label: 'Total Hole Count', value: approxHoles },
+      { label: 'Smallest Hole Size', value: smallestHoles },
+      { label: 'Min Trace Width', value: minTrace },
+      { label: 'Min Trace Spacing', value: minSpace },
+      { label: 'IPC Classification', value: ipcClass },
+      { label: 'Electrical Testing', value: testing },
+      { label: 'Routing Method', value: routing },
+      { label: 'Controlled Impedance', value: controlledImpedance },
+      { label: 'Plated Edges', value: platedEdges },
+      { label: 'RoHS Compliance', value: rohs },
+      { label: 'Blind / Buried Vias', value: blindBuriedVias },
+    ],
+    [
+      partNo,
+      rev,
+      orderTypeSpec,
+      layerCount,
+      material,
+      thickness,
+      boardSize,
+      panelSize,
+      boardsPerPanel,
+      plating,
+      maskColor,
+      silkColor,
+      innerCopper,
+      outerCopper,
+      smdSided,
+      smdPitch,
+      smdPads,
+      approxHoles,
+      smallestHoles,
+      minTrace,
+      minSpace,
+      ipcClass,
+      testing,
+      routing,
+      controlledImpedance,
+      platedEdges,
+      rohs,
+      blindBuriedVias,
+    ]
+  );
 
   // Vendor
   const vendorObj = order?.orderVendors && order.orderVendors.length > 0 ? order.orderVendors[0] : null;
@@ -634,29 +780,31 @@ export default function OrderDetailsScreen() {
         {/* Section 2: SPECIFICATIONS */}
         <View style={styles.sectionWrap}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionHeaderTitle}>SPECIFICATIONS</Text>
-            {isItar ? (
-              <View style={styles.itarBadge}>
-                <Ionicons name="shield-checkmark" size={12} color="#DC2626" />
-                <Text style={styles.itarBadgeText}>ITAR RESTRICTED</Text>
-              </View>
-            ) : null}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={styles.sectionHeaderTitle}>SPECIFICATIONS</Text>
+              {isItar ? (
+                <View style={styles.itarBadge}>
+                  <Ionicons name="shield-checkmark" size={12} color="#DC2626" />
+                  <Text style={styles.itarBadgeText}>ITAR RESTRICTED</Text>
+                </View>
+              ) : null}
+            </View>
+
+            <TouchableOpacity
+              style={styles.viewAllHeaderBtn}
+              onPress={() => setSpecsModalVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.viewAllHeaderBtnText}>View All</Text>
+              <Ionicons name="chevron-forward" size={14} color="#2563EB" />
+            </TouchableOpacity>
           </View>
+
+          {/* Minimal 5 Core Parameters */}
           <View style={styles.cardGroup}>
-            {/* Primary Parameters */}
             <View style={styles.specRowItem}>
               <Text style={styles.specRowKey}>Part Number</Text>
               <Text style={styles.specRowValueBold}>{partNo}</Text>
-            </View>
-
-            <View style={styles.specRowItem}>
-              <Text style={styles.specRowKey}>Revision</Text>
-              <Text style={styles.specRowValue}>{rev}</Text>
-            </View>
-
-            <View style={styles.specRowItem}>
-              <Text style={styles.specRowKey}>Order Type</Text>
-              <Text style={styles.specRowValue}>{orderTypeSpec}</Text>
             </View>
 
             <View style={styles.specRowItem}>
@@ -674,136 +822,10 @@ export default function OrderDetailsScreen() {
               <Text style={styles.specRowValue}>{thickness}</Text>
             </View>
 
-            <View style={styles.specRowItem}>
+            <View style={[styles.specRowItem, { borderBottomWidth: 0 }]}>
               <Text style={styles.specRowKey}>Board Dimensions</Text>
               <Text style={styles.specRowValue}>{boardSize}</Text>
             </View>
-
-            <View style={styles.specRowItem}>
-              <Text style={styles.specRowKey}>Panel Dimensions</Text>
-              <Text style={styles.specRowValue}>{panelSize || 'N/A'}</Text>
-            </View>
-
-            <View style={styles.specRowItem}>
-              <Text style={styles.specRowKey}>Plating Finish</Text>
-              <Text style={styles.specRowValue}>{plating}</Text>
-            </View>
-
-            <View style={styles.specRowItem}>
-              <Text style={styles.specRowKey}>Solder Mask Color</Text>
-              <Text style={styles.specRowValue}>{maskColor}</Text>
-            </View>
-
-            <View style={styles.specRowItem}>
-              <Text style={styles.specRowKey}>Silkscreen Color</Text>
-              <Text style={styles.specRowValue}>{silkColor}</Text>
-            </View>
-
-            {/* Extended Specs (Shown when expanded) */}
-            {showAllSpecs && (
-              <>
-                <View style={styles.specRowItem}>
-                  <Text style={styles.specRowKey}>Boards per Panel</Text>
-                  <Text style={styles.specRowValue}>{boardsPerPanel}</Text>
-                </View>
-
-                <View style={styles.specRowItem}>
-                  <Text style={styles.specRowKey}>Inner Copper Weight</Text>
-                  <Text style={styles.specRowValue}>{innerCopper}</Text>
-                </View>
-
-                <View style={styles.specRowItem}>
-                  <Text style={styles.specRowKey}>Outer Copper Weight</Text>
-                  <Text style={styles.specRowValue}>{outerCopper}</Text>
-                </View>
-
-                <View style={styles.specRowItem}>
-                  <Text style={styles.specRowKey}>SMD Placement</Text>
-                  <Text style={styles.specRowValue}>{smdSided}</Text>
-                </View>
-
-                <View style={styles.specRowItem}>
-                  <Text style={styles.specRowKey}>SMD Pitch</Text>
-                  <Text style={styles.specRowValue}>{smdPitch}</Text>
-                </View>
-
-                <View style={styles.specRowItem}>
-                  <Text style={styles.specRowKey}>SMD Pads Count</Text>
-                  <Text style={styles.specRowValue}>{smdPads}</Text>
-                </View>
-
-                <View style={styles.specRowItem}>
-                  <Text style={styles.specRowKey}>Total Hole Count</Text>
-                  <Text style={styles.specRowValue}>{approxHoles}</Text>
-                </View>
-
-                <View style={styles.specRowItem}>
-                  <Text style={styles.specRowKey}>Smallest Hole Size</Text>
-                  <Text style={styles.specRowValue}>{smallestHoles}</Text>
-                </View>
-
-                <View style={styles.specRowItem}>
-                  <Text style={styles.specRowKey}>Min Trace</Text>
-                  <Text style={styles.specRowValue}>{minTrace}</Text>
-                </View>
-
-                <View style={styles.specRowItem}>
-                  <Text style={styles.specRowKey}>Min Space</Text>
-                  <Text style={styles.specRowValue}>{minSpace}</Text>
-                </View>
-
-                <View style={styles.specRowItem}>
-                  <Text style={styles.specRowKey}>IPC Class</Text>
-                  <Text style={styles.specRowValue}>{ipcClass}</Text>
-                </View>
-
-                <View style={styles.specRowItem}>
-                  <Text style={styles.specRowKey}>Electrical Testing</Text>
-                  <Text style={styles.specRowValue}>{testing}</Text>
-                </View>
-
-                <View style={styles.specRowItem}>
-                  <Text style={styles.specRowKey}>Routing Method</Text>
-                  <Text style={styles.specRowValue}>{routing}</Text>
-                </View>
-
-                <View style={styles.specRowItem}>
-                  <Text style={styles.specRowKey}>Controlled Impedance</Text>
-                  <Text style={styles.specRowValue}>{controlledImpedance}</Text>
-                </View>
-
-                <View style={styles.specRowItem}>
-                  <Text style={styles.specRowKey}>Plated Edges</Text>
-                  <Text style={styles.specRowValue}>{platedEdges}</Text>
-                </View>
-
-                <View style={styles.specRowItem}>
-                  <Text style={styles.specRowKey}>RoHS Compliant</Text>
-                  <Text style={styles.specRowValue}>{rohs}</Text>
-                </View>
-
-                <View style={[styles.specRowItem, { borderBottomWidth: 0 }]}>
-                  <Text style={styles.specRowKey}>Blind / Buried Vias</Text>
-                  <Text style={styles.specRowValue}>{blindBuriedVias}</Text>
-                </View>
-              </>
-            )}
-
-            {/* Toggle Button */}
-            <TouchableOpacity
-              style={styles.specToggleBtn}
-              onPress={() => setShowAllSpecs(!showAllSpecs)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.specToggleBtnText}>
-                {showAllSpecs ? 'Show Less' : 'Show All Specifications (25 Parameters)'}
-              </Text>
-              <Ionicons
-                name={showAllSpecs ? 'chevron-up' : 'chevron-down'}
-                size={16}
-                color="#0F172A"
-              />
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -885,6 +907,14 @@ export default function OrderDetailsScreen() {
         invAmount={invAmount}
         companyName={companyName}
         orderNo={orderNo}
+      />
+
+      <AllSpecificationsModal
+        visible={specsModalVisible}
+        onClose={() => setSpecsModalVisible(false)}
+        orderNo={orderNo}
+        isItar={isItar}
+        specsList={allSpecsList}
       />
     </SafeAreaView>
   );
@@ -1030,6 +1060,19 @@ const styles = StyleSheet.create({
     color: SECONDARY,
     letterSpacing: 0.8,
     marginLeft: 2,
+  },
+  viewAllHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+  },
+  viewAllHeaderBtnText: {
+    fontSize: 13,
+    fontFamily: Typography.headingSemiBold,
+    color: '#2563EB',
+    fontWeight: '600',
   },
   itarBadge: {
     flexDirection: 'row',

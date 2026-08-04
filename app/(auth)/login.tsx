@@ -40,24 +40,44 @@ export default function LoginChooserScreen() {
     try {
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+      const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
+      const isFaceID = supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION);
+      const isFingerprint = supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT);
+
+      const promptTitle = isFaceID
+        ? 'Log in with Face ID'
+        : isFingerprint
+        ? 'Log in with Fingerprint'
+        : 'Log in to iRUSH';
+
+      const lastUserId = await SecureStore.getItemAsync('lastAuthenticatedUserId');
+      let user = lastUserId ? MOCK_USERS.find(u => u.id === lastUserId) : MOCK_USERS[0];
+      if (!user) user = MOCK_USERS[0];
+
       if (!hasHardware || !isEnrolled) {
-        setBiometricError("Biometric login isn't set up on this device.");
-        setIsBiometricLoading(false);
+        // Fallback to passcode prompt if biometrics not configured
+        const fallbackResult = await LocalAuthentication.authenticateAsync({
+          promptMessage: 'Authenticate with System Passcode',
+          fallbackLabel: 'Use MPIN instead',
+          disableDeviceFallback: false,
+        });
+
+        if (fallbackResult.success) {
+          login(user);
+          router.replace('/(dashboard)');
+        } else if (fallbackResult.error !== 'user_cancel') {
+          setBiometricError('Passcode authentication failed');
+        }
         return;
       }
 
-      // TODO: replace with real last authenticated user lookup from SecureStore
-      const lastUserId = await SecureStore.getItemAsync('lastAuthenticatedUserId');
-      let user = lastUserId ? MOCK_USERS.find(u => u.id === lastUserId) : MOCK_USERS[0];
-
-      if (!user) {
-        user = MOCK_USERS[0];
-      }
-
+      // Primary Biometric Prompt (Face ID on iPhone, Fingerprint on Android)
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Log in to iRUSH',
+        promptMessage: promptTitle,
         cancelLabel: 'Cancel',
-        fallbackLabel: 'Use MPIN instead',
+        fallbackLabel: 'Use MPIN or Passcode',
+        disableDeviceFallback: false,
       });
 
       if (result.success) {

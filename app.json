@@ -32,7 +32,13 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "iRUSH uses Face ID to let you log in quickly and securely."
+        }
+      ]
     ]
   }
 }

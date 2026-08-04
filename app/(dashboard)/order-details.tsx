@@ -526,41 +526,78 @@ export default function OrderDetailsScreen() {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Top Hero Section */}
         <View style={styles.heroSection}>
-          <Text style={styles.heroCompanyName}>{companyName}</Text>
-          <Text style={styles.heroAmount}>Order #{orderNo}</Text>
-          <Text style={styles.heroSubtitle}>
-            {formatCurrencyWithCents(orderTotal)} · {orderStatus}
-          </Text>
+          <View style={styles.heroRow}>
+            {/* Left Stack: Company -> Order No -> Order Value -> Part No */}
+            <View style={styles.heroLeftCol}>
+              <Text style={styles.heroCompanyName} numberOfLines={1}>
+                {companyName} · {orderStatus}
+              </Text>
 
-          {/* Quick Action Buttons Row */}
-          <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.actionItem} onPress={() => setLocationModalVisible(true)} activeOpacity={0.7}>
-              <View style={styles.actionCircle}>
-                <Ionicons name="location-outline" size={20} color={PRIMARY} />
+              <View style={styles.orderNoPill}>
+                <Text style={styles.orderNoPillText}>#{orderNo}</Text>
               </View>
-              <Text style={styles.actionLabel}>Location</Text>
-            </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionItem} onPress={() => setContactModalVisible(true)} activeOpacity={0.7}>
-              <View style={styles.actionCircle}>
-                <Ionicons name="call-outline" size={20} color={PRIMARY} />
-              </View>
-              <Text style={styles.actionLabel}>Contact</Text>
-            </TouchableOpacity>
+              <Text style={styles.heroAmount}>{formatCurrencyWithCents(orderTotal)}</Text>
 
-            <TouchableOpacity style={styles.actionItem} onPress={() => setTrackModalVisible(true)} activeOpacity={0.7}>
-              <View style={styles.actionCircle}>
-                <Ionicons name="bus-outline" size={20} color={PRIMARY} />
-              </View>
-              <Text style={styles.actionLabel}>Track</Text>
-            </TouchableOpacity>
+              <Text style={styles.heroPartNo} numberOfLines={1}>
+                {partNo ? `Part: ${partNo}` : `Quote ${quoteNo}`}
+              </Text>
+            </View>
 
-            <TouchableOpacity style={styles.actionItem} onPress={() => setInvoiceModalVisible(true)} activeOpacity={0.7}>
-              <View style={styles.actionCircle}>
-                <Ionicons name="document-text-outline" size={20} color={PRIMARY} />
+            {/* Right Stack: 2x2 Grid Action Buttons */}
+            <View style={styles.heroActionGrid}>
+              <View style={styles.actionGridRow}>
+                {/* Call */}
+                <TouchableOpacity
+                  style={styles.gridActionBtn}
+                  onPress={() => setContactModalVisible(true)}
+                  activeOpacity={0.75}
+                >
+                  <View style={styles.gridActionCircle}>
+                    <Ionicons name="call-outline" size={18} color={PRIMARY} />
+                  </View>
+                  <Text style={styles.gridActionLabel}>Call</Text>
+                </TouchableOpacity>
+
+                {/* Email */}
+                <TouchableOpacity
+                  style={styles.gridActionBtn}
+                  onPress={() => setContactModalVisible(true)}
+                  activeOpacity={0.75}
+                >
+                  <View style={styles.gridActionCircle}>
+                    <Ionicons name="mail-outline" size={18} color={PRIMARY} />
+                  </View>
+                  <Text style={styles.gridActionLabel}>Email</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.actionLabel}>Invoice</Text>
-            </TouchableOpacity>
+
+              <View style={styles.actionGridRow}>
+                {/* Track */}
+                <TouchableOpacity
+                  style={styles.gridActionBtn}
+                  onPress={() => setTrackModalVisible(true)}
+                  activeOpacity={0.75}
+                >
+                  <View style={styles.gridActionCircle}>
+                    <Ionicons name="bus-outline" size={18} color={PRIMARY} />
+                  </View>
+                  <Text style={styles.gridActionLabel}>Track</Text>
+                </TouchableOpacity>
+
+                {/* Invoice */}
+                <TouchableOpacity
+                  style={styles.gridActionBtn}
+                  onPress={() => setInvoiceModalVisible(true)}
+                  activeOpacity={0.75}
+                >
+                  <View style={styles.gridActionCircle}>
+                    <Ionicons name="receipt-outline" size={18} color={PRIMARY} />
+                  </View>
+                  <Text style={styles.gridActionLabel}>Invoice</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -902,52 +939,83 @@ const styles = StyleSheet.create({
 
   // Hero section
   heroSection: {
+    paddingVertical: 12,
+  },
+  heroRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    justifyContent: 'space-between',
+  },
+  heroLeftCol: {
+    flex: 1,
+    paddingRight: 12,
+    alignItems: 'flex-start',
+    gap: 4,
   },
   heroCompanyName: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Typography.bodyMedium,
     color: SECONDARY,
   },
+  orderNoPill: {
+    backgroundColor: '#283344',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginVertical: 2,
+  },
+  orderNoPillText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '700',
+  },
   heroAmount: {
-    fontSize: 32,
+    fontSize: 28,
     fontFamily: Typography.titleSerif,
     fontWeight: '700',
     color: PRIMARY,
-    marginVertical: 4,
+    marginVertical: 2,
   },
-  heroSubtitle: {
-    fontSize: 13,
+  heroPartNo: {
+    fontSize: 12.5,
     fontFamily: Typography.bodyMedium,
-    color: '#475569',
+    color: SECONDARY,
   },
 
-  // Action buttons
-  actionRow: {
+  // 2x2 Action Buttons Grid
+  heroActionGrid: {
+    gap: 10,
+    alignItems: 'flex-end',
+  },
+  actionGridRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 20,
-    marginTop: 20,
+    gap: 12,
   },
-  actionItem: {
+  gridActionBtn: {
     alignItems: 'center',
+    width: 44,
   },
-  actionCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: CARD_BG,
+  gridActionCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: CARD_BORDER,
-    justifyContent: 'center',
+    borderColor: '#E2E8F0',
     alignItems: 'center',
-    shadowColor: '#000',
+    justifyContent: 'center',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  gridActionLabel: {
+    fontSize: 11,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+    marginTop: 3,
   },
   actionLabel: {
     fontSize: 12,

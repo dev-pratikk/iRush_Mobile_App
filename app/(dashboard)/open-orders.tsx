@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColors } from '../../context/ThemeContext';
 import { useAuthContext } from '../../context/AuthContext';
 import { Typography } from '../../constants/Typography';
-import { router, usePathname } from 'expo-router';
+import { router, usePathname, useFocusEffect } from 'expo-router';
 import {
   OpenOrdersResponse,
   EMPTY_OPEN_ORDERS,
@@ -205,9 +205,11 @@ export default function OpenOrdersScreen() {
     }
   }, [user]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

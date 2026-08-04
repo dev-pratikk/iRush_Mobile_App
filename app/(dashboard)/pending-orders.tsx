@@ -16,7 +16,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { useAuthContext } from '../../context/AuthContext';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { formatCurrencyWithCents, formatNumber, formatOrderDate } from '../../services/api/orders.service';
 import {
   SAMPLE_OPEN_ORDERS,
@@ -407,6 +407,16 @@ export default function PendingOrdersScreen() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchParam]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setInputText('');
+      setDebouncedValue('');
+      setSelectedSalesperson(null);
+      setCurrentPage(1);
+      refetch();
+    }, [refetch])
+  );
 
   useEffect(() => {
     if (pendingAdvanceRef.current && !isFetchingNextPage) {

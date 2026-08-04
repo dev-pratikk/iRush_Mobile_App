@@ -11,7 +11,7 @@ import { useThemeColors } from '../../context/ThemeContext';
 import { Typography } from '../../constants/Typography';
 import { useNavigation } from '@react-navigation/native';
 import { DrawerActions } from '@react-navigation/native';
-import { router, usePathname } from 'expo-router';
+import { router, usePathname, useFocusEffect } from 'expo-router';
 import {
   getDashboardStats,
   DashboardStatsResponse,
@@ -199,25 +199,27 @@ export default function DashboardScreen() {
     }
   }, [user]);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchStats().then(() => {});
-    const safetyTimer = setTimeout(() => {
-      if (!cancelled) {
-        setLoading((prev) => {
-          if (prev) {
-            setError('Loading is taking longer than expected — pull down to retry');
-            return false;
-          }
-          return prev;
-        });
-      }
-    }, 12000);
-    return () => {
-      cancelled = true;
-      clearTimeout(safetyTimer);
-    };
-  }, [fetchStats]);
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      fetchStats().then(() => {});
+      const safetyTimer = setTimeout(() => {
+        if (!cancelled) {
+          setLoading((prev) => {
+            if (prev) {
+              setError('Loading is taking longer than expected — pull down to retry');
+              return false;
+            }
+            return prev;
+          });
+        }
+      }, 12000);
+      return () => {
+        cancelled = true;
+        clearTimeout(safetyTimer);
+      };
+    }, [fetchStats])
+  );
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.card }]} edges={['top', 'left', 'right']}>

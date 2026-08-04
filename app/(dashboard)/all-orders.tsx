@@ -15,7 +15,7 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useAuthContext } from '../../context/AuthContext';
 import {
   formatCurrencyWithCents,
@@ -444,6 +444,19 @@ export default function AllOrdersScreen() {
     refetch,
     isRefreshing,
   } = useOrders(apiPeriod, token, searchParam, calculatedRange);
+
+  useFocusEffect(
+    useCallback(() => {
+      setInputText('');
+      setDebouncedValue('');
+      setSelectedSalesperson(null);
+      setActivePreset(params.period === 'month' ? 'month' : 'today');
+      setCustomRange(null);
+      setFilterModalVisible(false);
+      setCurrentPage(1);
+      refetch();
+    }, [params.period, refetch])
+  );
 
   const totalAmountCalculated = useMemo(() => {
     if (meta?.totalAmount && meta.totalAmount > 0) return meta.totalAmount;

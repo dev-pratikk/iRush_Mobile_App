@@ -20,7 +20,7 @@ import {
   SkeletonSummaryCard,
   SkeletonKpiCard,
 } from '../../components/ui/SkeletonLoader';
-import { router, usePathname } from 'expo-router';
+import { router, usePathname, useFocusEffect } from 'expo-router';
 import {
   formatCurrencyWithCents,
   formatNumber,
@@ -473,9 +473,16 @@ export default function OrdersScreen() {
     }
   }, [activePreset, customRange, token]);
 
-  useEffect(() => {
-    loadOverview();
-  }, [loadOverview]);
+  useFocusEffect(
+    useCallback(() => {
+      setActivePreset('today');
+      setCustomRange(null);
+      setQuery('');
+      setFilterModalVisible(false);
+      setSearchModalVisible(false);
+      loadOverview();
+    }, [loadOverview])
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

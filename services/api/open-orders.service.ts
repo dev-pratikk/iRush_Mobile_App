@@ -190,7 +190,8 @@ export const fetchOpenOrdersPage = async (
       query.pcbpartNo = val;
       query.partNo = val;
     } else if (options.search.type === 'salesperson') {
-      query.salespPerson = val; // Note backend typo: salespPerson
+      query.salesPerson = val;
+      query.salespPerson = val;
     }
   }
 

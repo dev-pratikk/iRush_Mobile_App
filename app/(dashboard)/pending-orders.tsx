@@ -26,6 +26,7 @@ import {
   type OpenOrderSearchParam,
 } from '../../services/api/open-orders.service';
 import { usePendingOrders, type OpenOrderRowItem } from '../../hooks/useOpenOrders';
+import { useSalespersons } from '../../hooks/useSalespersons';
 import { PaginationFooter } from '../../components/ui/PaginationFooter';
 import type { PendingOrdersSummary } from '../../types/api/open-orders';
 import { SkeletonRowItem, SkeletonSummaryCard } from '../../components/ui/SkeletonLoader';
@@ -153,7 +154,6 @@ const SearchBarSection = ({
   setInputText,
   selectedSalesperson,
   setSelectedSalesperson,
-  availableSalespersons,
   onFocusChange,
   onClear,
 }: {
@@ -161,10 +161,12 @@ const SearchBarSection = ({
   setInputText: (text: string) => void;
   selectedSalesperson: string | null;
   setSelectedSalesperson: (sp: string | null) => void;
-  availableSalespersons: string[];
   onFocusChange: (focused: boolean) => void;
   onClear: () => void;
 }) => {
+  const { user } = useAuthContext();
+  const token = (user as any)?.token ?? null;
+  const { data: salespersons = [], isLoading } = useSalespersons(token);
   const [modalVisible, setModalVisible] = useState(false);
 
   const handleSelectSalesperson = (sp: string | null) => {
@@ -228,15 +230,22 @@ const SearchBarSection = ({
                 <Text style={[styles.modalItemText, !selectedSalesperson && styles.modalItemTextActive]}>All Salespersons (No filter)</Text>
                 {!selectedSalesperson && <Ionicons name="checkmark" size={18} color={PRIMARY} />}
               </TouchableOpacity>
-              {availableSalespersons.map((sp, idx) => {
-                const isActive = selectedSalesperson === sp;
-                return (
-                  <TouchableOpacity key={idx} style={[styles.modalItem, isActive && styles.modalItemActive]} onPress={() => handleSelectSalesperson(sp)}>
-                    <Text style={[styles.modalItemText, isActive && styles.modalItemTextActive]}>{sp}</Text>
-                    {isActive && <Ionicons name="checkmark" size={18} color={PRIMARY} />}
-                  </TouchableOpacity>
-                );
-              })}
+              {isLoading ? (
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color={PRIMARY} />
+                </View>
+              ) : (
+                salespersons.map((sp) => {
+                  const spName = sp.salespersonName;
+                  const isActive = selectedSalesperson === spName;
+                  return (
+                    <TouchableOpacity key={sp.salespersonId} style={[styles.modalItem, isActive && styles.modalItemActive]} onPress={() => handleSelectSalesperson(spName)}>
+                      <Text style={[styles.modalItemText, isActive && styles.modalItemTextActive]}>{spName}</Text>
+                      {isActive && <Ionicons name="checkmark" size={18} color={PRIMARY} />}
+                    </TouchableOpacity>
+                  );
+                })
+              )}
             </ScrollView>
           </View>
         </View>
@@ -543,7 +552,6 @@ export default function PendingOrdersScreen() {
           setInputText={setInputText}
           selectedSalesperson={selectedSalesperson}
           setSelectedSalesperson={setSelectedSalesperson}
-          availableSalespersons={availableSalespersons}
           onFocusChange={setShowSuggestions}
           onClear={handleClearSearch}
         />

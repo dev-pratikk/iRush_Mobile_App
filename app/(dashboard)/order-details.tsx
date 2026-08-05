@@ -672,69 +672,55 @@ export default function OrderDetailsScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Top Hero Section matching exact screenshot */}
-        <View style={styles.heroHeaderContainer}>
-          {/* Left Column: Company, Order #, Amount & Status */}
-          <View style={styles.heroLeftCol}>
-            <Text style={styles.heroCompanyName} numberOfLines={1}>
-              {companyName}
+        {/* Top Hero Section matching exact screenshot layout */}
+        <View style={styles.heroSectionCentered}>
+          <Text style={styles.heroCompanyNameCentered} numberOfLines={1}>
+            {companyName}
+          </Text>
+          <Text style={styles.heroOrderNoCentered} numberOfLines={1}>
+            Order #{orderNo}
+          </Text>
+          <View style={styles.heroStatusRowCentered}>
+            <Text style={styles.heroAmountTextCentered}>
+              {formatCurrencyWithCents(orderTotal)}
             </Text>
-            <Text style={styles.heroOrderNo} numberOfLines={1}>
-              Order #{orderNo}
-            </Text>
-            <View style={styles.heroStatusRow}>
-              <Text style={styles.heroAmountText}>
-                {formatCurrencyWithCents(orderTotal)}
-              </Text>
-              <Text style={styles.heroDotText}> · </Text>
-              <Text style={[styles.heroStatusText, orderStatus.toLowerCase() === 'open' ? styles.statusOpen : styles.statusOther]}>
-                {orderStatus}
-              </Text>
-            </View>
-            <Text style={styles.heroPartNoText} numberOfLines={1}>
-              Part #: {partNo}
+            <Text style={styles.heroDotTextCentered}> · </Text>
+            <Text
+              style={[
+                styles.heroStatusTextCentered,
+                orderStatus.toLowerCase() === 'open' ? styles.statusOpen : styles.statusOther,
+              ]}
+            >
+              {orderStatus}
             </Text>
           </View>
+          <Text style={styles.heroPartNoTextCentered} numberOfLines={1}>
+            Part #: {partNo}
+          </Text>
 
-          {/* Right Column: 2x2 Grid Circular Action Icon Buttons (No text) */}
-          <View style={styles.actionGridContainer}>
-            {/* Row 1: Location & Contact */}
-            <View style={styles.actionGridRow}>
-              <TouchableOpacity
-                style={styles.actionCircleBtn}
-                onPress={() => setLocationModalVisible(true)}
-                activeOpacity={0.75}
-              >
-                <Ionicons name="location-outline" size={20} color="#0F172A" />
-              </TouchableOpacity>
+          {/* Action Buttons Row: Contact & Track (Location and Invoice removed) */}
+          <View style={styles.actionButtonsRowCentered}>
+            <TouchableOpacity
+              style={styles.actionItemCentered}
+              onPress={() => setContactModalVisible(true)}
+              activeOpacity={0.75}
+            >
+              <View style={styles.actionCircleCentered}>
+                <Ionicons name="call-outline" size={22} color="#0F172A" />
+              </View>
+              <Text style={styles.actionLabelCentered}>Contact</Text>
+            </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.actionCircleBtn}
-                onPress={() => setContactModalVisible(true)}
-                activeOpacity={0.75}
-              >
-                <Ionicons name="call-outline" size={20} color="#0F172A" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Row 2: Track & Invoice */}
-            <View style={styles.actionGridRow}>
-              <TouchableOpacity
-                style={styles.actionCircleBtn}
-                onPress={() => setTrackModalVisible(true)}
-                activeOpacity={0.75}
-              >
-                <Ionicons name="bus-outline" size={20} color="#0F172A" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionCircleBtn}
-                onPress={() => setInvoiceModalVisible(true)}
-                activeOpacity={0.75}
-              >
-                <Ionicons name="document-text-outline" size={20} color="#0F172A" />
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.actionItemCentered}
+              onPress={() => setTrackModalVisible(true)}
+              activeOpacity={0.75}
+            >
+              <View style={styles.actionCircleCentered}>
+                <Ionicons name="bus-outline" size={22} color="#0F172A" />
+              </View>
+              <Text style={styles.actionLabelCentered}>Track</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -943,51 +929,46 @@ const styles = StyleSheet.create({
     gap: 18,
   },
 
-  // Top Hero Container matching exact screenshot
-  heroHeaderContainer: {
-    flexDirection: 'row',
+  // Centered Hero section matching user's image layout
+  heroSectionCentered: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 2,
-    marginBottom: 4,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
-  heroLeftCol: {
-    flex: 1,
-    paddingRight: 10,
-    justifyContent: 'center',
-  },
-  heroCompanyName: {
-    fontSize: 15,
+  heroCompanyNameCentered: {
+    fontSize: 14,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '600',
-    color: '#334155',
-    marginBottom: 2,
+    color: '#475569',
+    marginBottom: 4,
+    textAlign: 'center',
   },
-  heroOrderNo: {
-    fontSize: 24,
+  heroOrderNoCentered: {
+    fontSize: 30,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '800',
     color: '#0F172A',
-    letterSpacing: -0.4,
-    marginBottom: 4,
+    letterSpacing: -0.5,
+    marginBottom: 6,
+    textAlign: 'center',
   },
-  heroStatusRow: {
+  heroStatusRowCentered: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  heroAmountText: {
+  heroAmountTextCentered: {
     fontSize: 15,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '600',
     color: '#475569',
   },
-  heroDotText: {
+  heroDotTextCentered: {
     fontSize: 15,
     fontFamily: Typography.headingSemiBold,
     color: '#94A3B8',
   },
-  heroStatusText: {
+  heroStatusTextCentered: {
     fontSize: 15,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '700',
@@ -998,25 +979,29 @@ const styles = StyleSheet.create({
   statusOther: {
     color: '#3B82F6',
   },
-  heroPartNoText: {
-    fontSize: 13,
+  heroPartNoTextCentered: {
+    fontSize: 13.5,
     fontFamily: Typography.bodyMedium,
     color: '#64748B',
-    marginTop: 3,
+    marginTop: 4,
+    textAlign: 'center',
   },
 
-  // Right Side 2x2 Grid Circular Action Icon Buttons
-  actionGridContainer: {
-    gap: 8,
-  },
-  actionGridRow: {
+  // Centered Action Buttons (Contact & Track)
+  actionButtonsRowCentered: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 36,
+    marginTop: 20,
   },
-  actionCircleBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  actionItemCentered: {
+    alignItems: 'center',
+  },
+  actionCircleCentered: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -1027,6 +1012,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 3,
     elevation: 1,
+  },
+  actionLabelCentered: {
+    fontSize: 12.5,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '600',
+    color: '#334155',
+    marginTop: 6,
   },
 
   // Sections

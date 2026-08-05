@@ -1006,7 +1006,7 @@ const styles = StyleSheet.create({
   dateText: { fontSize: 12, fontFamily: Typography.body, color: SECONDARY },
   daysText: { fontSize: 12, fontFamily: Typography.bodyMedium, color: SECONDARY },
 
-  separator: { height: hairline, backgroundColor: '#E7E6E2', marginHorizontal: 16 },
+  separator: { height: 0 },
   listDivider: { height: 1, backgroundColor: '#E7E6E2' },
 
   errorRow: {

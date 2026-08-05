@@ -151,7 +151,7 @@ export const getOpenOrders = async (
 // Separate call per filter (pending | partial), always sends limit=10 explicitly.
 // Returns PaginatedResult<OpenOrderItem> + summary objects in the extra fields.
 export type OpenOrderFilter = 'pending' | 'partial';
-export type OpenOrderSearchType = 'orderNo' | 'companyName' | 'partNumber' | 'salesperson';
+export type OpenOrderSearchType = 'orderNo' | 'companyCode' | 'companyName' | 'partNumber' | 'salesperson';
 
 export interface OpenOrderSearchParam {
   type: OpenOrderSearchType;
@@ -183,6 +183,8 @@ export const fetchOpenOrdersPage = async (
     const val = options.search.value.trim();
     if (options.search.type === 'orderNo') {
       query.orderNo = val;
+    } else if (options.search.type === 'companyCode') {
+      query.companyCode = val;
     } else if (options.search.type === 'companyName') {
       query.companyName = val;
     } else if (options.search.type === 'partNumber') {

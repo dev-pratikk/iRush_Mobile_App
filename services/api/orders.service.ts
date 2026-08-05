@@ -71,28 +71,12 @@ export const getDashboardOrders = async (
 };
 
 // ─── Paginated fetcher for useInfiniteResource ──────────────────────────────
-export type OrdersSearchType = 'orderNo' | 'companyName' | 'partNumber' | 'salesperson';
+export type OrdersSearchType = 'orderNo' | 'companyCode' | 'companyName' | 'partNumber' | 'salesperson';
 
 export interface OrdersSearchParam {
   type: OrdersSearchType;
   value: string;
 }
-
-export const getOrdersByPartNumber = async (
-  partNumber: string,
-  options?: { token?: string | null; timeoutMs?: number }
-): Promise<OrdersListResponse> => {
-  try {
-    const data = await apiClient.get<any>({
-      path: `/dashboard/partnumbers/${encodeURIComponent(partNumber.trim())}`,
-      token: options?.token,
-      timeoutMs: options?.timeoutMs ?? 15000,
-    });
-    return normalizeOrdersResponse(data);
-  } catch (error) {
-    throw toServiceError(error);
-  }
-};
 
 export const ORDERS_PAGE_LIMIT = 10;
 
@@ -116,13 +100,15 @@ export const fetchOrdersPage = async (
     const val = options.search.value.trim();
     if (options.search.type === 'orderNo') {
       query.orderNo = val;
+    } else if (options.search.type === 'companyCode') {
+      query.companyCode = val;
     } else if (options.search.type === 'companyName') {
       query.companyName = val;
     } else if (options.search.type === 'partNumber') {
       query.partNumber = val;
       query.pcbpartNo = val;
     } else if (options.search.type === 'salesperson') {
-      query.salesPerson = val; // Note: /dashboard/orders endpoint uses salesPerson (no typo!)
+      query.salesPerson = val; // Note: /dashboard/orders endpoint uses salesPerson
     }
   }
 

@@ -27,6 +27,8 @@ import {
 } from '../../services/api/open-orders.service';
 import { usePartialOrders, type OpenOrderRowItem } from '../../hooks/useOpenOrders';
 import { useSalespersons } from '../../hooks/useSalespersons';
+import { useSearchSuggestions } from '../../hooks/useSearchSuggestions';
+import type { SearchSuggestionItem } from '../../services/api/search.service';
 import { PaginationFooter } from '../../components/ui/PaginationFooter';
 import type { PartialOrdersSummary } from '../../types/api/open-orders';
 import { SkeletonRowItem, SkeletonSummaryCard } from '../../components/ui/SkeletonLoader';
@@ -342,19 +344,23 @@ export default function PartialOrdersScreen() {
   const [debouncedValue, setDebouncedValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSalesperson, setSelectedSalesperson] = useState<string | null>(null);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<SearchSuggestionItem | null>(null);
 
-  // Debounce input text by 400ms
+  const { data: searchSuggestions = [] } = useSearchSuggestions(debouncedValue, token);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const handler = setTimeout(() => {
       setDebouncedValue(inputText);
-    }, 400);
-    return () => clearTimeout(timer);
+    }, 350);
+    return () => clearTimeout(handler);
   }, [inputText]);
 
-  // Construct active search param with smart searchType auto-detection
   const searchParam: OpenOrderSearchParam | null = useMemo(() => {
     if (selectedSalesperson) {
       return { type: 'salesperson', value: selectedSalesperson };
+    }
+    if (selectedSuggestion) {
+      return { type: selectedSuggestion.type, value: selectedSuggestion.value };
     }
     const trimmed = debouncedValue.trim();
     if (!trimmed) return null;
@@ -368,7 +374,7 @@ export default function PartialOrdersScreen() {
       detectedType = 'companyName';
     }
     return { type: detectedType, value: trimmed };
-  }, [debouncedValue, selectedSalesperson]);
+  }, [debouncedValue, selectedSalesperson, selectedSuggestion]);
 
   // Fetch partial orders
   const {
@@ -465,6 +471,7 @@ export default function PartialOrdersScreen() {
     setInputText('');
     setDebouncedValue('');
     setSelectedSalesperson(null);
+    setSelectedSuggestion(null);
     setCurrentPage(1);
   }, []);
 
@@ -604,18 +611,40 @@ export default function PartialOrdersScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header />
-      {showSuggestions && screenSuggestions.length > 0 ? (
-        <View style={styles.suggestionsOverlay}>
-          {screenSuggestions.map((sug, idx) => (
+      {showSuggestions && searchSuggestions.length > 0 ? (
+        <View style={styles.suggestionsOverlay} pointerEvents="box-none">
+          {searchSuggestions.map((sug, idx) => (
             <TouchableOpacity
               key={idx}
-              style={[styles.suggestionRow, idx === screenSuggestions.length - 1 && { borderBottomWidth: 0 }]}
-              onPress={() => { setInputText(sug.text); setShowSuggestions(false); }}
+              style={[styles.suggestionRow, idx === searchSuggestions.length - 1 && { borderBottomWidth: 0 }]}
+              onPress={() => {
+                setInputText(sug.label);
+                setSelectedSuggestion(sug);
+                setShowSuggestions(false);
+              }}
               activeOpacity={0.7}
             >
-              <Ionicons name={sug.type === 'company' ? 'business-outline' : 'document-text-outline'} size={16} color={SECONDARY} style={{ marginRight: 8 }} />
-              <Text style={styles.suggestionText} numberOfLines={1}>{sug.text}</Text>
-              <Text style={styles.suggestionTypeTag}>{sug.type === 'company' ? 'Company' : 'Order'}</Text>
+              <Ionicons
+                name={
+                  sug.type === 'orderNo'
+                    ? 'document-text-outline'
+                    : sug.type === 'companyCode'
+                    ? 'business-outline'
+                    : 'cube-outline'
+                }
+                size={16}
+                color={SECONDARY}
+                style={{ marginRight: 8 }}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.suggestionText} numberOfLines={1}>{sug.label}</Text>
+                {sug.sublabel ? (
+                  <Text style={styles.suggestionSublabel} numberOfLines={1}>{sug.sublabel}</Text>
+                ) : null}
+              </View>
+              <Text style={styles.suggestionTypeTag}>
+                {sug.type === 'orderNo' ? 'Order #' : sug.type === 'companyCode' ? 'Company' : 'Part #'}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -863,30 +892,6 @@ const styles = StyleSheet.create({
     zIndex: 99999,
     overflow: 'hidden',
   },
-  suggestionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: hairline,
-    borderBottomColor: '#E7E6E2',
-  },
-  suggestionText: {
-    flex: 1,
-    fontSize: 13,
-    fontFamily: Typography.body,
-    color: PRIMARY,
-  },
-  suggestionTypeTag: {
-    fontSize: 10,
-    fontFamily: Typography.bodyMedium,
-    color: SECONDARY,
-    backgroundColor: '#F5F5F2',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
   salespersonChipInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -928,6 +933,35 @@ const styles = StyleSheet.create({
     elevation: 20,
     zIndex: 99999,
     overflow: 'hidden',
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: hairline,
+    borderBottomColor: '#E7E6E2',
+  },
+  suggestionText: {
+    fontSize: 13,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
+  },
+  suggestionSublabel: {
+    fontSize: 11,
+    fontFamily: Typography.bodyMedium,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  suggestionTypeTag: {
+    fontSize: 10,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+    backgroundColor: INPUT_BG,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
 
   // Modal

@@ -29,6 +29,8 @@ import {
 } from '../../services/api/orders.service';
 import { useOrders, type OrdersRowItem } from '../../hooks/useOrders';
 import { useSalespersons } from '../../hooks/useSalespersons';
+import { useSearchSuggestions } from '../../hooks/useSearchSuggestions';
+import type { SearchSuggestionItem } from '../../services/api/search.service';
 import { PaginationFooter } from '../../components/ui/PaginationFooter';
 import { SkeletonRowItem, SkeletonSummaryCard, SkeletonKpiCard } from '../../components/ui/SkeletonLoader';
 import { DateFilterPreset, getDateRangeForFilter, formatCustomRangeLabel } from '../../lib/date';
@@ -391,6 +393,9 @@ export default function AllOrdersScreen() {
   const [debouncedValue, setDebouncedValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSalesperson, setSelectedSalesperson] = useState<string | null>(null);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<SearchSuggestionItem | null>(null);
+
+  const { data: searchSuggestions = [] } = useSearchSuggestions(debouncedValue, token);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -403,6 +408,7 @@ export default function AllOrdersScreen() {
     setInputText('');
     setDebouncedValue('');
     setSelectedSalesperson(null);
+    setSelectedSuggestion(null);
     setCurrentPage(1);
   }, []);
 
@@ -410,11 +416,15 @@ export default function AllOrdersScreen() {
     if (selectedSalesperson) {
       return { type: 'salesperson', value: selectedSalesperson };
     }
+    if (selectedSuggestion) {
+      return { type: selectedSuggestion.type, value: selectedSuggestion.value };
+    }
     const trimmed = debouncedValue.trim();
     if (!trimmed) return null;
-    const detectedType: OrdersSearchType = /[a-zA-Z]/.test(trimmed) ? 'companyName' : 'orderNo';
+    const isNumeric = /^\d+$/.test(trimmed);
+    const detectedType: OrdersSearchType = isNumeric ? 'orderNo' : 'companyName';
     return { type: detectedType, value: trimmed };
-  }, [debouncedValue, selectedSalesperson]);
+  }, [debouncedValue, selectedSalesperson, selectedSuggestion]);
 
   const calculatedRange = useMemo(
     () => getDateRangeForFilter(activePreset, customRange),
@@ -655,32 +665,46 @@ export default function AllOrdersScreen() {
       />
 
       {/* Screen-level suggestions overlay — rendered OUTSIDE FlatList to avoid clipping */}
-      {showSuggestions && screenSuggestions.length > 0 ? (
+      {showSuggestions && searchSuggestions.length > 0 ? (
         <View style={styles.suggestionsOverlay} pointerEvents="box-none">
-          {screenSuggestions.map((sug, idx) => (
+          {searchSuggestions.map((sug, idx) => (
             <TouchableOpacity
               key={idx}
               style={[
                 styles.suggestionRow,
-                idx === screenSuggestions.length - 1 && { borderBottomWidth: 0 },
+                idx === searchSuggestions.length - 1 && { borderBottomWidth: 0 },
               ]}
               onPress={() => {
-                setInputText(sug.text);
+                setInputText(sug.label);
+                setSelectedSuggestion(sug);
                 setShowSuggestions(false);
               }}
               activeOpacity={0.7}
             >
               <Ionicons
-                name={sug.type === 'company' ? 'business-outline' : 'document-text-outline'}
+                name={
+                  sug.type === 'orderNo'
+                    ? 'document-text-outline'
+                    : sug.type === 'companyCode'
+                    ? 'business-outline'
+                    : 'cube-outline'
+                }
                 size={16}
                 color={SECONDARY}
                 style={{ marginRight: 8 }}
               />
-              <Text style={styles.suggestionText} numberOfLines={1}>
-                {sug.text}
-              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.suggestionText} numberOfLines={1}>
+                  {sug.label}
+                </Text>
+                {sug.sublabel ? (
+                  <Text style={styles.suggestionSublabel} numberOfLines={1}>
+                    {sug.sublabel}
+                  </Text>
+                ) : null}
+              </View>
               <Text style={styles.suggestionTypeTag}>
-                {sug.type === 'company' ? 'Company' : 'Order'}
+                {sug.type === 'orderNo' ? 'Order #' : sug.type === 'companyCode' ? 'Company' : 'Part #'}
               </Text>
             </TouchableOpacity>
           ))}
@@ -975,10 +999,15 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E7E6E2',
   },
   suggestionText: {
-    flex: 1,
     fontSize: 13,
-    fontFamily: Typography.body,
+    fontFamily: Typography.headingSemiBold,
     color: PRIMARY,
+  },
+  suggestionSublabel: {
+    fontSize: 11,
+    fontFamily: Typography.bodyMedium,
+    color: '#64748B',
+    marginTop: 1,
   },
   suggestionTypeTag: {
     fontSize: 10,

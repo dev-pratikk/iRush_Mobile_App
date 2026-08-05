@@ -111,10 +111,10 @@ export const OrderCard = React.memo(function OrderCard({
         </View>
 
         {/* Markup Percentage Pill */}
-        <View style={styles.markupPill}>
-          <Ionicons name="trending-up-outline" size={12} color="#059669" />
-          <Text style={styles.markupPillText}>
-            Markup: <Text style={styles.markupPillValueBold}>{calculatedMarkupPct}%</Text>
+        <View style={styles.costPill}>
+          <Ionicons name="trending-up-outline" size={12} color="#475569" />
+          <Text style={styles.pillText}>
+            Markup: <Text style={styles.pillValueBold}>{calculatedMarkupPct}%</Text>
           </Text>
         </View>
       </View>
@@ -242,17 +242,6 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 10,
   },
-  markupPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#ECFDF5',
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 10,
-  },
   pillText: {
     fontSize: 11.5,
     fontFamily: Typography.bodyMedium,
@@ -263,16 +252,5 @@ const styles = StyleSheet.create({
     fontFamily: Typography.headingSemiBold,
     fontWeight: '700',
     color: '#0F172A',
-  },
-  markupPillText: {
-    fontSize: 11.5,
-    fontFamily: Typography.bodyMedium,
-    color: '#047857',
-  },
-  markupPillValueBold: {
-    fontSize: 11.5,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '700',
-    color: '#059669',
   },
 });

@@ -56,19 +56,19 @@ export const OrderCard = React.memo(function OrderCard({
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
       {/* Top Main Section */}
       <View style={styles.mainRow}>
-        {/* Left Column: Order #, Company, Order Type */}
+        {/* Left Column: Order No (Highlighted Badge, no #), Company, Order Type */}
         <View style={styles.leftCol}>
-          <Text style={styles.orderNoText} numberOfLines={1} ellipsizeMode="tail">
-            #{formattedNo}
-          </Text>
+          <View style={styles.orderNoHighlightBadge}>
+            <Text style={styles.orderNoHighlightText} numberOfLines={1}>
+              {formattedNo}
+            </Text>
+          </View>
           <Text style={styles.companyText} numberOfLines={1} ellipsizeMode="tail">
             {companyName || 'N/A'}
           </Text>
-          <View style={styles.typeBadgePill}>
-            <Text style={styles.typeBadgeText} numberOfLines={1}>
-              {orderType.trim() || 'Full Turnkey'}
-            </Text>
-          </View>
+          <Text style={styles.orderTypeText} numberOfLines={1} ellipsizeMode="tail">
+            {orderType.trim() || 'Full Turnkey'}
+          </Text>
         </View>
 
         {/* Right Column: Order Value, Date, Days Left */}
@@ -139,34 +139,34 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingRight: 10,
   },
-  orderNoText: {
-    fontSize: 16.5,
+  orderNoHighlightBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 4,
+  },
+  orderNoHighlightText: {
+    fontSize: 14,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '700',
     color: '#0F172A',
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   companyText: {
     fontSize: 14,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '600',
     color: '#334155',
-    marginTop: 2,
   },
-  typeBadgePill: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginTop: 5,
-  },
-  typeBadgeText: {
-    fontSize: 11.5,
+  orderTypeText: {
+    fontSize: 12,
     fontFamily: Typography.bodyMedium,
     color: '#64748B',
+    marginTop: 2,
   },
   rightCol: {
     alignItems: 'flex-end',

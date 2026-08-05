@@ -304,6 +304,7 @@ const OrderRow = React.memo(function OrderRow({ item }: { item: OrdersRowItem })
       expectedVendorCount={item.expectedVendorCount}
       orderCost={item.orderCost}
       markup={item.markup}
+      markupPercentage={item.markupPercentage}
       onPress={() =>
         router.push({
           pathname: '/order-details' as any,

@@ -15,6 +15,7 @@ export interface OrderCardProps {
   expectedVendorCount?: number;
   orderCost?: number;
   markup?: number;
+  markupPercentage?: number;
   onPress?: () => void;
 }
 
@@ -29,17 +30,31 @@ export const OrderCard = React.memo(function OrderCard({
   expectedVendorCount = 1,
   orderCost = 0,
   markup,
+  markupPercentage,
   onPress,
 }: OrderCardProps) {
   const formattedNo = (orderNo || '').replace(/^#/, '').trim() || 'N/A';
   const formattedDate = formatOrderDate(orderDate);
-  const calculatedMarkup = typeof markup === 'number' ? markup : orderTotal - orderCost;
+
+  const calculatedMarkupPct = React.useMemo(() => {
+    if (typeof markupPercentage === 'number' && Number.isFinite(markupPercentage)) {
+      return Math.round(markupPercentage);
+    }
+    const cost = orderCost || 0;
+    const total = orderTotal || 0;
+    const rawMarkup = typeof markup === 'number' ? markup : total - cost;
+    if (cost > 0) {
+      return Math.round((rawMarkup / cost) * 100);
+    }
+    return total > 0 ? 100 : 0;
+  }, [markupPercentage, orderCost, orderTotal, markup]);
+
   const isLate = typeof daysLeft === 'number' && daysLeft < 0;
   const daysBadge = isLate ? `+${Math.abs(daysLeft)}d late` : `${daysLeft}d left`;
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
-      {/* Top Main Row */}
+      {/* Top Main Section */}
       <View style={styles.mainRow}>
         {/* Left Column: Order #, Company, Order Type */}
         <View style={styles.leftCol}>
@@ -49,9 +64,11 @@ export const OrderCard = React.memo(function OrderCard({
           <Text style={styles.companyText} numberOfLines={1} ellipsizeMode="tail">
             {companyName || 'N/A'}
           </Text>
-          <Text style={styles.orderTypeText} numberOfLines={1} ellipsizeMode="tail">
-            {orderType.trim() || 'Full Turnkey'}
-          </Text>
+          <View style={styles.typeBadgePill}>
+            <Text style={styles.typeBadgeText} numberOfLines={1}>
+              {orderType.trim() || 'Full Turnkey'}
+            </Text>
+          </View>
         </View>
 
         {/* Right Column: Order Value, Date, Days Left */}
@@ -75,29 +92,29 @@ export const OrderCard = React.memo(function OrderCard({
       {/* Divider */}
       <View style={styles.divider} />
 
-      {/* Bottom Financials & Vendor Row */}
-      <View style={styles.footerRow}>
-        {/* Vendor Assigned */}
-        <View style={styles.footerItem}>
-          <Ionicons name="people-outline" size={13} color="#64748B" />
-          <Text style={styles.footerLabel}>
-            <Text style={styles.footerValue}>{assignedVendorCount}/{expectedVendorCount}</Text> vendors
+      {/* Bottom Row of Clean Styled Pills */}
+      <View style={styles.footerPillRow}>
+        {/* Vendor Assigned Pill */}
+        <View style={styles.vendorPill}>
+          <Ionicons name="people-outline" size={12} color="#475569" />
+          <Text style={styles.pillText}>
+            <Text style={styles.pillValueBold}>{assignedVendorCount}/{expectedVendorCount}</Text> vendors
           </Text>
         </View>
 
-        {/* Order Cost */}
-        <View style={styles.footerItem}>
-          <Ionicons name="wallet-outline" size={13} color="#64748B" />
-          <Text style={styles.footerLabel}>
-            Cost: <Text style={styles.footerValue}>{formatCurrencyWithCents(orderCost)}</Text>
+        {/* Order Cost Pill */}
+        <View style={styles.costPill}>
+          <Ionicons name="wallet-outline" size={12} color="#475569" />
+          <Text style={styles.pillText}>
+            Cost: <Text style={styles.pillValueBold}>{formatCurrencyWithCents(orderCost)}</Text>
           </Text>
         </View>
 
-        {/* Markup Cost */}
-        <View style={styles.footerItem}>
-          <Ionicons name="trending-up-outline" size={13} color="#16A34A" />
-          <Text style={styles.footerLabel}>
-            Markup: <Text style={[styles.footerValue, { color: '#16A34A' }]}>{formatCurrencyWithCents(calculatedMarkup)}</Text>
+        {/* Markup Percentage Pill */}
+        <View style={styles.markupPill}>
+          <Ionicons name="trending-up-outline" size={12} color="#059669" />
+          <Text style={styles.markupPillText}>
+            Markup: <Text style={styles.markupPillValueBold}>{calculatedMarkupPct}%</Text>
           </Text>
         </View>
       </View>
@@ -108,15 +125,15 @@ export const OrderCard = React.memo(function OrderCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    padding: 14,
+    padding: 15,
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowRadius: 4,
+    elevation: 1.5,
   },
   mainRow: {
     flexDirection: 'row',
@@ -128,30 +145,39 @@ const styles = StyleSheet.create({
     paddingRight: 10,
   },
   orderNoText: {
-    fontSize: 16,
+    fontSize: 16.5,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '700',
     color: '#0F172A',
     letterSpacing: -0.3,
   },
   companyText: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '600',
     color: '#334155',
     marginTop: 2,
   },
-  orderTypeText: {
-    fontSize: 12,
+  typeBadgePill: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginTop: 5,
+  },
+  typeBadgeText: {
+    fontSize: 11.5,
     fontFamily: Typography.bodyMedium,
     color: '#64748B',
-    marginTop: 3,
   },
   rightCol: {
     alignItems: 'flex-end',
   },
   amountText: {
-    fontSize: 16,
+    fontSize: 16.5,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '700',
     color: '#0F172A',
@@ -165,10 +191,10 @@ const styles = StyleSheet.create({
   daysBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginTop: 5,
   },
   daysBadgeNormal: {
     backgroundColor: '#EFF6FF',
@@ -190,29 +216,68 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: '#F1F5F9',
-    marginVertical: 10,
+    marginVertical: 12,
   },
-  footerRow: {
+  footerPillRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
     gap: 6,
   },
-  footerItem: {
+  vendorPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
-  footerLabel: {
+  costPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  markupPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  pillText: {
     fontSize: 11.5,
     fontFamily: Typography.bodyMedium,
-    color: '#64748B',
+    color: '#475569',
   },
-  footerValue: {
+  pillValueBold: {
     fontSize: 11.5,
     fontFamily: Typography.headingSemiBold,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#0F172A',
+  },
+  markupPillText: {
+    fontSize: 11.5,
+    fontFamily: Typography.bodyMedium,
+    color: '#047857',
+  },
+  markupPillValueBold: {
+    fontSize: 11.5,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '700',
+    color: '#059669',
   },
 });

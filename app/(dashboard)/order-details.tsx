@@ -691,6 +691,9 @@ export default function OrderDetailsScreen() {
                 {orderStatus}
               </Text>
             </View>
+            <Text style={styles.heroPartNoText} numberOfLines={1}>
+              Part #: {partNo}
+            </Text>
           </View>
 
           {/* Right Column: 2x2 Grid Circular Action Icon Buttons (No text) */}
@@ -994,6 +997,12 @@ const styles = StyleSheet.create({
   },
   statusOther: {
     color: '#3B82F6',
+  },
+  heroPartNoText: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: '#64748B',
+    marginTop: 3,
   },
 
   // Right Side 2x2 Grid Circular Action Icon Buttons

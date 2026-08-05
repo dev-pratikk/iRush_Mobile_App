@@ -693,47 +693,43 @@ export default function OrderDetailsScreen() {
             </View>
           </View>
 
-          {/* Right Column: 2x2 Grid Action Buttons */}
+          {/* Right Column: 2x2 Grid Circular Action Icon Buttons (No text) */}
           <View style={styles.actionGridContainer}>
             {/* Row 1: Location & Contact */}
             <View style={styles.actionGridRow}>
               <TouchableOpacity
-                style={styles.actionCard}
+                style={styles.actionCircleBtn}
                 onPress={() => setLocationModalVisible(true)}
                 activeOpacity={0.75}
               >
                 <Ionicons name="location-outline" size={20} color="#0F172A" />
-                <Text style={styles.actionCardLabel}>Location</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.actionCard}
+                style={styles.actionCircleBtn}
                 onPress={() => setContactModalVisible(true)}
                 activeOpacity={0.75}
               >
                 <Ionicons name="call-outline" size={20} color="#0F172A" />
-                <Text style={styles.actionCardLabel}>Contact</Text>
               </TouchableOpacity>
             </View>
 
             {/* Row 2: Track & Invoice */}
             <View style={styles.actionGridRow}>
               <TouchableOpacity
-                style={styles.actionCard}
+                style={styles.actionCircleBtn}
                 onPress={() => setTrackModalVisible(true)}
                 activeOpacity={0.75}
               >
                 <Ionicons name="bus-outline" size={20} color="#0F172A" />
-                <Text style={styles.actionCardLabel}>Track</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.actionCard}
+                style={styles.actionCircleBtn}
                 onPress={() => setInvoiceModalVisible(true)}
                 activeOpacity={0.75}
               >
                 <Ionicons name="document-text-outline" size={20} color="#0F172A" />
-                <Text style={styles.actionCardLabel}>Invoice</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -802,30 +798,15 @@ export default function OrderDetailsScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Minimal 5 Core Parameters */}
+          {/* Minimal 2 Core Parameters */}
           <View style={styles.cardGroup}>
             <View style={styles.specRowItem}>
-              <Text style={styles.specRowKey}>Part Number</Text>
-              <Text style={styles.specRowValueBold}>{partNo}</Text>
-            </View>
-
-            <View style={styles.specRowItem}>
-              <Text style={styles.specRowKey}>Layer Count</Text>
-              <Text style={styles.specRowValue}>{layerCount}</Text>
-            </View>
-
-            <View style={styles.specRowItem}>
-              <Text style={styles.specRowKey}>Base Material</Text>
-              <Text style={styles.specRowValue}>{material}</Text>
-            </View>
-
-            <View style={styles.specRowItem}>
-              <Text style={styles.specRowKey}>Board Thickness</Text>
-              <Text style={styles.specRowValue}>{thickness}</Text>
+              <Text style={styles.specRowKey}>Layers</Text>
+              <Text style={styles.specRowValueBold}>{layerCount}</Text>
             </View>
 
             <View style={[styles.specRowItem, { borderBottomWidth: 0 }]}>
-              <Text style={styles.specRowKey}>Board Dimensions</Text>
+              <Text style={styles.specRowKey}>Board Size</Text>
               <Text style={styles.specRowValue}>{boardSize}</Text>
             </View>
           </View>
@@ -1015,35 +996,28 @@ const styles = StyleSheet.create({
     color: '#3B82F6',
   },
 
-  // Right Side 2x2 Grid Action Cards
+  // Right Side 2x2 Grid Circular Action Icon Buttons
   actionGridContainer: {
-    gap: 6,
+    gap: 8,
   },
   actionGridRow: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 8,
   },
-  actionCard: {
-    width: 82,
-    height: 64,
+  actionCircleBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 3,
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 3,
     elevation: 1,
-  },
-  actionCardLabel: {
-    fontSize: 12,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '600',
-    color: '#334155',
   },
 
   // Sections

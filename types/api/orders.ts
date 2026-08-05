@@ -17,6 +17,9 @@ export interface OrderItem {
   ORDER_TYPE_NAME: string;
   CUSTOMERID: number | string;
   ORDER_TOTAL: number;
+  ORDER_COST?: number;
+  MARKUP?: number;
+  MARKUP_PERCENTAGE?: number;
   ORDER_CATEGORY: string;
   ORDER_STATUS: string;
   QUOTE_ID?: number | string | null;
@@ -24,6 +27,9 @@ export interface OrderItem {
   QUOTE_DATE?: string | null;
   SALESPERSON_NAME: string;
   CUSTOMER_STATUS?: string;
+  vendorFulfillment?: string;
+  assignedVendorCount?: number;
+  expectedVendorCount?: number;
   orderDetails?: OpenOrderDetail[];
   shippingAddress?: OpenOrderShippingAddress;
   customerContact?: OpenOrderCustomerContact;

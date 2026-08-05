@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useAuthContext } from '../../context/AuthContext';
+import { OrderCard } from '../../components/dashboard/OrderCard';
 import {
   formatCurrencyWithCents,
   formatNumber,
@@ -291,45 +292,25 @@ const SearchBarSection = ({
 // ─── Order Row Component ──────────────────────────────────────────────────────
 
 const OrderRow = React.memo(function OrderRow({ item }: { item: OrdersRowItem }) {
-  const orderDate = formatOrderDate(item.orderDate || item.updatedDate);
-  const orderNo = (item.orderNo || '').replace(/^#/, '').trim() || 'N/A';
-  const companyName = item.companyName || 'N/A';
-  const orderType = item.orderTypeName || 'Full Turnkey';
-  const salesperson = item.salespersonName || '';
-
   return (
-    <TouchableOpacity
-      style={styles.row}
+    <OrderCard
+      orderNo={item.orderNo}
+      companyName={item.companyName}
+      orderType={item.orderTypeName}
+      orderTotal={item.orderTotal}
+      orderDate={item.orderDate || item.updatedDate}
+      daysLeft={item.daysLeft}
+      assignedVendorCount={item.assignedVendorCount}
+      expectedVendorCount={item.expectedVendorCount}
+      orderCost={item.orderCost}
+      markup={item.markup}
       onPress={() =>
         router.push({
           pathname: '/order-details' as any,
           params: { orderData: JSON.stringify(item), from: '/all-orders' },
         })
       }
-      activeOpacity={0.7}
-    >
-      <View style={styles.rowLeftCol}>
-        <Text style={styles.orderNoText} numberOfLines={1} ellipsizeMode="tail">
-          {orderNo}
-        </Text>
-        <Text style={styles.companyText} numberOfLines={1} ellipsizeMode="tail">
-          {companyName}
-        </Text>
-        <Text style={styles.orderTypeText} numberOfLines={1} ellipsizeMode="tail">
-          {orderType}
-        </Text>
-      </View>
-
-      <View style={styles.rowRightCol}>
-        <Text style={styles.amountText}>{formatCurrencyWithCents(item.orderTotal)}</Text>
-        {orderDate ? <Text style={styles.dateText}>{orderDate}</Text> : null}
-        {salesperson ? (
-          <Text style={styles.salespersonText} numberOfLines={1} ellipsizeMode="tail">
-            {salesperson}
-          </Text>
-        ) : null}
-      </View>
-    </TouchableOpacity>
+    />
   );
 });
 

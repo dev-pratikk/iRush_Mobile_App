@@ -26,15 +26,20 @@ export interface OpenOrderRowItem extends OpenOrderItem {
   orderStatus: string;
   vendorCount: number;        // total vendors assigned
   vendorCompletedCount: number; // vendors with 'complete' status
+  assignedVendorCount: number;
+  expectedVendorCount: number;
   daysLeft: number;           // positive = days remaining, negative = days late
+  orderCost: number;
+  markup: number;
+  markupPercentage: number;
 }
 
 const mapOpenOrderItem = (raw: OpenOrderItem): OpenOrderRowItem => {
   const vendors = extractVendorCount(raw);
   const company =
     trimStr(raw.companyName) ||
-    trimStr((raw as any).company_name) ||
     trimStr((raw as any).COMPANY_NAME) ||
+    trimStr((raw as any).company_name) ||
     trimStr((raw as any).company) ||
     trimStr((raw as any).customerName) ||
     trimStr((raw as any).CUSTOMERNAME) ||
@@ -43,10 +48,43 @@ const mapOpenOrderItem = (raw: OpenOrderItem): OpenOrderRowItem => {
 
   const orderNo =
     trimStr(raw.ORDER_NO) ||
+    trimStr((raw as any).orderNo) ||
     trimStr((raw as any).order_no) ||
     trimStr((raw as any).ORDER_NUMBER) ||
     trimStr(raw.ORDER_ID) ||
     'N/A';
+
+  const assignedVendorCount = typeof (raw as any).assignedVendorCount === 'number'
+    ? (raw as any).assignedVendorCount
+    : vendors.completed;
+
+  const expectedVendorCount = typeof (raw as any).expectedVendorCount === 'number'
+    ? (raw as any).expectedVendorCount
+    : (vendors.total > 0 ? vendors.total : 1);
+
+  const orderTotal = Number.isFinite(raw.ORDER_TOTALCOST_AF_DISCCHRG)
+    ? raw.ORDER_TOTALCOST_AF_DISCCHRG
+    : Number.isFinite((raw as any).ORDER_TOTAL)
+    ? (raw as any).ORDER_TOTAL
+    : Number.isFinite((raw as any).totalAmount)
+    ? (raw as any).totalAmount
+    : 0;
+
+  const orderCost = Number.isFinite((raw as any).ORDER_COST)
+    ? (raw as any).ORDER_COST
+    : Number.isFinite((raw as any).orderCost)
+    ? (raw as any).orderCost
+    : 0;
+
+  const markup = Number.isFinite((raw as any).MARKUP)
+    ? (raw as any).MARKUP
+    : Number.isFinite((raw as any).markup)
+    ? (raw as any).markup
+    : orderTotal - orderCost;
+
+  const markupPercentage = Number.isFinite((raw as any).MARKUP_PERCENTAGE)
+    ? (raw as any).MARKUP_PERCENTAGE
+    : (orderCost > 0 ? Math.round((markup / orderCost) * 100) : 100);
 
   return {
     ...raw,
@@ -54,23 +92,22 @@ const mapOpenOrderItem = (raw: OpenOrderItem): OpenOrderRowItem => {
     orderNo,
     companyName: company,
     orderDate: extractOrderDate(raw.ORDER_DATE || (raw as any).order_date || (raw as any).ORDERDATE),
-    orderTotal: Number.isFinite(raw.ORDER_TOTALCOST_AF_DISCCHRG)
-      ? raw.ORDER_TOTALCOST_AF_DISCCHRG
-      : Number.isFinite((raw as any).totalAmount)
-      ? (raw as any).totalAmount
-      : Number.isFinite((raw as any).ORDER_TOTAL)
-      ? (raw as any).ORDER_TOTAL
-      : 0,
+    orderTotal,
     pendingAmount: Number.isFinite(raw.pendingAmount)
       ? raw.pendingAmount
       : Number.isFinite((raw as any).pending_amount)
       ? (raw as any).pending_amount
       : 0,
-    orderType: trimStr(raw.orderType || (raw as any).order_type || (raw as any).ORDER_TYPE_NAME),
-    orderStatus: trimStr(raw.orderStatus || (raw as any).order_status || (raw as any).ORDER_STATUS),
+    orderType: trimStr(raw.orderType || (raw as any).ORDER_TYPE_NAME || (raw as any).order_type),
+    orderStatus: trimStr(raw.orderStatus || (raw as any).ORDER_STATUS || (raw as any).order_status),
     vendorCount: vendors.total,
     vendorCompletedCount: vendors.completed,
+    assignedVendorCount,
+    expectedVendorCount,
     daysLeft: extractDaysLeft(raw),
+    orderCost,
+    markup,
+    markupPercentage,
   };
 };
 

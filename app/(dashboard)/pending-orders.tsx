@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { useAuthContext } from '../../context/AuthContext';
 import { router, useFocusEffect } from 'expo-router';
+import { OrderCard } from '../../components/dashboard/OrderCard';
 import { formatCurrencyWithCents, formatNumber, formatOrderDate } from '../../services/api/orders.service';
 import {
   SAMPLE_OPEN_ORDERS,
@@ -247,38 +248,25 @@ const SearchBarSection = ({
 // ─── Order Row Component ──────────────────────────────────────────────────────
 
 const OrderRow = React.memo(function OrderRow({ item }: { item: OpenOrderRowItem }) {
-  const orderDate = formatOrderDate(item.orderDate);
-  const daysLabel =
-    item.daysLeft < 0 ? `+${Math.abs(item.daysLeft)}d late` : `${item.daysLeft}d left`;
-
   return (
-    <TouchableOpacity
-      style={styles.row}
+    <OrderCard
+      orderNo={item.orderNo}
+      companyName={item.companyName}
+      orderType={item.orderType}
+      orderTotal={item.orderTotal}
+      orderDate={item.orderDate}
+      daysLeft={item.daysLeft}
+      assignedVendorCount={item.assignedVendorCount}
+      expectedVendorCount={item.expectedVendorCount}
+      orderCost={item.orderCost}
+      markup={item.markup}
       onPress={() =>
         router.push({
           pathname: '/order-details' as any,
           params: { orderData: JSON.stringify(item), from: '/pending-orders' },
         })
       }
-      activeOpacity={0.7}
-    >
-      <View style={styles.rowLeftCol}>
-        <Text style={styles.orderNoText} numberOfLines={1} ellipsizeMode="tail">
-          {item.orderNo}
-        </Text>
-        <Text style={styles.companyText} numberOfLines={1} ellipsizeMode="tail">
-          {item.companyName}
-        </Text>
-        <Text style={styles.vendorCountText}>
-          {item.vendorCompletedCount}/{item.vendorCount} vendors
-        </Text>
-      </View>
-      <View style={styles.rowRightCol}>
-        <Text style={styles.amountText}>{formatCurrencyWithCents(item.orderTotal)}</Text>
-        <Text style={styles.dateText}>{orderDate}</Text>
-        <Text style={styles.daysText}>{daysLabel}</Text>
-      </View>
-    </TouchableOpacity>
+    />
   );
 });
 

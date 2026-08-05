@@ -12,23 +12,64 @@ export interface OrdersRowItem extends OrderItem {
   orderTypeName: string;
   salespersonName: string;
   orderTotal: number;
+  orderCost: number;
+  markup: number;
+  markupPercentage: number;
+  assignedVendorCount: number;
+  expectedVendorCount: number;
+  daysLeft: number;
   orderStatus: string;
   orderCategory: string;
 }
 
-const mapOrderItem = (raw: OrderItem): OrdersRowItem => ({
-  ...raw,
-  id: String(raw.ORDER_ID ?? raw.ORDER_NO),
-  orderNo: String(raw.ORDER_NO ?? ''),
-  companyName: String(raw.COMPANY_NAME ?? ''),
-  orderDate: raw.ORDER_DATE ?? '',
-  updatedDate: raw.UPDATED_DATE ?? '',
-  orderTypeName: (raw.ORDER_TYPE_NAME ?? '').trim(),
-  salespersonName: (raw.SALESPERSON_NAME ?? '').trim(),
-  orderTotal: Number.isFinite(raw.ORDER_TOTAL) ? raw.ORDER_TOTAL : 0,
-  orderStatus: raw.ORDER_STATUS ?? '',
-  orderCategory: raw.ORDER_CATEGORY ?? '',
-});
+const mapOrderItem = (raw: OrderItem): OrdersRowItem => {
+  const detail = raw.orderDetails && raw.orderDetails.length > 0 ? raw.orderDetails[0] : null;
+  const daysLeft = detail && typeof detail.DAY === 'number' ? detail.DAY : 0;
+
+  const assignedVendors = typeof raw.assignedVendorCount === 'number'
+    ? raw.assignedVendorCount
+    : (Array.isArray(raw.orderVendors) ? raw.orderVendors.length : 0);
+
+  const expectedVendors = typeof raw.expectedVendorCount === 'number'
+    ? raw.expectedVendorCount
+    : 1;
+
+  const orderTotal = Number.isFinite(raw.ORDER_TOTAL)
+    ? raw.ORDER_TOTAL
+    : (Number.isFinite(raw.orderTotal) ? raw.orderTotal : 0);
+
+  const orderCost = Number.isFinite(raw.ORDER_COST)
+    ? raw.ORDER_COST!
+    : (Number.isFinite(raw.orderCost) ? raw.orderCost! : 0);
+
+  const markup = Number.isFinite(raw.MARKUP)
+    ? raw.MARKUP!
+    : (Number.isFinite(raw.markup) ? raw.markup! : orderTotal - orderCost);
+
+  const markupPercentage = Number.isFinite(raw.MARKUP_PERCENTAGE)
+    ? raw.MARKUP_PERCENTAGE!
+    : (orderCost > 0 ? Math.round((markup / orderCost) * 100) : 100);
+
+  return {
+    ...raw,
+    id: String(raw.ORDER_ID ?? raw.ORDER_NO ?? Math.random()),
+    orderNo: String(raw.ORDER_NO ?? raw.orderNo ?? ''),
+    companyName: String(raw.COMPANY_NAME ?? raw.companyName ?? ''),
+    orderDate: raw.ORDER_DATE ?? raw.orderDate ?? '',
+    updatedDate: raw.UPDATED_DATE ?? raw.updatedDate ?? '',
+    orderTypeName: (raw.ORDER_TYPE_NAME ?? raw.orderTypeName ?? raw.orderType ?? '').trim(),
+    salespersonName: (raw.SALESPERSON_NAME ?? raw.salespersonName ?? '').trim(),
+    orderTotal,
+    orderCost,
+    markup,
+    markupPercentage,
+    assignedVendorCount: assignedVendors,
+    expectedVendorCount: expectedVendors,
+    daysLeft,
+    orderStatus: raw.ORDER_STATUS ?? raw.orderStatus ?? '',
+    orderCategory: raw.ORDER_CATEGORY ?? raw.orderCategory ?? '',
+  };
+};
 
 /**
  * Wrapper around useInfiniteResource for the Orders list.

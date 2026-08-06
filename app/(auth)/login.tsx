@@ -56,28 +56,21 @@ export default function LoginChooserScreen() {
     setBiometricError(undefined);
 
     try {
-      const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
       const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
       const isFaceID = Platform.OS === 'ios' || supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION);
+      const isFingerprint = supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT);
 
-      if (!hasHardware) {
-        setBiometricError('Biometric hardware is not available on this device');
-        return;
-      }
-
-      if (!isEnrolled) {
-        setBiometricError(isFaceID ? 'Face ID is not enrolled in device Settings' : 'Biometrics not set up on device');
-        return;
-      }
-
-      const promptTitle = isFaceID ? 'Log in with Face ID' : 'Log in to iRUSH';
+      const promptTitle = isFaceID
+        ? 'Log in with Face ID'
+        : isFingerprint
+        ? 'Log in with Fingerprint'
+        : 'Log in to iRUSH';
 
       const lastUserId = await SecureStore.getItemAsync('lastAuthenticatedUserId');
       let user = lastUserId ? MOCK_USERS.find((u) => u.id === lastUserId) : MOCK_USERS[0];
       if (!user) user = MOCK_USERS[0];
 
-      // Primary Face ID / Biometric prompt exclusively with disableDeviceFallback: true
+      // Invoke native iOS Face ID / Biometric prompt directly
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: promptTitle,
         cancelLabel: 'Cancel',
@@ -92,9 +85,11 @@ export default function LoginChooserScreen() {
         if (result.error !== 'user_cancel') {
           const msg =
             result.error === 'not_enrolled'
-              ? 'Face ID is not enrolled on device'
+              ? (isFaceID ? 'Face ID is not enrolled in device Settings' : 'Biometrics not set up on device')
               : result.error === 'lockout'
               ? 'Too many failed attempts. Try again later'
+              : result.error === 'not_available'
+              ? 'Biometric authentication unavailable'
               : 'Face ID authentication failed';
           setBiometricError(msg);
         }

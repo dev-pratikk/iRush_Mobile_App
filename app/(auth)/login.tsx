@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
@@ -28,13 +29,13 @@ export default function LoginChooserScreen() {
     const detectBiometrics = async () => {
       try {
         const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
-        if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+        if (Platform.OS === 'ios' || supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
           setBiometricType('faceID');
         } else if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
           setBiometricType('fingerprint');
         }
       } catch (e) {
-        // fallback
+        if (Platform.OS === 'ios') setBiometricType('faceID');
       }
     };
     detectBiometrics();
@@ -45,7 +46,7 @@ export default function LoginChooserScreen() {
     if (biometricError) {
       timer = setTimeout(() => {
         setBiometricError(undefined);
-      }, 3000);
+      }, 3500);
     }
     return () => clearTimeout(timer);
   }, [biometricError]);
@@ -55,46 +56,52 @@ export default function LoginChooserScreen() {
     setBiometricError(undefined);
 
     try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
       const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
-      const isFaceID = supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION);
-      const isFingerprint = supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT);
+      const isFaceID = Platform.OS === 'ios' || supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION);
 
-      const promptTitle = isFaceID
-        ? 'Log in with Face ID'
-        : isFingerprint
-        ? 'Log in with Fingerprint'
-        : 'Log in to iRUSH';
+      if (!hasHardware) {
+        setBiometricError('Biometric hardware is not available on this device');
+        return;
+      }
+
+      if (!isEnrolled) {
+        setBiometricError(isFaceID ? 'Face ID is not enrolled in device Settings' : 'Biometrics not set up on device');
+        return;
+      }
+
+      const promptTitle = isFaceID ? 'Log in with Face ID' : 'Log in to iRUSH';
 
       const lastUserId = await SecureStore.getItemAsync('lastAuthenticatedUserId');
       let user = lastUserId ? MOCK_USERS.find((u) => u.id === lastUserId) : MOCK_USERS[0];
       if (!user) user = MOCK_USERS[0];
 
-      // 1. Direct Face ID / Biometrics prompt with disableDeviceFallback: true
-      let result = await LocalAuthentication.authenticateAsync({
+      // Primary Face ID / Biometric prompt exclusively with disableDeviceFallback: true
+      const result = await LocalAuthentication.authenticateAsync({
         promptMessage: promptTitle,
         cancelLabel: 'Cancel',
-        fallbackLabel: 'Use Passcode or MPIN',
+        fallbackLabel: '',
         disableDeviceFallback: true,
       });
-
-      // 2. Secondary fallback to system passcode if Face ID needs fallback
-      if (!result.success && result.error !== 'user_cancel') {
-        result = await LocalAuthentication.authenticateAsync({
-          promptMessage: 'Authenticate with System Passcode',
-          cancelLabel: 'Cancel',
-          disableDeviceFallback: false,
-        });
-      }
 
       if (result.success) {
         login(user);
         router.replace('/(dashboard)');
-      } else if (result.error !== 'user_cancel') {
-        setBiometricError('Authentication failed, try again');
+      } else {
+        if (result.error !== 'user_cancel') {
+          const msg =
+            result.error === 'not_enrolled'
+              ? 'Face ID is not enrolled on device'
+              : result.error === 'lockout'
+              ? 'Too many failed attempts. Try again later'
+              : 'Face ID authentication failed';
+          setBiometricError(msg);
+        }
       }
     } catch (err) {
       console.error('Biometric login failed:', err);
-      setBiometricError('Authentication failed, try again');
+      setBiometricError('Face ID authentication failed');
     } finally {
       setIsBiometricLoading(false);
     }

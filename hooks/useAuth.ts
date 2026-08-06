@@ -48,27 +48,14 @@ export const useAuth = () => {
     setError(null);
 
     try {
-      const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
       const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
       const isFaceID = Platform.OS === 'ios' || supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION);
 
-      if (!hasHardware || !isEnrolled) {
-        setIsLoading(false);
-        return {
-          success: false,
-          reason: !hasHardware ? 'no_hardware' : 'not_enrolled',
-        };
-      }
-
       const promptTitle = isFaceID ? 'Log in with Face ID' : 'Log in to iRUSH';
 
-      // Primary Face ID / Biometric prompt ONLY (disableDeviceFallback: true, no passcode fallback)
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: promptTitle,
         cancelLabel: 'Cancel',
-        fallbackLabel: '',
-        disableDeviceFallback: true,
       });
 
       if (!result.success) {

@@ -70,12 +70,10 @@ export default function LoginChooserScreen() {
       let user = lastUserId ? MOCK_USERS.find((u) => u.id === lastUserId) : MOCK_USERS[0];
       if (!user) user = MOCK_USERS[0];
 
-      // Invoke native iOS Face ID / Biometric prompt directly
+      // Standard native iOS Face ID / Biometrics prompt
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: promptTitle,
         cancelLabel: 'Cancel',
-        fallbackLabel: '',
-        disableDeviceFallback: true,
       });
 
       if (result.success) {
@@ -83,13 +81,14 @@ export default function LoginChooserScreen() {
         router.replace('/(dashboard)');
       } else {
         if (result.error !== 'user_cancel') {
+          if (__DEV__) console.log('[Biometrics] authenticateAsync result:', result);
           const msg =
             result.error === 'not_enrolled'
               ? (isFaceID ? 'Face ID is not enrolled in device Settings' : 'Biometrics not set up on device')
               : result.error === 'lockout'
               ? 'Too many failed attempts. Try again later'
               : result.error === 'not_available'
-              ? 'Biometric authentication unavailable'
+              ? 'Face ID is not available on this device'
               : 'Face ID authentication failed';
           setBiometricError(msg);
         }

@@ -404,14 +404,22 @@ const OrdersKpiGrid = ({
       <View style={styles.kpiRow}>
         <View style={styles.kpiCard}>
           <Text style={styles.kpiHeaderLabel}>NEW</Text>
-          <Text style={styles.kpiValueText}>{formatNumber(newCount)}</Text>
-          <Text style={styles.kpiSubText}>{formatCurrencyWithCents(newAmount)}</Text>
+          <Text style={styles.kpiValueText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+            {formatNumber(newCount)}
+          </Text>
+          <Text style={styles.kpiSubText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+            {formatCurrencyWithCents(newAmount)}
+          </Text>
         </View>
 
         <View style={styles.kpiCard}>
           <Text style={styles.kpiHeaderLabel}>REPEAT</Text>
-          <Text style={styles.kpiValueText}>{formatNumber(repeatCount)}</Text>
-          <Text style={styles.kpiSubText}>{formatCurrencyWithCents(repeatAmount)}</Text>
+          <Text style={styles.kpiValueText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+            {formatNumber(repeatCount)}
+          </Text>
+          <Text style={styles.kpiSubText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+            {formatCurrencyWithCents(repeatAmount)}
+          </Text>
         </View>
       </View>
     </View>

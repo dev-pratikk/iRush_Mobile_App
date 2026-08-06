@@ -26,24 +26,38 @@ export const KpiCard: React.FC<KpiCardProps> = ({ kpi, period, value, onPress })
       ]}
     >
       <View style={styles.content}>
-        <Text style={[styles.label, { color: colors.textSecondary }]}>{kpi.label}</Text>
-        <Text style={[styles.value, { color: colors.textPrimary }]}>{displayValue}</Text>
+        <Text
+          style={[styles.label, { color: colors.textSecondary }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+        >
+          {kpi.label}
+        </Text>
+        <Text
+          style={[styles.value, { color: colors.textPrimary }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+        >
+          {displayValue}
+        </Text>
       </View>
 
       {onPress ? (
         <TouchableOpacity
           onPress={onPress}
           activeOpacity={0.7}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           style={[styles.arrowButton, { backgroundColor: `${colors.primary}12` }]}
           accessibilityLabel={`Navigate to ${kpi.label}`}
           accessibilityRole="button"
         >
-          <Ionicons name="arrow-forward" size={16} color={colors.primary} />
+          <Ionicons name="arrow-forward" size={15} color={colors.primary} />
         </TouchableOpacity>
       ) : (
         <View style={[styles.arrowButton, { backgroundColor: colors.background, opacity: 0.5 }]}>
-          <Ionicons name="arrow-forward" size={16} color={colors.textSecondary} />
+          <Ionicons name="arrow-forward" size={15} color={colors.textSecondary} />
         </View>
       )}
     </View>
@@ -52,36 +66,40 @@ export const KpiCard: React.FC<KpiCardProps> = ({ kpi, period, value, onPress })
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    minHeight: 74,
   },
   content: {
-    gap: 6,
+    gap: 4,
     flex: 1,
+    paddingRight: 4,
+    minWidth: 0,
   },
   label: {
     fontFamily: Typography.bodyMedium,
-    fontSize: 13,
+    fontSize: 12.5,
   },
   value: {
     fontFamily: Typography.numberHeavy,
-    fontSize: 22,
+    fontSize: 21,
   },
   arrowButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
+    marginLeft: 4,
+    flexShrink: 0,
   },
 });
-

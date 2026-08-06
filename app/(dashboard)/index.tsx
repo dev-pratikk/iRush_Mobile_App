@@ -422,11 +422,11 @@ const styles = StyleSheet.create({
   kpiGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'space-between',
+    rowGap: 12,
   },
   kpiCardContainer: {
     width: '48%',
-    flexGrow: 1,
   },
   errorBanner: {
     borderRadius: 12,

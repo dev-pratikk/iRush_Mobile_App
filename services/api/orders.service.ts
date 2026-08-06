@@ -112,44 +112,21 @@ export const fetchOrdersPage = async (
 
   if (options.search && options.search.value.trim()) {
     const val = options.search.value.trim();
-    if (options.search.type === 'orderNo') {
-      query.orderNo = val;
-    } else if (options.search.type === 'companyCode') {
-      query.companyCode = val;
-    } else if (options.search.type === 'companyName') {
-      query.companyName = val;
-    } else if (options.search.type === 'partNumber') {
-      query.partNumber = val;
-      query.pcbpartNo = val;
-    } else if (options.search.type === 'salesperson') {
-      query.salesPerson = val; // Note: /dashboard/orders endpoint uses salesPerson
+    if (options.search.type === 'salesperson') {
+      query.salesPerson = val;
+    } else {
+      // Single unified search parameter for orderNo, partNo, company name
+      query.search = val;
     }
   }
 
   try {
-    let data: any = null;
-
-    if (options.search?.type === 'partNumber' && options.search.value.trim()) {
-      const partVal = options.search.value.trim();
-      try {
-        data = await apiClient.get<any>({
-          path: `/dashboard/partnumbers/${encodeURIComponent(partVal)}`,
-          token: options.token,
-          timeoutMs: 15000,
-        });
-      } catch (pnErr) {
-        if (__DEV__) console.log('[Orders] Partnumber endpoint fallback:', pnErr);
-      }
-    }
-
-    if (!data) {
-      data = await apiClient.get<OrdersListResponse & { page?: number; limit?: number; totalRecords?: number }>({
-        path: '/dashboard/orders',
-        query,
-        token: options.token,
-        timeoutMs: 15000,
-      });
-    }
+    const data = await apiClient.get<OrdersListResponse & { page?: number; limit?: number; totalRecords?: number }>({
+      path: '/dashboard/orders',
+      query,
+      token: options.token,
+      timeoutMs: 15000,
+    });
 
     const normalized = normalizeOrdersResponse(data);
 

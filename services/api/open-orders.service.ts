@@ -181,48 +181,22 @@ export const fetchOpenOrdersPage = async (
 
   if (options.search && options.search.value.trim()) {
     const val = options.search.value.trim();
-    if (options.search.type === 'orderNo') {
-      query.orderNo = val;
-    } else if (options.search.type === 'companyCode') {
-      query.companyCode = val;
-    } else if (options.search.type === 'companyName') {
-      query.companyName = val;
-    } else if (options.search.type === 'partNumber') {
-      query.partNumber = val;
-      query.pcbpartNo = val;
-      query.partNo = val;
-    } else if (options.search.type === 'salesperson') {
+    if (options.search.type === 'salesperson') {
       query.salesPerson = val;
       query.salespPerson = val;
+    } else {
+      // Single unified search parameter for orderNo, partNo, company name
+      query.search = val;
     }
   }
 
   try {
-    let data: any = null;
-
-    // Direct fetch by part number endpoint: /dashboard/partnumbers/:partNumber
-    if (options.search?.type === 'partNumber' && options.search.value.trim()) {
-      const partVal = options.search.value.trim();
-      try {
-        data = await apiClient.get<any>({
-          path: `/dashboard/partnumbers/${encodeURIComponent(partVal)}`,
-          query: { filter },
-          token: options.token,
-          timeoutMs: 15000,
-        });
-      } catch (pnErr) {
-        if (__DEV__) console.log('[OpenOrders] Partnumber endpoint fallback:', pnErr);
-      }
-    }
-
-    if (!data) {
-      data = await apiClient.get<OpenOrdersPageResponse>({
-        path: '/dashboard/open-orders',
-        query,
-        token: options.token,
-        timeoutMs: 20000,
-      });
-    }
+    const data = await apiClient.get<OpenOrdersPageResponse>({
+      path: '/dashboard/open-orders',
+      query,
+      token: options.token,
+      timeoutMs: 15000,
+    });
 
     if (!data || typeof data !== 'object') {
       throw new Error('Invalid response format');

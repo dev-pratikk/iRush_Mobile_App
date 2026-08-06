@@ -158,17 +158,11 @@ const SearchOverlayModal = ({
       setSearching(true);
       try {
         const q = query.trim();
-        const detectedType: OrdersSearchType = /[-_]/.test(q) || /rev/i.test(q) || q.length >= 7
-          ? 'partNumber'
-          : /[a-zA-Z]/.test(q)
-          ? 'companyName'
-          : 'orderNo';
-
         const res = await fetchOrdersPage('month', {
           token: token ?? null,
           page: 1,
           limit: 30,
-          search: q ? { type: detectedType, value: q } : null,
+          search: q ? { type: 'orderNo', value: q } : null,
         });
 
         if (active) {

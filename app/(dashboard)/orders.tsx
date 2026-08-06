@@ -447,6 +447,10 @@ export default function OrdersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
+  const [newOrdersAmount, setNewOrdersAmount] = useState(0);
+  const [repeatedOrdersCount, setRepeatedOrdersCount] = useState(0);
+  const [repeatedOrdersAmount, setRepeatedOrdersAmount] = useState(0);
 
   const fetchOrdersForPreset = useCallback(
     async (preset: DateFilterPreset, range: { startDate: string; endDate: string } | null, silent = false) => {
@@ -461,13 +465,25 @@ export default function OrdersScreen() {
 
         const count = res.totalRecords ?? res.count ?? res.data?.length ?? 0;
         const amount = res.totalAmount ?? 0;
+        const newCount = res.newOrdersCount ?? 0;
+        const newAmt = res.newOrdersAmount ?? 0;
+        const repeatCount = res.repeatedOrdersCount ?? 0;
+        const repeatAmt = res.repeatedOrdersAmount ?? 0;
 
         setTotalCount(count);
         setTotalAmount(amount);
+        setNewOrdersCount(newCount);
+        setNewOrdersAmount(newAmt);
+        setRepeatedOrdersCount(repeatCount);
+        setRepeatedOrdersAmount(repeatAmt);
       } catch (err) {
         if (__DEV__) console.log('[OrdersScreen] fetchOrders error:', err);
         setTotalCount(0);
         setTotalAmount(0);
+        setNewOrdersCount(0);
+        setNewOrdersAmount(0);
+        setRepeatedOrdersCount(0);
+        setRepeatedOrdersAmount(0);
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -537,7 +553,13 @@ export default function OrdersScreen() {
 
           {/* 2. Summary Card & NEW / REPEAT KPI Cards */}
           <SummaryCard count={totalCount} totalAmount={totalAmount} loading={loading} />
-          <OrdersKpiGrid newCount={0} newAmount={0} repeatCount={0} repeatAmount={0} loading={loading} />
+          <OrdersKpiGrid
+            newCount={newOrdersCount}
+            newAmount={newOrdersAmount}
+            repeatCount={repeatedOrdersCount}
+            repeatAmount={repeatedOrdersAmount}
+            loading={loading}
+          />
 
           {/* 3. View All Orders List Button */}
           <View style={styles.viewAllRowContainer}>

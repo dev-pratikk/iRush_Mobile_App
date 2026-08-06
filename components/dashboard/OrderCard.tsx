@@ -16,6 +16,8 @@ export interface OrderCardProps {
   orderCost?: number;
   markup?: number;
   markupPercentage?: number;
+  customerStatus?: string;
+  orderCategory?: string;
   onPress?: () => void;
 }
 
@@ -31,6 +33,8 @@ export const OrderCard = React.memo(function OrderCard({
   orderCost = 0,
   markup,
   markupPercentage,
+  customerStatus,
+  orderCategory,
   onPress,
 }: OrderCardProps) {
   const formattedNo = (orderNo || '').replace(/^#/, '').trim() || 'N/A';
@@ -52,16 +56,31 @@ export const OrderCard = React.memo(function OrderCard({
   const isLate = typeof daysLeft === 'number' && daysLeft < 0;
   const daysBadge = isLate ? `+${Math.abs(daysLeft)}d late` : `${daysLeft}d left`;
 
+  const category = String(customerStatus || orderCategory || '').toUpperCase().trim();
+  const isNewCustomer = category === 'NEW';
+  const isRepeatCustomer = category === 'REPEATED' || category === 'REPEAT';
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
       {/* Top Main Section */}
       <View style={styles.mainRow}>
         {/* Left Column: Order No (Highlighted Badge, no #), Company, Order Type */}
         <View style={styles.leftCol}>
-          <View style={styles.orderNoHighlightBadge}>
-            <Text style={styles.orderNoHighlightText} numberOfLines={1}>
-              {formattedNo}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <View style={styles.orderNoHighlightBadge}>
+              <Text style={styles.orderNoHighlightText} numberOfLines={1}>
+                {formattedNo}
+              </Text>
+            </View>
+            {isNewCustomer ? (
+              <View style={styles.newBadge}>
+                <Text style={styles.newBadgeText}>NEW</Text>
+              </View>
+            ) : isRepeatCustomer ? (
+              <View style={styles.repeatBadge}>
+                <Text style={styles.repeatBadgeText}>REPEAT</Text>
+              </View>
+            ) : null}
           </View>
           <Text style={styles.companyText} numberOfLines={1} ellipsizeMode="tail">
             {companyName || 'N/A'}
@@ -147,7 +166,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
-    marginBottom: 4,
   },
   orderNoHighlightText: {
     fontSize: 14,
@@ -155,6 +173,34 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0F172A',
     letterSpacing: -0.2,
+  },
+  newBadge: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  newBadgeText: {
+    fontSize: 10,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '700',
+    color: '#1D4ED8',
+  },
+  repeatBadge: {
+    backgroundColor: '#F5F3FF',
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  repeatBadgeText: {
+    fontSize: 10,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '700',
+    color: '#6D28D9',
   },
   companyText: {
     fontSize: 14,

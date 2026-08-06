@@ -40,7 +40,21 @@ export interface OrderItem {
 }
 
 export interface OrdersListResponse {
+  type?: string;
   count: number;
   totalAmount: number;
+  totalOrderCost?: number;
+  totalMarkup?: number;
+  overallMarkupPercentage?: number;
+  newOrdersCount?: number;
+  repeatedOrdersCount?: number;
+  newOrdersAmount?: number;
+  repeatedOrdersAmount?: number;
+  newQuotesCount?: number;
+  repeatedQuotesCount?: number;
+  totalQuotesCount?: number;
+  noVendorCount?: number;
+  partialVendorCount?: number;
+  fullySourcedCount?: number;
   orders: OrderItem[];
 }

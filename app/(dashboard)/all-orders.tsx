@@ -315,6 +315,8 @@ const OrderRow = React.memo(function OrderRow({ item }: { item: OrdersRowItem })
       orderCost={item.orderCost}
       markup={item.markup}
       markupPercentage={item.markupPercentage}
+      customerStatus={(item as any).CUSTOMER_STATUS || (item as any).customerStatus}
+      orderCategory={(item as any).ORDER_CATEGORY || item.orderCategory}
       onPress={() =>
         router.push({
           pathname: '/order-details' as any,

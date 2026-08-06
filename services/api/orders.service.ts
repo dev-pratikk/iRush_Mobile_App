@@ -20,8 +20,22 @@ import { getDateRangeForPeriod, type DashboardPeriod } from '../../lib/date';
 export { getDateRangeForPeriod, type DashboardPeriod };
 
 const normalizeOrdersResponse = (data: OrdersListResponse | null | undefined): OrdersListResponse => ({
+  type: data?.type,
   count: Number.isFinite(data?.count) ? data!.count : 0,
   totalAmount: Number.isFinite(data?.totalAmount) ? data!.totalAmount : 0,
+  totalOrderCost: data?.totalOrderCost ?? 0,
+  totalMarkup: data?.totalMarkup ?? 0,
+  overallMarkupPercentage: data?.overallMarkupPercentage ?? 0,
+  newOrdersCount: data?.newOrdersCount ?? (data as any)?.newCount ?? 0,
+  repeatedOrdersCount: data?.repeatedOrdersCount ?? (data as any)?.repeatCount ?? 0,
+  newOrdersAmount: data?.newOrdersAmount ?? (data as any)?.newOrdersTotal ?? 0,
+  repeatedOrdersAmount: data?.repeatedOrdersAmount ?? (data as any)?.repeatedOrdersTotal ?? 0,
+  newQuotesCount: data?.newQuotesCount ?? 0,
+  repeatedQuotesCount: data?.repeatedQuotesCount ?? 0,
+  totalQuotesCount: data?.totalQuotesCount ?? 0,
+  noVendorCount: data?.noVendorCount ?? 0,
+  partialVendorCount: data?.partialVendorCount ?? 0,
+  fullySourcedCount: data?.fullySourcedCount ?? 0,
   orders: Array.isArray(data?.orders) ? data!.orders : EMPTY_ORDERS.orders,
 });
 
@@ -142,6 +156,37 @@ export const fetchOrdersPage = async (
     // Support both paginated (totalRecords) and non-paginated (count) backends
     const totalRecords = (data as any)?.totalRecords ?? normalized.count;
 
+    const ordersList = normalized.orders;
+    let newCount = normalized.newOrdersCount ?? 0;
+    let repeatCount = normalized.repeatedOrdersCount ?? 0;
+    let newAmount = normalized.newOrdersAmount ?? 0;
+    let repeatAmount = normalized.repeatedOrdersAmount ?? 0;
+
+    // Fallback computation from order items if top-level stats are absent
+    if (ordersList.length > 0) {
+      let sumNewAmt = 0;
+      let sumRepAmt = 0;
+      let cntNew = 0;
+      let cntRep = 0;
+
+      ordersList.forEach((ord) => {
+        const cat = String(ord.CUSTOMER_STATUS || ord.ORDER_CATEGORY || '').toUpperCase().trim();
+        const amt = Number(ord.ORDER_TOTAL) || 0;
+        if (cat === 'NEW') {
+          cntNew += 1;
+          sumNewAmt += amt;
+        } else if (cat === 'REPEATED' || cat === 'REPEAT') {
+          cntRep += 1;
+          sumRepAmt += amt;
+        }
+      });
+
+      if (!newCount && cntNew > 0) newCount = cntNew;
+      if (!repeatCount && cntRep > 0) repeatCount = cntRep;
+      if (!newAmount && sumNewAmt > 0) newAmount = sumNewAmt;
+      if (!repeatAmount && sumRepAmt > 0) repeatAmount = sumRepAmt;
+    }
+
     // ─── Pagination diagnostics ──────────────────────────────────────────────
     if (__DEV__) {
       const searchInfo = options.search && options.search.value.trim()
@@ -149,9 +194,10 @@ export const fetchOrdersPage = async (
         : '';
       console.log(
         `[Orders/${period}] page=${page} limit=${limit}${searchInfo} ` +
-        `returned=${normalized.orders.length} ` +
+        `returned=${ordersList.length} ` +
         `totalRecords=${totalRecords} count=${normalized.count} totalAmount=${normalized.totalAmount} ` +
-        `hasMore=${normalized.orders.length < totalRecords && normalized.orders.length >= limit}`
+        `newCount=${newCount} newAmount=${newAmount} repeatCount=${repeatCount} repeatAmount=${repeatAmount} ` +
+        `hasMore=${ordersList.length < totalRecords && ordersList.length >= limit}`
       );
     }
 
@@ -161,7 +207,14 @@ export const fetchOrdersPage = async (
       totalRecords,
       count: normalized.count,
       totalAmount: normalized.totalAmount,
-      data: normalized.orders,
+      newOrdersCount: newCount,
+      repeatedOrdersCount: repeatCount,
+      newOrdersAmount: newAmount,
+      repeatedOrdersAmount: repeatAmount,
+      totalOrderCost: normalized.totalOrderCost,
+      totalMarkup: normalized.totalMarkup,
+      overallMarkupPercentage: normalized.overallMarkupPercentage,
+      data: ordersList,
     };
   } catch (error) {
     throw toServiceError(error);

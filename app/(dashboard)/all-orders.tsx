@@ -519,7 +519,19 @@ export default function AllOrdersScreen() {
       filtered = filtered.filter((it: any) => {
         const cName = (it.companyName || it.COMPANY_NAME || '').toLowerCase();
         const oNo = String(it.orderNo || it.ORDER_NO || '').toLowerCase();
-        return cName.includes(query) || oNo.includes(query);
+        const pNo = String(
+          it.pcbpartNo ||
+          it.PCBPARTNO ||
+          it.partNo ||
+          it.PARTNO ||
+          it.partNumber ||
+          it.PARTNUMBER ||
+          it.orderDetails?.[0]?.PCBPARTNO ||
+          it.orderDetails?.[0]?.PARTNO ||
+          it.orderDetails?.[0]?.pcbpartNo ||
+          ''
+        ).toLowerCase();
+        return cName.includes(query) || oNo.includes(query) || pNo.includes(query);
       });
     }
 

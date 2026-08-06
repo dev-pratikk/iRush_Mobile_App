@@ -186,11 +186,27 @@ const SearchOverlayModal = ({
     const q = query.trim().toLowerCase();
     if (!q) return fetchedOrders;
 
+    const getPartNoString = (item: any): string => {
+      return String(
+        item.pcbpartNo ||
+        item.PCBPARTNO ||
+        item.partNo ||
+        item.PARTNO ||
+        item.partNumber ||
+        item.PARTNUMBER ||
+        item.orderDetails?.[0]?.PCBPARTNO ||
+        item.orderDetails?.[0]?.PARTNO ||
+        item.orderDetails?.[0]?.pcbpartNo ||
+        item.orderSpecifications?.[0]?.PCBPARTNO ||
+        ''
+      ).trim();
+    };
+
     const scored = fetchedOrders
       .map((item: any) => {
         const orderNoStr = String(item.orderNo || item.ORDER_NO || '').toLowerCase();
         const companyStr = decodeHtml(item.companyName || item.COMPANY_NAME || '').toLowerCase();
-        const partNoStr = String(item.pcbpartNo || item.PCBPARTNO || item.orderSpecifications?.[0]?.PCBPARTNO || '').toLowerCase();
+        const partNoStr = getPartNoString(item).toLowerCase();
 
         let score = -1;
 
@@ -209,6 +225,9 @@ const SearchOverlayModal = ({
         } else if (companyStr.includes(q)) {
           const idx = companyStr.indexOf(q);
           score = 1000 - idx * 10;
+        } else {
+          // Backend returned this order for active search query → keep it!
+          score = 500;
         }
 
         return { item, score, orderNoStr };
@@ -265,7 +284,17 @@ const SearchOverlayModal = ({
                 const orderNoDisplay = item.orderNo || item.ORDER_NO || item.id;
                 const companyDisplay = decodeHtml(item.companyName || item.COMPANY_NAME || 'Higher Ground, LLC');
                 const statusDisplay = item.orderStatus || item.ORDER_STATUS || 'Open';
-                const partNoDisplay = item.pcbpartNo || item.PCBPARTNO || item.orderSpecifications?.[0]?.PCBPARTNO;
+                const partNoDisplay =
+                  item.pcbpartNo ||
+                  item.PCBPARTNO ||
+                  item.partNo ||
+                  item.PARTNO ||
+                  item.partNumber ||
+                  item.PARTNUMBER ||
+                  item.orderDetails?.[0]?.PCBPARTNO ||
+                  item.orderDetails?.[0]?.PARTNO ||
+                  item.orderDetails?.[0]?.pcbpartNo ||
+                  item.orderSpecifications?.[0]?.PCBPARTNO;
 
                 return (
                   <TouchableOpacity

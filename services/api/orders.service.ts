@@ -136,8 +136,12 @@ export const fetchOrdersPage = async (
     const totalRecords = (data as any)?.totalRecords ?? normalized.count;
 
     const ordersList = normalized.orders;
-    const newCount = (data as any)?.newOrdersCount ?? (data as any)?.newCount ?? normalized.newOrdersCount ?? 0;
-    const repeatCount = (data as any)?.repeatedOrdersCount ?? (data as any)?.repeatCount ?? normalized.repeatedOrdersCount ?? 0;
+
+    const hasBackendNewCount = typeof (data as any)?.newOrdersCount === 'number' || typeof (data as any)?.newCount === 'number';
+    const hasBackendRepeatCount = typeof (data as any)?.repeatedOrdersCount === 'number' || typeof (data as any)?.repeatCount === 'number';
+
+    const rawNewCount = (data as any)?.newOrdersCount ?? (data as any)?.newCount ?? normalized.newOrdersCount;
+    const rawRepeatCount = (data as any)?.repeatedOrdersCount ?? (data as any)?.repeatCount ?? normalized.repeatedOrdersCount;
 
     let sumNewAmt = 0;
     let sumRepAmt = 0;
@@ -158,23 +162,17 @@ export const fetchOrdersPage = async (
       });
     }
 
-    const finalNewCount = newCount || cntNew;
-    const finalRepeatCount = repeatCount || cntRep;
-    const finalNewAmount =
-      (data as any)?.newOrderValue ??
-      (data as any)?.newOrdersAmount ??
-      (data as any)?.newOrdersTotal ??
-      normalized.newOrderValue ??
-      normalized.newOrdersAmount ??
-      sumNewAmt;
+    const finalNewCount = hasBackendNewCount && typeof rawNewCount === 'number' ? rawNewCount : cntNew;
+    const finalRepeatCount = hasBackendRepeatCount && typeof rawRepeatCount === 'number' ? rawRepeatCount : cntRep;
 
-    const finalRepeatAmount =
-      (data as any)?.repeatedOrderValue ??
-      (data as any)?.repeatedOrdersAmount ??
-      (data as any)?.repeatedOrdersTotal ??
-      normalized.repeatedOrderValue ??
-      normalized.repeatedOrdersAmount ??
-      sumRepAmt;
+    const hasBackendNewAmount = typeof (data as any)?.newOrderValue === 'number' || typeof (data as any)?.newOrdersAmount === 'number' || typeof (data as any)?.newOrdersTotal === 'number';
+    const hasBackendRepeatAmount = typeof (data as any)?.repeatedOrderValue === 'number' || typeof (data as any)?.repeatedOrdersAmount === 'number' || typeof (data as any)?.repeatedOrdersTotal === 'number';
+
+    const rawNewAmount = (data as any)?.newOrderValue ?? (data as any)?.newOrdersAmount ?? (data as any)?.newOrdersTotal ?? normalized.newOrderValue ?? normalized.newOrdersAmount;
+    const rawRepeatAmount = (data as any)?.repeatedOrderValue ?? (data as any)?.repeatedOrdersAmount ?? (data as any)?.repeatedOrdersTotal ?? normalized.repeatedOrderValue ?? normalized.repeatedOrdersAmount;
+
+    const finalNewAmount = hasBackendNewAmount && typeof rawNewAmount === 'number' ? rawNewAmount : sumNewAmt;
+    const finalRepeatAmount = hasBackendRepeatAmount && typeof rawRepeatAmount === 'number' ? rawRepeatAmount : sumRepAmt;
 
     // ─── Pagination diagnostics ──────────────────────────────────────────────
     if (__DEV__) {

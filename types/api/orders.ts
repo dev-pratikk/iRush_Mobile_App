@@ -47,7 +47,9 @@ export interface OrdersListResponse {
   totalMarkup?: number;
   overallMarkupPercentage?: number;
   newOrdersCount?: number;
+  newOrderValue?: number;
   repeatedOrdersCount?: number;
+  repeatedOrderValue?: number;
   newOrdersAmount?: number;
   repeatedOrdersAmount?: number;
   newQuotesCount?: number;

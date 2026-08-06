@@ -489,9 +489,9 @@ export default function OrdersScreen() {
         const count = res.totalRecords ?? res.count ?? res.data?.length ?? 0;
         const amount = res.totalAmount ?? 0;
         const newCount = res.newOrdersCount ?? 0;
-        const newAmt = res.newOrdersAmount ?? 0;
+        const newAmt = (res as any).newOrderValue ?? res.newOrdersAmount ?? 0;
         const repeatCount = res.repeatedOrdersCount ?? 0;
-        const repeatAmt = res.repeatedOrdersAmount ?? 0;
+        const repeatAmt = (res as any).repeatedOrderValue ?? res.repeatedOrdersAmount ?? 0;
 
         setTotalCount(count);
         setTotalAmount(amount);

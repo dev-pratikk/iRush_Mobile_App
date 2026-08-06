@@ -27,9 +27,11 @@ const normalizeOrdersResponse = (data: OrdersListResponse | null | undefined): O
   totalMarkup: data?.totalMarkup ?? 0,
   overallMarkupPercentage: data?.overallMarkupPercentage ?? 0,
   newOrdersCount: data?.newOrdersCount ?? (data as any)?.newCount ?? 0,
+  newOrderValue: data?.newOrderValue ?? data?.newOrdersAmount ?? (data as any)?.newOrdersTotal ?? 0,
   repeatedOrdersCount: data?.repeatedOrdersCount ?? (data as any)?.repeatCount ?? 0,
-  newOrdersAmount: data?.newOrdersAmount ?? (data as any)?.newOrdersTotal ?? 0,
-  repeatedOrdersAmount: data?.repeatedOrdersAmount ?? (data as any)?.repeatedOrdersTotal ?? 0,
+  repeatedOrderValue: data?.repeatedOrderValue ?? data?.repeatedOrdersAmount ?? (data as any)?.repeatedOrdersTotal ?? 0,
+  newOrdersAmount: data?.newOrderValue ?? data?.newOrdersAmount ?? (data as any)?.newOrdersTotal ?? 0,
+  repeatedOrdersAmount: data?.repeatedOrderValue ?? data?.repeatedOrdersAmount ?? (data as any)?.repeatedOrdersTotal ?? 0,
   newQuotesCount: data?.newQuotesCount ?? 0,
   repeatedQuotesCount: data?.repeatedQuotesCount ?? 0,
   totalQuotesCount: data?.totalQuotesCount ?? 0,
@@ -158,8 +160,21 @@ export const fetchOrdersPage = async (
 
     const finalNewCount = newCount || cntNew;
     const finalRepeatCount = repeatCount || cntRep;
-    const finalNewAmount = (data as any)?.newOrdersAmount ?? (data as any)?.newOrdersTotal ?? normalized.newOrdersAmount ?? sumNewAmt;
-    const finalRepeatAmount = (data as any)?.repeatedOrdersAmount ?? (data as any)?.repeatedOrdersTotal ?? normalized.repeatedOrdersAmount ?? sumRepAmt;
+    const finalNewAmount =
+      (data as any)?.newOrderValue ??
+      (data as any)?.newOrdersAmount ??
+      (data as any)?.newOrdersTotal ??
+      normalized.newOrderValue ??
+      normalized.newOrdersAmount ??
+      sumNewAmt;
+
+    const finalRepeatAmount =
+      (data as any)?.repeatedOrderValue ??
+      (data as any)?.repeatedOrdersAmount ??
+      (data as any)?.repeatedOrdersTotal ??
+      normalized.repeatedOrderValue ??
+      normalized.repeatedOrdersAmount ??
+      sumRepAmt;
 
     // ─── Pagination diagnostics ──────────────────────────────────────────────
     if (__DEV__) {

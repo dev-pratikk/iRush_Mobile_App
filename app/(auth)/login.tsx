@@ -22,6 +22,23 @@ export default function LoginChooserScreen() {
   const { login } = useAuthContext();
   const [biometricError, setBiometricError] = useState<string | undefined>();
   const [isBiometricLoading, setIsBiometricLoading] = useState(false);
+  const [biometricType, setBiometricType] = useState<'faceID' | 'fingerprint' | 'biometric'>('biometric');
+
+  useEffect(() => {
+    const detectBiometrics = async () => {
+      try {
+        const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
+        if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+          setBiometricType('faceID');
+        } else if (supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+          setBiometricType('fingerprint');
+        }
+      } catch (e) {
+        // fallback
+      }
+    };
+    detectBiometrics();
+  }, []);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -38,9 +55,6 @@ export default function LoginChooserScreen() {
     setBiometricError(undefined);
 
     try {
-      const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-
       const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
       const isFaceID = supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION);
       const isFingerprint = supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT);
@@ -52,41 +66,31 @@ export default function LoginChooserScreen() {
         : 'Log in to iRUSH';
 
       const lastUserId = await SecureStore.getItemAsync('lastAuthenticatedUserId');
-      let user = lastUserId ? MOCK_USERS.find(u => u.id === lastUserId) : MOCK_USERS[0];
+      let user = lastUserId ? MOCK_USERS.find((u) => u.id === lastUserId) : MOCK_USERS[0];
       if (!user) user = MOCK_USERS[0];
 
-      if (!hasHardware || !isEnrolled) {
-        // Fallback to passcode prompt if biometrics not configured
-        const fallbackResult = await LocalAuthentication.authenticateAsync({
-          promptMessage: 'Authenticate with System Passcode',
-          fallbackLabel: 'Use MPIN instead',
-          disableDeviceFallback: false,
-        });
-
-        if (fallbackResult.success) {
-          login(user);
-          router.replace('/(dashboard)');
-        } else if (fallbackResult.error !== 'user_cancel') {
-          setBiometricError('Passcode authentication failed');
-        }
-        return;
-      }
-
-      // Primary Biometric Prompt (Face ID on iPhone, Fingerprint on Android)
-      const result = await LocalAuthentication.authenticateAsync({
+      // 1. Direct Face ID / Biometrics prompt with disableDeviceFallback: true
+      let result = await LocalAuthentication.authenticateAsync({
         promptMessage: promptTitle,
         cancelLabel: 'Cancel',
-        fallbackLabel: 'Use MPIN or Passcode',
-        disableDeviceFallback: false,
+        fallbackLabel: 'Use Passcode or MPIN',
+        disableDeviceFallback: true,
       });
+
+      // 2. Secondary fallback to system passcode if Face ID needs fallback
+      if (!result.success && result.error !== 'user_cancel') {
+        result = await LocalAuthentication.authenticateAsync({
+          promptMessage: 'Authenticate with System Passcode',
+          cancelLabel: 'Cancel',
+          disableDeviceFallback: false,
+        });
+      }
 
       if (result.success) {
         login(user);
         router.replace('/(dashboard)');
-      } else {
-        if (result.error !== 'user_cancel') {
-          setBiometricError('Authentication failed, try again');
-        }
+      } else if (result.error !== 'user_cancel') {
+        setBiometricError('Authentication failed, try again');
       }
     } catch (err) {
       console.error('Biometric login failed:', err);
@@ -144,10 +148,26 @@ export default function LoginChooserScreen() {
               {isBiometricLoading ? (
                 <ActivityIndicator size="small" color={Colors.primary} />
               ) : (
-                <Ionicons name="finger-print-outline" size={28} color={Colors.primary} />
+                <Ionicons
+                  name={
+                    biometricType === 'faceID'
+                      ? 'scan-outline'
+                      : biometricType === 'fingerprint'
+                      ? 'finger-print-outline'
+                      : 'shield-checkmark-outline'
+                  }
+                  size={28}
+                  color={Colors.primary}
+                />
               )}
             </View>
-            <Text style={styles.optionLabel}>Biometric Login</Text>
+            <Text style={styles.optionLabel}>
+              {biometricType === 'faceID'
+                ? 'Login with Face ID'
+                : biometricType === 'fingerprint'
+                ? 'Login with Fingerprint'
+                : 'Biometric Login'}
+            </Text>
             <Ionicons name="chevron-forward" size={22} color={Colors.primary} />
           </TouchableOpacity>
           {biometricError && (
@@ -198,50 +218,47 @@ const styles = StyleSheet.create({
   },
   optionsContainer: {
     width: '100%',
-    maxWidth: 380,
+    gap: 16,
   },
   optionButton: {
-    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 28,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    marginBottom: 16,
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   iconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#F0F4F8',
-    alignItems: 'center',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: `${Colors.primary}10`,
     justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 16,
   },
   optionLabel: {
-    fontFamily: Typography.bodyMedium,
-    fontSize: 17,
-    color: Colors.textPrimary,
     flex: 1,
+    fontFamily: Typography.bodySemiBold,
+    fontSize: 16,
+    color: Colors.textPrimary,
   },
   biometricErrorText: {
-    color: Colors.primary,
-    fontSize: 14,
     fontFamily: Typography.body,
-    marginTop: 8,
+    fontSize: 13,
+    color: '#DC2626',
     textAlign: 'center',
+    marginTop: 4,
   },
   footer: {
-    position: 'absolute',
-    bottom: Spacing.screenPadding,
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginTop: 'auto',
+    marginBottom: 16,
   },
   footerText: {
     fontFamily: Typography.body,

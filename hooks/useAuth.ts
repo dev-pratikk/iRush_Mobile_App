@@ -47,11 +47,7 @@ export const useAuth = () => {
     setError(null);
 
     try {
-      // 1. Check if hardware support and enrolled biometrics exist
-      const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
       const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
-
       const isFaceID = supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION);
       const isFingerprint = supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT);
 
@@ -61,34 +57,31 @@ export const useAuth = () => {
         ? 'Log in with Fingerprint'
         : 'Log in to iRUSH';
 
-      if (!hasHardware || !isEnrolled) {
-        // Fallback to system passcode or MPIN prompt if biometrics not configured
-        const fallbackResult = await LocalAuthentication.authenticateAsync({
+      // 1. Direct Face ID / Biometrics prompt with disableDeviceFallback: true
+      const primaryResult = await LocalAuthentication.authenticateAsync({
+        promptMessage: promptTitle,
+        cancelLabel: 'Cancel',
+        fallbackLabel: 'Use MPIN or Passcode',
+        disableDeviceFallback: true,
+      });
+
+      let finalResult = primaryResult;
+
+      // 2. Secondary fallback to system passcode if Face ID needs fallback
+      if (!primaryResult.success && primaryResult.error !== 'user_cancel') {
+        finalResult = await LocalAuthentication.authenticateAsync({
           promptMessage: 'Authenticate with System Passcode',
-          fallbackLabel: 'Use MPIN instead',
+          cancelLabel: 'Cancel',
           disableDeviceFallback: false,
         });
+      }
 
-        if (!fallbackResult.success) {
-          setIsLoading(false);
-          return { success: false, reason: fallbackResult.error === 'user_cancel' ? 'user_cancel' : 'unavailable' };
-        }
-      } else {
-        // 2. Primary Biometric Prompt (Face ID / Fingerprint)
-        const result = await LocalAuthentication.authenticateAsync({
-          promptMessage: promptTitle,
-          cancelLabel: 'Cancel',
-          fallbackLabel: 'Use MPIN or Passcode',
-          disableDeviceFallback: false, // Allows system passcode fallback if biometrics fail
-        });
-
-        if (!result.success) {
-          setIsLoading(false);
-          if (result.error === 'user_cancel') {
-            return { success: false, reason: 'user_cancel' };
-          }
-          return { success: false, reason: 'authentication_failed' };
-        }
+      if (!finalResult.success) {
+        setIsLoading(false);
+        return {
+          success: false,
+          reason: finalResult.error === 'user_cancel' ? 'user_cancel' : 'authentication_failed',
+        };
       }
 
       // Get last authenticated user, or default to primary active user
@@ -98,7 +91,7 @@ export const useAuth = () => {
         await SecureStore.setItemAsync('lastAuthenticatedUserId', lastUserId);
       }
 
-      const user = MOCK_USERS.find(u => u.id === lastUserId) || MOCK_USERS[0];
+      const user = MOCK_USERS.find((u) => u.id === lastUserId) || MOCK_USERS[0];
       setIsLoading(false);
       return { success: true, user };
     } catch (err) {

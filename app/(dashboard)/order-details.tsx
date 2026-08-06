@@ -938,15 +938,13 @@ const styles = StyleSheet.create({
   heroCompanyNameCentered: {
     fontSize: 14,
     fontFamily: Typography.headingSemiBold,
-    fontWeight: '600',
     color: '#475569',
     marginBottom: 4,
     textAlign: 'center',
   },
   heroOrderNoCentered: {
     fontSize: 30,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '800',
+    fontFamily: Typography.headingExtraBold,
     color: '#0F172A',
     letterSpacing: -0.5,
     marginBottom: 6,
@@ -960,7 +958,6 @@ const styles = StyleSheet.create({
   heroAmountTextCentered: {
     fontSize: 15,
     fontFamily: Typography.headingSemiBold,
-    fontWeight: '600',
     color: '#475569',
   },
   heroDotTextCentered: {
@@ -970,8 +967,7 @@ const styles = StyleSheet.create({
   },
   heroStatusTextCentered: {
     fontSize: 15,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '700',
+    fontFamily: Typography.heading,
   },
   statusOpen: {
     color: '#16A34A',

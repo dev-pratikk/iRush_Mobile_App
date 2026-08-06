@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Text, RefreshControl, Alert } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '../../context/ThemeContext';
 import { useAuthContext } from '../../context/AuthContext';
 import { Typography } from '../../constants/Typography';
@@ -98,6 +98,7 @@ const PendingAndPartialKpiGrid = ({ data }: { data: OpenOrdersResponse }) => {
 const BottomNav = () => {
   const colors = useThemeColors();
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
   const tabs = [
     { icon: 'home', label: 'Dashboard', route: '/' },
     { icon: 'document-text', label: 'Orders', route: '/orders' },
@@ -105,7 +106,17 @@ const BottomNav = () => {
     { icon: 'chatbox', label: 'Quotes', route: '/quotes' },
   ];
   return (
-    <View style={[styles.bottomNav, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+    <View
+      style={[
+        styles.bottomNav,
+        {
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+          paddingBottom: Math.max(insets.bottom, 4),
+          height: 56 + Math.max(insets.bottom, 4),
+        },
+      ]}
+    >
       {tabs.map((tab, index) => {
         const isActive = pathname === tab.route;
         return (

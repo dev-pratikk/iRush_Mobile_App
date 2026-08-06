@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Text, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KpiCard } from '../../components/dashboard/KpiCard';
 import { SkeletonSummaryCard, SkeletonKpiCard } from '../../components/ui/SkeletonLoader';
 import { DASHBOARD_KPIS } from '@mocks/dashboard';
@@ -138,6 +138,7 @@ const getKpiOnPress = (label: string, period: DatePeriod): (() => void) | undefi
 const BottomNav = () => {
   const colors = useThemeColors();
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
   const tabs = [
     { icon: 'home', label: 'Dashboard', route: '/' },
     { icon: 'document-text', label: 'Orders', route: '/orders' },
@@ -146,7 +147,17 @@ const BottomNav = () => {
   ];
 
   return (
-    <View style={[styles.bottomNav, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+    <View
+      style={[
+        styles.bottomNav,
+        {
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+          paddingBottom: Math.max(insets.bottom, 4),
+          height: 56 + Math.max(insets.bottom, 4),
+        },
+      ]}
+    >
       {tabs.map((tab, index) => {
         const isActive = pathname === tab.route;
         return (

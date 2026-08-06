@@ -169,8 +169,7 @@ const styles = StyleSheet.create({
   },
   orderNoHighlightText: {
     fontSize: 14,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '700',
+    fontFamily: Typography.heading,
     color: '#0F172A',
     letterSpacing: -0.2,
   },
@@ -185,7 +184,6 @@ const styles = StyleSheet.create({
   newBadgeText: {
     fontSize: 10,
     fontFamily: Typography.headingSemiBold,
-    fontWeight: '700',
     color: '#1D4ED8',
   },
   repeatBadge: {
@@ -199,13 +197,11 @@ const styles = StyleSheet.create({
   repeatBadgeText: {
     fontSize: 10,
     fontFamily: Typography.headingSemiBold,
-    fontWeight: '700',
     color: '#6D28D9',
   },
   companyText: {
     fontSize: 14,
     fontFamily: Typography.headingSemiBold,
-    fontWeight: '600',
     color: '#334155',
   },
   orderTypeText: {
@@ -219,8 +215,7 @@ const styles = StyleSheet.create({
   },
   amountText: {
     fontSize: 16.5,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '700',
+    fontFamily: Typography.heading,
     color: '#0F172A',
   },
   dateText: {
@@ -246,7 +241,6 @@ const styles = StyleSheet.create({
   daysBadgeText: {
     fontSize: 11,
     fontFamily: Typography.headingSemiBold,
-    fontWeight: '600',
   },
   daysBadgeTextNormal: {
     color: '#2563EB',
@@ -296,7 +290,6 @@ const styles = StyleSheet.create({
   pillValueBold: {
     fontSize: 11.5,
     fontFamily: Typography.headingSemiBold,
-    fontWeight: '700',
     color: '#0F172A',
   },
 });

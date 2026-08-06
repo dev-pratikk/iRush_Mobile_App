@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Text, RefreshControl } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { router, usePathname } from 'expo-router';
 import { useAuthContext } from '../../context/AuthContext';
@@ -175,6 +175,7 @@ const NavList = ({ data }: { data: QuotesDashboardResponse }) => {
 
 const BottomNav = () => {
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
   const tabs = [
     { icon: 'home', label: 'Dashboard', route: '/' },
     { icon: 'document-text', label: 'Orders', route: '/orders' },
@@ -182,7 +183,15 @@ const BottomNav = () => {
     { icon: 'chatbox', label: 'Quotes', route: '/quotes' },
   ];
   return (
-    <View style={styles.bottomNav}>
+    <View
+      style={[
+        styles.bottomNav,
+        {
+          paddingBottom: Math.max(insets.bottom, 4),
+          height: 56 + Math.max(insets.bottom, 4),
+        },
+      ]}
+    >
       {tabs.map((tab, index) => {
         const isActive = pathname === tab.route;
         return (

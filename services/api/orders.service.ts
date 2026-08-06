@@ -157,18 +157,15 @@ export const fetchOrdersPage = async (
     const totalRecords = (data as any)?.totalRecords ?? normalized.count;
 
     const ordersList = normalized.orders;
-    let newCount = normalized.newOrdersCount ?? 0;
-    let repeatCount = normalized.repeatedOrdersCount ?? 0;
-    let newAmount = normalized.newOrdersAmount ?? 0;
-    let repeatAmount = normalized.repeatedOrdersAmount ?? 0;
+    const newCount = (data as any)?.newOrdersCount ?? (data as any)?.newCount ?? normalized.newOrdersCount ?? 0;
+    const repeatCount = (data as any)?.repeatedOrdersCount ?? (data as any)?.repeatCount ?? normalized.repeatedOrdersCount ?? 0;
 
-    // Fallback computation from order items if top-level stats are absent
+    let sumNewAmt = 0;
+    let sumRepAmt = 0;
+    let cntNew = 0;
+    let cntRep = 0;
+
     if (ordersList.length > 0) {
-      let sumNewAmt = 0;
-      let sumRepAmt = 0;
-      let cntNew = 0;
-      let cntRep = 0;
-
       ordersList.forEach((ord) => {
         const cat = String(ord.CUSTOMER_STATUS || ord.ORDER_CATEGORY || '').toUpperCase().trim();
         const amt = Number(ord.ORDER_TOTAL) || 0;
@@ -180,12 +177,12 @@ export const fetchOrdersPage = async (
           sumRepAmt += amt;
         }
       });
-
-      if (!newCount && cntNew > 0) newCount = cntNew;
-      if (!repeatCount && cntRep > 0) repeatCount = cntRep;
-      if (!newAmount && sumNewAmt > 0) newAmount = sumNewAmt;
-      if (!repeatAmount && sumRepAmt > 0) repeatAmount = sumRepAmt;
     }
+
+    const finalNewCount = newCount || cntNew;
+    const finalRepeatCount = repeatCount || cntRep;
+    const finalNewAmount = (data as any)?.newOrdersAmount ?? (data as any)?.newOrdersTotal ?? normalized.newOrdersAmount ?? sumNewAmt;
+    const finalRepeatAmount = (data as any)?.repeatedOrdersAmount ?? (data as any)?.repeatedOrdersTotal ?? normalized.repeatedOrdersAmount ?? sumRepAmt;
 
     // ─── Pagination diagnostics ──────────────────────────────────────────────
     if (__DEV__) {
@@ -196,7 +193,7 @@ export const fetchOrdersPage = async (
         `[Orders/${period}] page=${page} limit=${limit}${searchInfo} ` +
         `returned=${ordersList.length} ` +
         `totalRecords=${totalRecords} count=${normalized.count} totalAmount=${normalized.totalAmount} ` +
-        `newCount=${newCount} newAmount=${newAmount} repeatCount=${repeatCount} repeatAmount=${repeatAmount} ` +
+        `newCount=${finalNewCount} newAmount=${finalNewAmount} repeatCount=${finalRepeatCount} repeatAmount=${finalRepeatAmount} ` +
         `hasMore=${ordersList.length < totalRecords && ordersList.length >= limit}`
       );
     }
@@ -207,10 +204,10 @@ export const fetchOrdersPage = async (
       totalRecords,
       count: normalized.count,
       totalAmount: normalized.totalAmount,
-      newOrdersCount: newCount,
-      repeatedOrdersCount: repeatCount,
-      newOrdersAmount: newAmount,
-      repeatedOrdersAmount: repeatAmount,
+      newOrdersCount: finalNewCount,
+      repeatedOrdersCount: finalRepeatCount,
+      newOrdersAmount: finalNewAmount,
+      repeatedOrdersAmount: finalRepeatAmount,
       totalOrderCost: normalized.totalOrderCost,
       totalMarkup: normalized.totalMarkup,
       overallMarkupPercentage: normalized.overallMarkupPercentage,

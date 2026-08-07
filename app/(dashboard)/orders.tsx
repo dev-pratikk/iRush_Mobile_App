@@ -25,6 +25,8 @@ import {
   formatCurrencyWithCents,
   formatNumber,
   fetchOrdersPage,
+  fetchOrdersByFastSearch,
+  fetchOrderById,
   SAMPLE_ORDERS,
   type OrderItem,
   type OrdersSearchType,
@@ -155,21 +157,21 @@ const SearchOverlayModal = ({
     if (!visible) return;
 
     const performLiveSearch = async () => {
+      const q = query.trim();
+      if (!q) {
+        setFetchedOrders([]);
+        setSearching(false);
+        return;
+      }
+
       setSearching(true);
       try {
-        const q = query.trim();
-        const res = await fetchOrdersPage('month', {
-          token: token ?? null,
-          page: 1,
-          limit: 30,
-          search: q ? { type: 'orderNo', value: q } : null,
-        });
-
+        const results = await fetchOrdersByFastSearch(q, { token: token ?? null });
         if (active) {
-          setFetchedOrders(res.data ?? []);
+          setFetchedOrders(results);
         }
       } catch (e) {
-        if (__DEV__) console.log('[SearchOverlay] Live search error:', e);
+        if (__DEV__) console.log('[SearchOverlay] Fast live search error:', e);
       } finally {
         if (active) setSearching(false);
       }
@@ -564,11 +566,24 @@ export default function OrdersScreen() {
     setCustomRange(range);
   };
 
-  const handleSelectOrder = (item: OrderItem) => {
+  const handleSelectOrder = async (item: any) => {
+    const orderId = item.ORDER_ID || item.orderId || item.ORDERD_ID || item.id;
+    let fullOrder = item;
+
+    if (orderId) {
+      try {
+        const res = await fetchOrderById(orderId, { token });
+        if (res) fullOrder = res;
+      } catch (e) {
+        if (__DEV__) console.log('[OrdersScreen] fetchOrderById error on navigate:', e);
+      }
+    }
+
     router.push({
       pathname: '/order-details' as any,
       params: {
-        orderData: JSON.stringify(item),
+        orderId: orderId ? String(orderId) : undefined,
+        orderData: JSON.stringify(fullOrder),
         from: '/orders',
       },
     });

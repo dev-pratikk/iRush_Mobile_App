@@ -320,7 +320,11 @@ const OrderRow = React.memo(function OrderRow({ item }: { item: OrdersRowItem })
       onPress={() =>
         router.push({
           pathname: '/order-details' as any,
-          params: { orderData: JSON.stringify(item), from: '/all-orders' },
+          params: {
+            orderId: String((item as any).ORDER_ID || item.id || (item as any).ORDERD_ID || ''),
+            orderData: JSON.stringify(item),
+            from: '/all-orders',
+          },
         })
       }
     />

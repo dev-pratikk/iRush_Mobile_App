@@ -14,7 +14,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { router, useLocalSearchParams } from 'expo-router';
-import { formatCurrencyWithCents } from '../../services/api/orders.service';
+import { formatCurrencyWithCents, fetchOrderById } from '../../services/api/orders.service';
+import { useAuthContext } from '../../context/AuthContext';
 
 const PRIMARY = '#0F172A';
 const SECONDARY = '#64748B';
@@ -474,7 +475,10 @@ const AllSpecificationsModal = ({
 // ─── Main Screen Component ────────────────────────────────────────────────────
 
 export default function OrderDetailsScreen() {
-  const params = useLocalSearchParams<{ orderData?: string; from?: string }>();
+  const params = useLocalSearchParams<{ orderData?: string; orderId?: string; from?: string }>();
+  const { user } = useAuthContext();
+  const token = (user as any)?.token ?? null;
+  const [fetchedOrder, setFetchedOrder] = useState<any>(null);
   const [locationModalVisible, setLocationModalVisible] = useState(false);
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [trackModalVisible, setTrackModalVisible] = useState(false);
@@ -499,8 +503,8 @@ export default function OrderDetailsScreen() {
     return () => subscription.remove();
   }, [handleBack]);
 
-  // Parse raw order payload or fallback to sample structure matching image
-  const order = useMemo(() => {
+  // Parse raw order payload or fallback
+  const initialParsedOrder = useMemo(() => {
     if (params.orderData) {
       try {
         return JSON.parse(params.orderData);
@@ -510,6 +514,29 @@ export default function OrderDetailsScreen() {
     }
     return null;
   }, [params.orderData]);
+
+  const targetOrderId =
+    params.orderId ||
+    initialParsedOrder?.ORDER_ID ||
+    initialParsedOrder?.orderId ||
+    initialParsedOrder?.ORDERD_ID ||
+    initialParsedOrder?.id;
+
+  React.useEffect(() => {
+    let active = true;
+    if (targetOrderId) {
+      fetchOrderById(targetOrderId, { token }).then((fullOrder) => {
+        if (active && fullOrder) {
+          setFetchedOrder(fullOrder);
+        }
+      });
+    }
+    return () => {
+      active = false;
+    };
+  }, [targetOrderId, token]);
+
+  const order = fetchedOrder || initialParsedOrder;
 
   // Extract fields matching image & fallback
   const orderNo = order?.ORDER_NO || order?.orderNo || '482663';

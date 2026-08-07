@@ -1,10 +1,13 @@
 import { apiClient } from '@lib/api-client';
+import { fetchOrdersByFastSearch } from './orders.service';
 
 export interface SearchSuggestionItem {
   type: 'orderNo' | 'companyCode' | 'partNumber';
   value: string;
   label: string;
   sublabel?: string;
+  orderId?: number | string;
+  orderData?: any;
 }
 
 export const fetchUnifiedSearchSuggestions = async (
@@ -15,27 +18,15 @@ export const fetchUnifiedSearchSuggestions = async (
   if (!trimmed) return [];
 
   try {
-    const data = await apiClient.get<any>({
-      path: '/dashboard/orders',
-      query: { search: trimmed, limit: 10 },
-      token: options?.token,
-      timeoutMs: 10000,
-    });
+    const list = await fetchOrdersByFastSearch(trimmed, options);
 
     const results: SearchSuggestionItem[] = [];
-    const list = Array.isArray(data)
-      ? data
-      : Array.isArray(data?.orders)
-      ? data.orders
-      : data && typeof data === 'object'
-      ? [data]
-      : [];
-
     const seenKeys = new Set<string>();
     const qLower = trimmed.toLowerCase();
 
     list.forEach((item: any) => {
-      const oNo = String(item.ORDER_NO || item.orderNo || item.ORDER_ID || '').replace(/^#/, '').trim();
+      const orderId = item.ORDER_ID || item.orderId || item.ORDERD_ID || item.id;
+      const oNo = String(item.ORDER_NO || item.orderNo || orderId || '').replace(/^#/, '').trim();
       const cName = String(item.COMPANY_NAME || item.companyName || '').trim();
       const cCode = String(item.COMPANY_CODE || item.companyCode || cName).trim();
       const pNo = String(
@@ -50,6 +41,8 @@ export const fetchUnifiedSearchSuggestions = async (
           value: oNo,
           label: oNo,
           sublabel: cName ? `Company: ${cName}` : 'Order Number',
+          orderId,
+          orderData: item,
         });
       }
 
@@ -61,6 +54,8 @@ export const fetchUnifiedSearchSuggestions = async (
           value: cCode,
           label: cName || cCode,
           sublabel: cCode ? `Code: ${cCode}` : 'Customer',
+          orderId,
+          orderData: item,
         });
       }
 
@@ -72,6 +67,8 @@ export const fetchUnifiedSearchSuggestions = async (
           value: pNo,
           label: `Part: ${pNo}`,
           sublabel: oNo ? `Order #${oNo}${cName ? ` · ${cName}` : ''}` : cName,
+          orderId,
+          orderData: item,
         });
       }
     });

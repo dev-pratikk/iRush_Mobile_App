@@ -207,3 +207,78 @@ export const fetchOrdersPage = async (
     throw toServiceError(error);
   }
 };
+
+export const fetchOrderById = async (
+  orderId: string | number,
+  options?: { token?: string | null }
+): Promise<OrderItem | null> => {
+  const cleanId = String(orderId || '').replace(/^#/, '').trim();
+  if (!cleanId) return null;
+
+  try {
+    const data = await apiClient.get<any>({
+      path: `/dashboard/orders/${encodeURIComponent(cleanId)}`,
+      token: options?.token,
+      timeoutMs: 15000,
+    });
+
+    const singleOrder = Array.isArray(data)
+      ? data[0]
+      : Array.isArray(data?.orders)
+      ? data.orders[0]
+      : data;
+
+    return singleOrder ?? null;
+  } catch (error) {
+    if (__DEV__) {
+      console.log('[OrdersService] fetchOrderById error:', error);
+    }
+    return null;
+  }
+};
+
+export const fetchOrdersByFastSearch = async (
+  val: string,
+  options?: { token?: string | null }
+): Promise<OrderItem[]> => {
+  const trimmed = val.replace(/^#/, '').trim();
+  if (!trimmed) return [];
+
+  try {
+    const data = await apiClient.get<any>({
+      path: `/dashboard/orders/search/${encodeURIComponent(trimmed)}`,
+      token: options?.token,
+      timeoutMs: 12000,
+    });
+
+    const list = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.orders)
+      ? data.orders
+      : data && typeof data === 'object'
+      ? [data]
+      : [];
+
+    return list;
+  } catch (error) {
+    if (__DEV__) {
+      console.log('[OrdersService] fetchOrdersByFastSearch fallback:', error);
+    }
+    try {
+      const fallbackData = await apiClient.get<any>({
+        path: '/dashboard/orders',
+        query: { search: trimmed, limit: 15 },
+        token: options?.token,
+        timeoutMs: 10000,
+      });
+
+      return Array.isArray(fallbackData)
+        ? fallbackData
+        : Array.isArray(fallbackData?.orders)
+        ? fallbackData.orders
+        : [];
+    } catch {
+      return [];
+    }
+  }
+};

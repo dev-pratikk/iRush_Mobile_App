@@ -413,8 +413,7 @@ const styles = StyleSheet.create({
   },
   topCardBigNumber: {
     fontSize: 34,
-    fontFamily: Typography.titleSerif,
-    fontWeight: '700',
+    fontFamily: Typography.numberHeavy,
     color: '#FFFFFF',
   },
 

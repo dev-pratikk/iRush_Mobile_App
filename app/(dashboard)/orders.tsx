@@ -884,15 +884,13 @@ const styles = StyleSheet.create({
   },
   summaryCount: {
     fontSize: 32,
-    fontFamily: Typography.titleSerif,
-    fontWeight: '700',
+    fontFamily: Typography.numberHeavy,
     color: '#FFFFFF',
   },
   summaryColRight: { alignItems: 'flex-end' },
   summaryValue: {
     fontSize: 20,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '700',
+    fontFamily: Typography.numberHeavy,
     color: '#FFFFFF',
   },
 

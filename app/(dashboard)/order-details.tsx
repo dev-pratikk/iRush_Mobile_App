@@ -406,7 +406,15 @@ const AllSpecificationsModal = ({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={[styles.specsModalOverlay, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <View
+        style={[
+          styles.specsModalOverlay,
+          {
+            paddingTop: Math.max(insets.top + 16, 24),
+            paddingBottom: Math.max(insets.bottom + 16, 24),
+          },
+        ]}
+      >
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
         <View style={styles.specsModalCard}>
           {/* Header */}
@@ -1464,14 +1472,13 @@ const styles = StyleSheet.create({
   specsModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.55)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingBottom: 12,
+    paddingHorizontal: 16,
   },
   specsModalCard: {
     width: '100%',
-    maxHeight: '88%',
+    maxHeight: '84%',
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     overflow: 'hidden',
@@ -1484,6 +1491,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   specsScrollView: {
     flexShrink: 1,

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { AppButton } from '../ui/AppButton';
 import { Colors } from '../../constants/Colors';
 import { Spacing } from '../../constants/Spacing';
@@ -20,26 +20,35 @@ export const MpinForm: React.FC<MpinFormProps> = ({ isLoading, error, onLogin })
     setMpin(numericText.slice(0, 4));
   };
 
+  const handleFocusInput = () => {
+    inputRef.current?.focus();
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Enter your MPIN</Text>
-      <View style={styles.pinContainer}>
-        {[0, 1, 2, 3].map((index) => (
-          <View
-            key={index}
-            style={[
-              styles.pinBox,
-              { borderColor: mpin[index] ? Colors.primary : Colors.border },
-            ]}
-          >
-            {mpin[index] ? <View style={styles.pinDot} /> : null}
-          </View>
-        ))}
-      </View>
+      <TouchableOpacity activeOpacity={1} onPress={handleFocusInput}>
+        <View style={styles.pinContainer}>
+          {[0, 1, 2, 3].map((index) => (
+            <View
+              key={index}
+              style={[
+                styles.pinBox,
+                { borderColor: mpin[index] ? Colors.primary : Colors.border },
+              ]}
+            >
+              {mpin[index] ? <View style={styles.pinDot} /> : null}
+            </View>
+          ))}
+        </View>
+      </TouchableOpacity>
       <TextInput
         ref={inputRef}
         value={mpin}
         onChangeText={handleTextChange}
+        onSubmitEditing={() => {
+          if (mpin.length === 4) onLogin(mpin);
+        }}
         style={styles.hiddenInput}
         keyboardType="number-pad"
         maxLength={4}

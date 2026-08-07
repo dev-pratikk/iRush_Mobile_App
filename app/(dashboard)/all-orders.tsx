@@ -418,11 +418,26 @@ const SearchEmptyState = ({
 export default function AllOrdersScreen() {
   const { user } = useAuthContext();
   const token = (user as any)?.token ?? null;
-  const params = useLocalSearchParams<{ period?: string; category?: string }>();
+  const params = useLocalSearchParams<{
+    period?: string;
+    category?: string;
+    startDate?: string;
+    endDate?: string;
+  }>();
+
+  const getPresetFromParam = useCallback((p?: string): DateFilterPreset => {
+    if (p === 'month' || p === 'week' || p === 'today' || p === 'custom') {
+      return p as DateFilterPreset;
+    }
+    return 'today';
+  }, []);
+
   const [activePreset, setActivePreset] = useState<DateFilterPreset>(
-    params.period === 'month' ? 'month' : 'today'
+    getPresetFromParam(params.period)
   );
-  const [customRange, setCustomRange] = useState<{ startDate: string; endDate: string } | null>(null);
+  const [customRange, setCustomRange] = useState<{ startDate: string; endDate: string } | null>(
+    params.startDate && params.endDate ? { startDate: params.startDate, endDate: params.endDate } : null
+  );
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
   const [selectedCategory, setSelectedCategory] = useState<'NEW' | 'REPEAT' | null>(
@@ -436,11 +451,16 @@ export default function AllOrdersScreen() {
   }, [params.category]);
 
   useEffect(() => {
-    if (params.period === 'today' || params.period === 'month') {
-      setActivePreset(params.period as DateFilterPreset);
-      setCustomRange(null);
+    if (params.period) {
+      const p = getPresetFromParam(params.period);
+      setActivePreset(p);
+      if (p === 'custom' && params.startDate && params.endDate) {
+        setCustomRange({ startDate: params.startDate, endDate: params.endDate });
+      } else if (p !== 'custom') {
+        setCustomRange(null);
+      }
     }
-  }, [params.period]);
+  }, [params.period, params.startDate, params.endDate, getPresetFromParam]);
 
   const [inputText, setInputText] = useState('');
   const [debouncedValue, setDebouncedValue] = useState('');
@@ -508,12 +528,19 @@ export default function AllOrdersScreen() {
       setDebouncedValue('');
       setSelectedSalesperson(null);
       setSelectedCategory(params.category ? (params.category.toUpperCase() as 'NEW' | 'REPEAT') : null);
-      setActivePreset(params.period === 'month' ? 'month' : 'today');
-      setCustomRange(null);
+
+      const p = getPresetFromParam(params.period);
+      setActivePreset(p);
+      if (p === 'custom' && params.startDate && params.endDate) {
+        setCustomRange({ startDate: params.startDate, endDate: params.endDate });
+      } else if (p !== 'custom') {
+        setCustomRange(null);
+      }
+
       setFilterModalVisible(false);
       setCurrentPage(1);
       refetch();
-    }, [params.period, params.category, refetch])
+    }, [params.period, params.category, params.startDate, params.endDate, getPresetFromParam, refetch])
   );
 
   const allFilteredItems = useMemo(() => {

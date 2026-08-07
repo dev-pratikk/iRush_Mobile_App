@@ -383,12 +383,16 @@ const OrdersKpiGrid = ({
   repeatCount = 0,
   repeatAmount = 0,
   loading = false,
+  onPressNew,
+  onPressRepeat,
 }: {
   newCount?: number;
   newAmount?: number;
   repeatCount?: number;
   repeatAmount?: number;
   loading?: boolean;
+  onPressNew: () => void;
+  onPressRepeat: () => void;
 }) => {
   if (loading) {
     return (
@@ -406,7 +410,7 @@ const OrdersKpiGrid = ({
       <View style={styles.kpiRow}>
         <TouchableOpacity
           style={styles.kpiCard}
-          onPress={() => router.push({ pathname: '/all-orders' as any, params: { category: 'NEW' } })}
+          onPress={onPressNew}
           activeOpacity={0.75}
         >
           <Text style={styles.kpiHeaderLabel}>NEW</Text>
@@ -420,7 +424,7 @@ const OrdersKpiGrid = ({
 
         <TouchableOpacity
           style={styles.kpiCard}
-          onPress={() => router.push({ pathname: '/all-orders' as any, params: { category: 'REPEAT' } })}
+          onPress={onPressRepeat}
           activeOpacity={0.75}
         >
           <Text style={styles.kpiHeaderLabel}>REPEAT</Text>
@@ -597,6 +601,23 @@ export default function OrdersScreen() {
     });
   };
 
+  const navigateToAllOrders = useCallback(
+    (category?: 'NEW' | 'REPEAT') => {
+      const navParams: Record<string, string> = {};
+      if (category) navParams.category = category;
+      if (activePreset) navParams.period = activePreset;
+      if (activePreset === 'custom' && customRange) {
+        navParams.startDate = customRange.startDate;
+        navParams.endDate = customRange.endDate;
+      }
+      router.push({
+        pathname: '/all-orders' as any,
+        params: navParams,
+      });
+    },
+    [activePreset, customRange]
+  );
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header
@@ -624,13 +645,15 @@ export default function OrdersScreen() {
             repeatCount={repeatedOrdersCount}
             repeatAmount={repeatedOrdersAmount}
             loading={loading}
+            onPressNew={() => navigateToAllOrders('NEW')}
+            onPressRepeat={() => navigateToAllOrders('REPEAT')}
           />
 
           {/* 3. View All Orders List Button */}
           <View style={styles.viewAllRowContainer}>
             <TouchableOpacity
               style={styles.viewAllButton}
-              onPress={() => router.push('/all-orders' as any)}
+              onPress={() => navigateToAllOrders()}
               activeOpacity={0.85}
             >
               <Text style={styles.viewAllButtonText}>View All Orders List</Text>

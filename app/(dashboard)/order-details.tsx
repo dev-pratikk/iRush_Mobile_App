@@ -482,6 +482,62 @@ const AllSpecificationsModal = ({
   );
 };
 
+const extractOrderTotal = (ord: any): number => {
+  if (!ord) return 0;
+
+  const candidates = [
+    ord.ORDER_TOTAL,
+    ord.orderTotal,
+    ord.ORDER_AMOUNT,
+    ord.orderAmount,
+    ord.TOTAL_AMOUNT,
+    ord.totalAmount,
+    ord.GRAND_TOTAL,
+    ord.grandTotal,
+    ord.TOTAL_PRICE,
+    ord.totalPrice,
+    ord.AMOUNT,
+    ord.amount,
+    ord.TOTAL,
+    ord.total,
+    ord.NET_AMOUNT,
+    ord.netAmount,
+    ord.PRICE,
+    ord.price,
+  ];
+
+  for (const val of candidates) {
+    if (val !== null && val !== undefined && val !== '') {
+      const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/[^0-9.-]+/g, ''));
+      if (Number.isFinite(num) && num > 0) {
+        return num;
+      }
+    }
+  }
+
+  if (Array.isArray(ord.orderDetails) && ord.orderDetails.length > 0) {
+    let sumDetails = 0;
+    for (const d of ord.orderDetails) {
+      const dTotal = d.ORDER_TOTAL ?? d.orderTotal ?? d.TOTAL_PRICE ?? d.totalPrice ?? d.TOTAL_AMOUNT ?? d.totalAmount;
+      if (dTotal !== null && dTotal !== undefined && dTotal !== '') {
+        const num = typeof dTotal === 'number' ? dTotal : parseFloat(String(dTotal).replace(/[^0-9.-]+/g, ''));
+        if (Number.isFinite(num) && num > 0) {
+          sumDetails += num;
+        }
+      } else {
+        const q = Number(d.QUANTITY ?? d.quantity ?? 0);
+        const p = Number(d.UNIT_PRICE ?? d.unitPrice ?? d.PRICE ?? d.price ?? 0);
+        if (q > 0 && p > 0) {
+          sumDetails += q * p;
+        }
+      }
+    }
+    if (sumDetails > 0) return sumDetails;
+  }
+
+  return 0;
+};
+
 // ─── Main Screen Component ────────────────────────────────────────────────────
 
 export default function OrderDetailsScreen() {
@@ -548,56 +604,61 @@ export default function OrderDetailsScreen() {
 
   const order = fetchedOrder || initialParsedOrder;
 
-  // Extract fields matching image & fallback
-  const orderNo = order?.ORDER_NO || order?.orderNo || '482663';
-  const companyName = decodeHtml(order?.COMPANY_NAME || order?.companyName || 'Higher Ground, LLC');
-  const orderTotal = Number.isFinite(order?.ORDER_TOTAL || order?.orderTotal)
-    ? order?.ORDER_TOTAL || order?.orderTotal
-    : 1069.92;
-  const orderStatus = order?.ORDER_STATUS || order?.orderStatus || 'Open';
+  // Extract fields matching real API payload
+  const orderNo = String(
+    order?.ORDER_NO ?? order?.orderNo ?? order?.ORDER_ID ?? order?.orderId ?? targetOrderId ?? 'N/A'
+  ).replace(/^#/, '').trim();
+
+  const companyName = decodeHtml(
+    order?.COMPANY_NAME ?? order?.companyName ?? order?.COMPANY_CODE ?? order?.companyCode ?? 'N/A'
+  );
+
+  const orderTotal = useMemo(() => extractOrderTotal(order), [order]);
+
+  const orderStatus = String(order?.ORDER_STATUS ?? order?.orderStatus ?? 'Open').trim();
 
   // Order info
-  const orderType = (order?.ORDER_TYPE_NAME || order?.orderTypeName || 'PCB Parts').trim();
-  const quoteNo = (order?.QUOTE_NO || order?.quoteNo || 'PCB304352').trim();
-  const salesperson = (order?.SALESPERSON_NAME || order?.salespersonName || 'Jodi').trim();
+  const orderType = (order?.ORDER_TYPE_NAME ?? order?.orderTypeName ?? order?.ORDER_CATEGORY ?? order?.orderCategory ?? 'N/A').trim();
+  const quoteNo = (order?.QUOTE_NO ?? order?.quoteNo ?? 'N/A').trim();
+  const salesperson = (order?.SALESPERSON_NAME ?? order?.salespersonName ?? 'N/A').trim();
 
   // Line items
   const details = order?.orderDetails && order.orderDetails.length > 0 ? order.orderDetails[0] : null;
-  const lineQty = details?.QUANTITY ?? order?.orderedQuantity ?? 38;
-  const unitPrice = details?.UNIT_PRICE ?? 22.65;
+  const lineQty = details?.QUANTITY ?? order?.orderedQuantity ?? order?.quantity ?? 0;
+  const unitPrice = details?.UNIT_PRICE ?? order?.unitPrice ?? (lineQty > 0 && orderTotal > 0 ? Math.round((orderTotal / lineQty) * 100) / 100 : 0);
 
-  // Specifications (Full 25-parameter technical set)
+  // Specifications
   const spec = order?.orderSpecifications && order.orderSpecifications.length > 0 ? order.orderSpecifications[0] : null;
 
-  const partNo = (spec?.PCBPARTNO || order?.pcbpartNo || '000-906-9030-001 Rev A').trim();
-  const rev = spec?.REV != null ? String(spec.REV).trim() : '0';
-  const orderTypeSpec = (spec?.OrderType || order?.ORDER_TYPE_NAME || order?.orderType || 'Full Turnkey').trim();
-  const boardSize = (spec?.BoardSize || '9.6 x 6.125').trim();
-  const panelSize = (spec?.PanelSize || '9.6 x 6.925').trim();
-  const boardsPerPanel = spec?.BoardPerPanel != null ? String(spec.BoardPerPanel).trim() : '1';
-  const layerCount = (spec?.Layer || '6').trim();
-  const ipcClass = (spec?.IpcClass || 'IPC CLASS-II').trim();
-  const maskColor = (spec?.MaskColor || 'GREEN').trim();
-  const silkColor = (spec?.SilkscreenColor || 'WHITE').trim();
-  const material = (spec?.Material || 'FR4 TG170').trim();
-  const thickness = (spec?.Thickness || '0.093" +/- 10 %').trim();
-  const innerCopper = (spec?.InnerCopper || '1OZ').trim();
-  const outerCopper = (spec?.OuterCopper || '1OZ').trim();
-  const plating = (spec?.Plating || 'ENIG').trim();
-  const approxHoles = spec?.ApproxHoles != null ? String(spec.ApproxHoles).trim() : '986';
-  const smallestHoles = (spec?.SmallestHoles || '9.84 MIL').trim();
-  const minTrace = (spec?.MinTrace || '10.00 MIL').trim();
-  const minSpace = (spec?.MinSpace || '5.00 MIL').trim();
-  const smdPitch = (spec?.SmdPitch || '19.68 MIL').trim();
-  const smdPads = spec?.NoOfSmdPads != null ? String(spec.NoOfSmdPads).trim() : '4300';
-  const smdSided = (spec?.SmdSided || 'BOTH').trim();
-  const isItar = spec?.ITAR === 1 || String(spec?.ITAR).toLowerCase() === 'yes';
-  const testing = (spec?.Testing || 'YES').trim();
-  const routing = (spec?.Routing || 'ROUTE & RETAIN').trim();
-  const controlledImpedance = (spec?.ControlledImpedence || 'NO').trim();
-  const platedEdges = (spec?.PlatedEdges || 'No').trim();
-  const rohs = (spec?.Rohs || 'Yes').trim();
-  const blindBuriedVias = (spec?.BlindOrBuriedVias || 'No').trim();
+  const partNo = (spec?.PCBPARTNO ?? order?.pcbpartNo ?? order?.PCBPARTNO ?? order?.partNo ?? order?.PARTNO ?? 'N/A').trim();
+  const rev = spec?.REV != null ? String(spec.REV).trim() : (order?.rev != null ? String(order.rev).trim() : '0');
+  const orderTypeSpec = (spec?.OrderType ?? order?.ORDER_TYPE_NAME ?? order?.orderType ?? 'Full Turnkey').trim();
+  const boardSize = (spec?.BoardSize ?? order?.boardSize ?? 'N/A').trim();
+  const panelSize = (spec?.PanelSize ?? order?.panelSize ?? 'N/A').trim();
+  const boardsPerPanel = spec?.BoardPerPanel != null ? String(spec.BoardPerPanel).trim() : (order?.boardsPerPanel != null ? String(order.boardsPerPanel).trim() : 'N/A');
+  const layerCount = (spec?.Layer ?? order?.layerCount ?? 'N/A').trim();
+  const ipcClass = (spec?.IpcClass ?? order?.ipcClass ?? 'N/A').trim();
+  const maskColor = (spec?.MaskColor ?? order?.maskColor ?? 'N/A').trim();
+  const silkColor = (spec?.SilkscreenColor ?? order?.silkscreenColor ?? 'N/A').trim();
+  const material = (spec?.Material ?? order?.material ?? 'N/A').trim();
+  const thickness = (spec?.Thickness ?? order?.thickness ?? 'N/A').trim();
+  const innerCopper = (spec?.InnerCopper ?? order?.innerCopper ?? 'N/A').trim();
+  const outerCopper = (spec?.OuterCopper ?? order?.outerCopper ?? 'N/A').trim();
+  const plating = (spec?.Plating ?? order?.plating ?? 'N/A').trim();
+  const approxHoles = spec?.ApproxHoles != null ? String(spec.ApproxHoles).trim() : (order?.approxHoles != null ? String(order.approxHoles).trim() : 'N/A');
+  const smallestHoles = (spec?.SmallestHoles ?? order?.smallestHoles ?? 'N/A').trim();
+  const minTrace = (spec?.MinTrace ?? order?.minTrace ?? 'N/A').trim();
+  const minSpace = (spec?.MinSpace ?? order?.minSpace ?? 'N/A').trim();
+  const smdPitch = (spec?.SmdPitch ?? order?.smdPitch ?? 'N/A').trim();
+  const smdPads = spec?.NoOfSmdPads != null ? String(spec.NoOfSmdPads).trim() : (order?.smdPads != null ? String(order.smdPads).trim() : 'N/A');
+  const smdSided = (spec?.SmdSided ?? order?.smdSided ?? 'N/A').trim();
+  const isItar = spec?.ITAR === 1 || String(spec?.ITAR).toLowerCase() === 'yes' || order?.itar === 1 || String(order?.itar).toLowerCase() === 'yes';
+  const testing = (spec?.Testing ?? order?.testing ?? 'N/A').trim();
+  const routing = (spec?.Routing ?? order?.routing ?? 'N/A').trim();
+  const controlledImpedance = (spec?.ControlledImpedence ?? order?.controlledImpedance ?? 'N/A').trim();
+  const platedEdges = (spec?.PlatedEdges ?? order?.platedEdges ?? 'N/A').trim();
+  const rohs = (spec?.Rohs ?? order?.rohs ?? 'N/A').trim();
+  const blindBuriedVias = (spec?.BlindOrBuriedVias ?? order?.blindBuriedVias ?? 'N/A').trim();
 
   const allSpecsList = useMemo(
     () => [
@@ -664,35 +725,37 @@ export default function OrderDetailsScreen() {
 
   // Vendor
   const vendorObj = order?.orderVendors && order.orderVendors.length > 0 ? order.orderVendors[0] : null;
-  const vendorName = decodeHtml(vendorObj?.vendor?.vendorCompanyName || 'R&D Tech');
-  const vendorCost = vendorObj?.VENDOR_ALLTOTALCOST || vendorObj?.VENDOR_TOTALCOST || 556.7;
+  const vendorName = decodeHtml(vendorObj?.vendor?.vendorCompanyName ?? vendorObj?.vendorCompanyName ?? order?.vendorName ?? 'N/A');
+  const vendorCost = vendorObj?.VENDOR_ALLTOTALCOST ?? vendorObj?.VENDOR_TOTALCOST ?? order?.vendorCost ?? 0;
 
   // Shipping & Contact
   const ship = order?.shippingAddress || {};
-  const city = ship.cityName || 'Palo Alto';
-  const state = ship.stateName ? ship.stateName.toUpperCase() : 'CA';
-  const addr1 = ship.addressText1 || '2595 E Bayshore Rd';
-  const addr2 = ship.addressText2 ? `, ${ship.addressText2}` : ', Ste 200';
-  const zip = ship.zipCode || '94303';
-  const fullAddress = `${addr1}${addr2}, ${city}, ${state} ${zip}`;
+  const city = ship.cityName || '';
+  const state = ship.stateName ? ship.stateName.toUpperCase() : '';
+  const addr1 = ship.addressText1 || '';
+  const addr2 = ship.addressText2 ? `, ${ship.addressText2}` : '';
+  const zip = ship.zipCode || '';
+  const fullAddress = [addr1 + addr2, city, state, zip].filter(Boolean).join(', ') || 'Address not available';
 
   const contact = order?.customerContact || {};
-  const contactName = `${contact.firstName || 'Darren'} ${contact.lastName || 'Reis'}`.trim();
-  const contactEmail = contact.email || 'darren@higherground.earth.com';
-  const rawPhone = contact.phone1 || '6507042320';
+  const firstName = contact.firstName || order?.contactFirstName || '';
+  const lastName = contact.lastName || order?.contactLastName || '';
+  const contactName = `${firstName} ${lastName}`.trim() || 'N/A';
+  const contactEmail = contact.email || order?.contactEmail || 'N/A';
+  const rawPhone = contact.phone1 || order?.contactPhone || '';
   const formattedPhone =
     rawPhone.length === 10
       ? `(${rawPhone.slice(0, 3)}) ${rawPhone.slice(3, 6)}-${rawPhone.slice(6)}`
-      : rawPhone;
+      : rawPhone || 'N/A';
 
   // Invoice & Shipment
   const inv = order?.invoices && order.invoices.length > 0 ? order.invoices[0] : null;
-  const invNumber = inv?.INV_NUMBER || '482630-1';
-  const invStatus = inv?.invoiceStatus || 'Unpaid';
-  const invAmount = inv?.INVOICE_AMOUNT ?? 22.65;
+  const invNumber = inv?.INV_NUMBER ?? order?.invoiceNumber ?? 'N/A';
+  const invStatus = inv?.invoiceStatus ?? order?.invoiceStatus ?? 'N/A';
+  const invAmount = inv?.INVOICE_AMOUNT ?? order?.invoiceAmount ?? 0;
 
   const pack = order?.orderPackingSlips && order.orderPackingSlips.length > 0 ? order.orderPackingSlips[0] : null;
-  const trackingNo = pack?.TRACK_NUMBER || '123';
+  const trackingNo = pack?.TRACK_NUMBER ?? order?.trackingNumber ?? 'N/A';
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>

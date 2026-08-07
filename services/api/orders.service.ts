@@ -43,37 +43,14 @@ const normalizeOrdersResponse = (data: OrdersListResponse | null | undefined): O
 
 export const isOrderNew = (ord: any): boolean => {
   if (!ord) return false;
-  const custStatus = String(ord.CUSTOMER_STATUS ?? ord.customerStatus ?? '').toUpperCase().trim();
-  const orderCat = String(ord.ORDER_CATEGORY ?? ord.orderCategory ?? '').toUpperCase().trim();
-  const custType = String(ord.CUSTOMER_TYPE ?? ord.customerType ?? '').toUpperCase().trim();
-
-  if (ord.IS_NEW_CUSTOMER === 1 || ord.IS_NEW_CUSTOMER === true || ord.isNewCustomer === 1 || ord.isNewCustomer === true) {
-    return true;
-  }
-
-  return custStatus === 'NEW' || orderCat === 'NEW' || custType === 'NEW';
+  const cat = String(ord.ORDER_CATEGORY ?? ord.orderCategory ?? ord.CUSTOMER_STATUS ?? ord.customerStatus ?? '').toUpperCase().trim();
+  return cat === 'NEW';
 };
 
 export const isOrderRepeat = (ord: any): boolean => {
   if (!ord) return false;
-  if (isOrderNew(ord)) return false;
-
-  const custStatus = String(ord.CUSTOMER_STATUS ?? ord.customerStatus ?? '').toUpperCase().trim();
-  const orderCat = String(ord.ORDER_CATEGORY ?? ord.orderCategory ?? '').toUpperCase().trim();
-  const custType = String(ord.CUSTOMER_TYPE ?? ord.customerType ?? '').toUpperCase().trim();
-
-  if (ord.IS_REPEAT === 1 || ord.IS_REPEAT === true || ord.isRepeat === 1 || ord.isRepeat === true) {
-    return true;
-  }
-
-  return (
-    custStatus === 'REPEAT' ||
-    custStatus === 'REPEATED' ||
-    orderCat === 'REPEAT' ||
-    orderCat === 'REPEATED' ||
-    custType === 'REPEAT' ||
-    custType === 'REPEATED'
-  );
+  const cat = String(ord.ORDER_CATEGORY ?? ord.orderCategory ?? ord.CUSTOMER_STATUS ?? ord.customerStatus ?? '').toUpperCase().trim();
+  return cat === 'REPEAT' || cat === 'REPEATED';
 };
 
 const toServiceError = (error: unknown) => {

@@ -404,7 +404,11 @@ const OrdersKpiGrid = ({
   return (
     <View style={styles.kpiContainer}>
       <View style={styles.kpiRow}>
-        <View style={styles.kpiCard}>
+        <TouchableOpacity
+          style={styles.kpiCard}
+          onPress={() => router.push({ pathname: '/all-orders' as any, params: { category: 'NEW' } })}
+          activeOpacity={0.75}
+        >
           <Text style={styles.kpiHeaderLabel}>NEW</Text>
           <Text style={styles.kpiValueText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
             {formatNumber(newCount)}
@@ -412,9 +416,13 @@ const OrdersKpiGrid = ({
           <Text style={styles.kpiSubText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
             {formatCurrencyWithCents(newAmount)}
           </Text>
-        </View>
+        </TouchableOpacity>
 
-        <View style={styles.kpiCard}>
+        <TouchableOpacity
+          style={styles.kpiCard}
+          onPress={() => router.push({ pathname: '/all-orders' as any, params: { category: 'REPEAT' } })}
+          activeOpacity={0.75}
+        >
           <Text style={styles.kpiHeaderLabel}>REPEAT</Text>
           <Text style={styles.kpiValueText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
             {formatNumber(repeatCount)}
@@ -422,7 +430,7 @@ const OrdersKpiGrid = ({
           <Text style={styles.kpiSubText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
             {formatCurrencyWithCents(repeatAmount)}
           </Text>
-        </View>
+        </TouchableOpacity>
       </View>
     </View>
   );

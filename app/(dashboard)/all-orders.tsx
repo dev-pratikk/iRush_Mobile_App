@@ -162,6 +162,8 @@ const SearchBarSection = ({
   setInputText,
   selectedSalesperson,
   setSelectedSalesperson,
+  selectedCategory,
+  setSelectedCategory,
   onFocusChange,
   onClear,
 }: {
@@ -169,6 +171,8 @@ const SearchBarSection = ({
   setInputText: (text: string) => void;
   selectedSalesperson: string | null;
   setSelectedSalesperson: (sp: string | null) => void;
+  selectedCategory: 'NEW' | 'REPEAT' | null;
+  setSelectedCategory: (cat: 'NEW' | 'REPEAT' | null) => void;
   onFocusChange: (focused: boolean) => void;
   onClear: () => void;
 }) => {
@@ -240,6 +244,39 @@ const SearchBarSection = ({
             ellipsizeMode="tail"
           >
             {selectedSalesperson ? selectedSalesperson : 'Filter'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Category Tabs: All | New Orders | Repeat Orders */}
+      <View style={styles.categoryTabRow}>
+        <TouchableOpacity
+          style={[styles.categoryTabPill, !selectedCategory && styles.categoryTabPillActive]}
+          onPress={() => setSelectedCategory(null)}
+          activeOpacity={0.75}
+        >
+          <Text style={[styles.categoryTabText, !selectedCategory && styles.categoryTabTextActive]}>
+            All
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.categoryTabPill, selectedCategory === 'NEW' && styles.categoryTabPillActive]}
+          onPress={() => setSelectedCategory(selectedCategory === 'NEW' ? null : 'NEW')}
+          activeOpacity={0.75}
+        >
+          <Text style={[styles.categoryTabText, selectedCategory === 'NEW' && styles.categoryTabTextActive]}>
+            New Orders
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.categoryTabPill, selectedCategory === 'REPEAT' && styles.categoryTabPillActive]}
+          onPress={() => setSelectedCategory(selectedCategory === 'REPEAT' ? null : 'REPEAT')}
+          activeOpacity={0.75}
+        >
+          <Text style={[styles.categoryTabText, selectedCategory === 'REPEAT' && styles.categoryTabTextActive]}>
+            Repeat Orders
           </Text>
         </TouchableOpacity>
       </View>
@@ -381,12 +418,22 @@ const SearchEmptyState = ({
 export default function AllOrdersScreen() {
   const { user } = useAuthContext();
   const token = (user as any)?.token ?? null;
-  const params = useLocalSearchParams<{ period?: string }>();
+  const params = useLocalSearchParams<{ period?: string; category?: string }>();
   const [activePreset, setActivePreset] = useState<DateFilterPreset>(
     params.period === 'month' ? 'month' : 'today'
   );
   const [customRange, setCustomRange] = useState<{ startDate: string; endDate: string } | null>(null);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+
+  const [selectedCategory, setSelectedCategory] = useState<'NEW' | 'REPEAT' | null>(
+    params.category ? (params.category.toUpperCase() as 'NEW' | 'REPEAT') : null
+  );
+
+  useEffect(() => {
+    if (params.category) {
+      setSelectedCategory(params.category.toUpperCase() as 'NEW' | 'REPEAT');
+    }
+  }, [params.category]);
 
   useEffect(() => {
     if (params.period === 'today' || params.period === 'month') {
@@ -414,6 +461,7 @@ export default function AllOrdersScreen() {
     setInputText('');
     setDebouncedValue('');
     setSelectedSalesperson(null);
+    setSelectedCategory(null);
     setSelectedSuggestion(null);
     setCurrentPage(1);
   }, []);
@@ -459,57 +507,33 @@ export default function AllOrdersScreen() {
       setInputText('');
       setDebouncedValue('');
       setSelectedSalesperson(null);
+      setSelectedCategory(params.category ? (params.category.toUpperCase() as 'NEW' | 'REPEAT') : null);
       setActivePreset(params.period === 'month' ? 'month' : 'today');
       setCustomRange(null);
       setFilterModalVisible(false);
       setCurrentPage(1);
       refetch();
-    }, [params.period, refetch])
+    }, [params.period, params.category, refetch])
   );
 
-  const totalAmountCalculated = useMemo(() => {
-    if (meta?.totalAmount && meta.totalAmount > 0) return meta.totalAmount;
-    return items.reduce((acc, it) => acc + (it.orderTotal || (it as any).ORDER_TOTAL || 0), 0);
-  }, [meta, items]);
-
-  const summaryCount = (meta?.count as number | undefined) ?? (meta?.totalRecords as number | undefined) ?? items.length;
-
-  const availableSalespersons = useMemo(() => {
-    const fromItems = items
-      .map((it: any) => it.salespersonName || it.salesPersonName)
-      .filter((n: any) => typeof n === 'string' && n.trim().length > 0);
-    const combined = Array.from(new Set([...DEFAULT_SALESPERSONS, ...fromItems]));
-    return combined.sort();
-  }, [items]);
-
-  // Pagination Cursor
-  const [currentPage, setCurrentPage] = useState(1);
-  const pendingAdvanceRef = useRef(false);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [activePreset, customRange, searchParam]);
-
-  useEffect(() => {
-    if (pendingAdvanceRef.current && !isFetchingNextPage) {
-      pendingAdvanceRef.current = false;
-      setCurrentPage((p) => p + 1);
-    }
-  }, [isFetchingNextPage]);
-
-  useEffect(() => {
-    if (isRefreshing) {
-      pendingAdvanceRef.current = false;
-      setCurrentPage(1);
-    }
-  }, [isRefreshing]);
-
-  const LIMIT = ORDERS_PAGE_LIMIT;
-  const totalRecords = meta?.totalRecords ?? summaryCount;
-  const totalPages = totalRecords > 0 ? Math.ceil(totalRecords / LIMIT) : Math.max(1, rawPages.length);
-
-  const displayItems = useMemo(() => {
+  const allFilteredItems = useMemo(() => {
     let filtered = items;
+
+    if (selectedCategory) {
+      const catTarget = selectedCategory.toUpperCase();
+      filtered = filtered.filter((it: any) => {
+        const cat = String(
+          it.CUSTOMER_STATUS || it.customerStatus || it.ORDER_CATEGORY || it.orderCategory || ''
+        ).toUpperCase().trim();
+
+        if (catTarget === 'NEW') {
+          return cat === 'NEW';
+        } else if (catTarget === 'REPEAT' || catTarget === 'REPEATED') {
+          return cat === 'REPEATED' || cat === 'REPEAT';
+        }
+        return true;
+      });
+    }
 
     if (selectedSalesperson) {
       const spLower = selectedSalesperson.toLowerCase();
@@ -539,8 +563,57 @@ export default function AllOrdersScreen() {
       });
     }
 
-    return filtered.slice((currentPage - 1) * LIMIT, currentPage * LIMIT);
-  }, [items, selectedSalesperson, debouncedValue, currentPage, LIMIT]);
+    return filtered;
+  }, [items, selectedCategory, selectedSalesperson, debouncedValue]);
+
+  const hasActiveFilter = !!(selectedCategory || selectedSalesperson || debouncedValue.trim());
+
+  const totalAmountCalculated = useMemo(() => {
+    if (!hasActiveFilter && meta?.totalAmount && meta.totalAmount > 0) return meta.totalAmount;
+    return allFilteredItems.reduce((acc, it) => acc + (it.orderTotal || (it as any).ORDER_TOTAL || 0), 0);
+  }, [meta, hasActiveFilter, allFilteredItems]);
+
+  const summaryCount = !hasActiveFilter
+    ? ((meta?.count as number | undefined) ?? (meta?.totalRecords as number | undefined) ?? items.length)
+    : allFilteredItems.length;
+
+  const availableSalespersons = useMemo(() => {
+    const fromItems = items
+      .map((it: any) => it.salespersonName || it.salesPersonName)
+      .filter((n: any) => typeof n === 'string' && n.trim().length > 0);
+    const combined = Array.from(new Set([...DEFAULT_SALESPERSONS, ...fromItems]));
+    return combined.sort();
+  }, [items]);
+
+  // Pagination Cursor
+  const [currentPage, setCurrentPage] = useState(1);
+  const pendingAdvanceRef = useRef(false);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activePreset, customRange, searchParam, selectedCategory]);
+
+  useEffect(() => {
+    if (pendingAdvanceRef.current && !isFetchingNextPage) {
+      pendingAdvanceRef.current = false;
+      setCurrentPage((p) => p + 1);
+    }
+  }, [isFetchingNextPage]);
+
+  useEffect(() => {
+    if (isRefreshing) {
+      pendingAdvanceRef.current = false;
+      setCurrentPage(1);
+    }
+  }, [isRefreshing]);
+
+  const LIMIT = ORDERS_PAGE_LIMIT;
+  const totalRecords = !hasActiveFilter ? (meta?.totalRecords ?? summaryCount) : allFilteredItems.length;
+  const totalPages = totalRecords > 0 ? Math.ceil(totalRecords / LIMIT) : Math.max(1, rawPages.length);
+
+  const displayItems = useMemo(() => {
+    return allFilteredItems.slice((currentPage - 1) * LIMIT, currentPage * LIMIT);
+  }, [allFilteredItems, currentPage, LIMIT]);
 
   const usingSample = isError && items.length === 0;
   const errorMessage = useMemo(
@@ -572,10 +645,11 @@ export default function AllOrdersScreen() {
   const keyExtractor = useCallback((item: OrdersRowItem) => item.id, []);
   const ItemSeparator = useCallback(() => <View style={styles.separator} />, []);
 
+  // Available suggestions based on raw items
   const availableSuggestions = useMemo(() => {
-    const list: { text: string; type: 'company' | 'orderNo' }[] = [];
     const companySet = new Set<string>();
     const orderSet = new Set<string>();
+    const list: { text: string; type: 'company' | 'orderNo' }[] = [];
 
     const decodeHtml = (str: string | null | undefined): string => {
       if (!str) return '';
@@ -639,6 +713,8 @@ export default function AllOrdersScreen() {
           setInputText={setInputText}
           selectedSalesperson={selectedSalesperson}
           setSelectedSalesperson={setSelectedSalesperson}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
           onFocusChange={setShowSuggestions}
           onClear={handleClearSearch}
         />
@@ -928,6 +1004,34 @@ const styles = StyleSheet.create({
     color: PRIMARY,
   },
   filterButtonTextActive: {
+    color: '#FFFFFF',
+    fontFamily: Typography.headingSemiBold,
+  },
+
+  categoryTabRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  categoryTabPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F2',
+    borderWidth: 1,
+    borderColor: '#E7E6E2',
+  },
+  categoryTabPillActive: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
+  },
+  categoryTabText: {
+    fontSize: 12,
+    fontFamily: Typography.bodyMedium,
+    color: '#64748B',
+  },
+  categoryTabTextActive: {
     color: '#FFFFFF',
     fontFamily: Typography.headingSemiBold,
   },

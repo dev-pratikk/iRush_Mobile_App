@@ -24,6 +24,8 @@ import {
   formatOrderDate,
   DashboardPeriod as DatePeriod,
   ORDERS_PAGE_LIMIT,
+  isOrderNew,
+  isOrderRepeat,
   type OrdersSearchType,
   type OrdersSearchParam,
 } from '../../services/api/orders.service';
@@ -547,19 +549,11 @@ export default function AllOrdersScreen() {
     let filtered = items;
 
     if (selectedCategory) {
-      const catTarget = selectedCategory.toUpperCase();
-      filtered = filtered.filter((it: any) => {
-        const cat = String(
-          it.CUSTOMER_STATUS || it.customerStatus || it.ORDER_CATEGORY || it.orderCategory || ''
-        ).toUpperCase().trim();
-
-        if (catTarget === 'NEW') {
-          return cat === 'NEW';
-        } else if (catTarget === 'REPEAT' || catTarget === 'REPEATED') {
-          return cat === 'REPEATED' || cat === 'REPEAT';
-        }
-        return true;
-      });
+      if (selectedCategory === 'NEW') {
+        filtered = filtered.filter((it: any) => isOrderNew(it));
+      } else if (selectedCategory === 'REPEAT') {
+        filtered = filtered.filter((it: any) => isOrderRepeat(it));
+      }
     }
 
     if (selectedSalesperson) {
@@ -596,28 +590,16 @@ export default function AllOrdersScreen() {
   const hasActiveFilter = !!(selectedCategory || selectedSalesperson || debouncedValue.trim());
 
   const totalAmountCalculated = useMemo(() => {
-    if (selectedCategory === 'NEW' && typeof meta?.newOrdersAmount === 'number' && meta.newOrdersAmount > 0) {
-      return meta.newOrdersAmount;
-    }
-    if (selectedCategory === 'REPEAT' && typeof meta?.repeatedOrdersAmount === 'number' && meta.repeatedOrdersAmount > 0) {
-      return meta.repeatedOrdersAmount;
-    }
     if (!hasActiveFilter && meta?.totalAmount && meta.totalAmount > 0) return meta.totalAmount;
     return allFilteredItems.reduce((acc, it) => acc + (it.orderTotal || (it as any).ORDER_TOTAL || 0), 0);
-  }, [meta, selectedCategory, hasActiveFilter, allFilteredItems]);
+  }, [meta, hasActiveFilter, allFilteredItems]);
 
   const summaryCount = useMemo(() => {
-    if (selectedCategory === 'NEW' && typeof meta?.newOrdersCount === 'number') {
-      return meta.newOrdersCount;
-    }
-    if (selectedCategory === 'REPEAT' && typeof meta?.repeatedOrdersCount === 'number') {
-      return meta.repeatedOrdersCount;
-    }
     if (!hasActiveFilter) {
       return (meta?.count as number | undefined) ?? (meta?.totalRecords as number | undefined) ?? items.length;
     }
     return allFilteredItems.length;
-  }, [meta, selectedCategory, hasActiveFilter, items.length, allFilteredItems.length]);
+  }, [meta, hasActiveFilter, items.length, allFilteredItems.length]);
 
   // Auto-fetch remaining pages when category filter is active so all category items load into the list
   useEffect(() => {

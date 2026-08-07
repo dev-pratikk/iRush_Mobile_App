@@ -11,7 +11,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { router, useLocalSearchParams } from 'expo-router';
 import { formatCurrencyWithCents, fetchOrderById } from '../../services/api/orders.service';
@@ -402,9 +402,11 @@ const AllSpecificationsModal = ({
   isItar: boolean;
   specsList: { label: string; value: string; isBold?: boolean }[];
 }) => {
+  const insets = useSafeAreaInsets();
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
+      <View style={[styles.specsModalOverlay, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
         <View style={styles.specsModalCard}>
           {/* Header */}
@@ -1459,12 +1461,19 @@ const styles = StyleSheet.create({
   },
 
   // Full Specifications Modal
+  specsModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+  },
   specsModalCard: {
     width: '100%',
-    height: '88%',
+    maxHeight: '88%',
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderRadius: 24,
     overflow: 'hidden',
   },
   specsModalHeader: {
@@ -1477,7 +1486,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F1F5F9',
   },
   specsScrollView: {
-    flex: 1,
+    flexShrink: 1,
     paddingHorizontal: 20,
   },
   specsScrollContent: {
@@ -1489,5 +1498,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
     backgroundColor: '#FFFFFF',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
 });

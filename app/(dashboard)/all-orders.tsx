@@ -596,13 +596,35 @@ export default function AllOrdersScreen() {
   const hasActiveFilter = !!(selectedCategory || selectedSalesperson || debouncedValue.trim());
 
   const totalAmountCalculated = useMemo(() => {
+    if (selectedCategory === 'NEW' && typeof meta?.newOrdersAmount === 'number' && meta.newOrdersAmount > 0) {
+      return meta.newOrdersAmount;
+    }
+    if (selectedCategory === 'REPEAT' && typeof meta?.repeatedOrdersAmount === 'number' && meta.repeatedOrdersAmount > 0) {
+      return meta.repeatedOrdersAmount;
+    }
     if (!hasActiveFilter && meta?.totalAmount && meta.totalAmount > 0) return meta.totalAmount;
     return allFilteredItems.reduce((acc, it) => acc + (it.orderTotal || (it as any).ORDER_TOTAL || 0), 0);
-  }, [meta, hasActiveFilter, allFilteredItems]);
+  }, [meta, selectedCategory, hasActiveFilter, allFilteredItems]);
 
-  const summaryCount = !hasActiveFilter
-    ? ((meta?.count as number | undefined) ?? (meta?.totalRecords as number | undefined) ?? items.length)
-    : allFilteredItems.length;
+  const summaryCount = useMemo(() => {
+    if (selectedCategory === 'NEW' && typeof meta?.newOrdersCount === 'number') {
+      return meta.newOrdersCount;
+    }
+    if (selectedCategory === 'REPEAT' && typeof meta?.repeatedOrdersCount === 'number') {
+      return meta.repeatedOrdersCount;
+    }
+    if (!hasActiveFilter) {
+      return (meta?.count as number | undefined) ?? (meta?.totalRecords as number | undefined) ?? items.length;
+    }
+    return allFilteredItems.length;
+  }, [meta, selectedCategory, hasActiveFilter, items.length, allFilteredItems.length]);
+
+  // Auto-fetch remaining pages when category filter is active so all category items load into the list
+  useEffect(() => {
+    if (selectedCategory && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [selectedCategory, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const availableSalespersons = useMemo(() => {
     const fromItems = items
@@ -635,7 +657,7 @@ export default function AllOrdersScreen() {
   }, [isRefreshing]);
 
   const LIMIT = ORDERS_PAGE_LIMIT;
-  const totalRecords = !hasActiveFilter ? (meta?.totalRecords ?? summaryCount) : allFilteredItems.length;
+  const totalRecords = summaryCount;
   const totalPages = totalRecords > 0 ? Math.ceil(totalRecords / LIMIT) : Math.max(1, rawPages.length);
 
   const displayItems = useMemo(() => {

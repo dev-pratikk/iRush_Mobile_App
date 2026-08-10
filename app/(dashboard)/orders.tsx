@@ -10,6 +10,7 @@ import {
   Alert,
   Modal,
   ActivityIndicator,
+  BackHandler,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -73,7 +74,7 @@ const Header = ({
     <View style={styles.header}>
       <TouchableOpacity
         style={styles.headerIconWrap}
-        onPress={() => router.push('/' as any)}
+        onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
         hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
       >
         <Ionicons name="arrow-back" size={20} color={PRIMARY} />
@@ -552,6 +553,19 @@ export default function OrdersScreen() {
   useEffect(() => {
     fetchOrdersForPreset(activePreset, customRange);
   }, [activePreset, customRange, fetchOrdersForPreset]);
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/');
+      }
+      return true;
+    };
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => subscription.remove();
+  }, []);
 
   // Reset to default 'today' state ONLY when screen gains focus (re-entering page)
   useFocusEffect(

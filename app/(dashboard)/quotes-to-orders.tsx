@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Text, RefreshControl } from 'react-native';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Text, RefreshControl, BackHandler } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
@@ -49,7 +49,7 @@ const Header = ({
     <View style={styles.header}>
       <TouchableOpacity
         style={styles.headerIconWrap}
-        onPress={() => router.push('/quotes' as any)}
+        onPress={() => (router.canGoBack() ? router.back() : router.replace('/quotes' as any))}
         hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
       >
         <Ionicons name="arrow-back" size={20} color={PRIMARY} />
@@ -151,6 +151,19 @@ export default function QuotesToOrdersScreen() {
   const [customRange, setCustomRange] = useState<{ startDate: string; endDate: string } | null>(null);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/quotes');
+      }
+      return true;
+    };
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => subscription.remove();
+  }, []);
 
   const salesReps: SalesBreakdown[] = [
     {

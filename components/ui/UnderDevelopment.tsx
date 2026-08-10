@@ -74,7 +74,7 @@ export const UnderDevelopment: React.FC<UnderDevelopmentProps> = ({
           {showBackButton ? (
             <TouchableOpacity
               activeOpacity={0.85}
-              onPress={() => router.push(backRoute as any)}
+              onPress={() => (router.canGoBack() ? router.back() : router.replace(backRoute as any))}
               style={[
                 styles.button,
                 { backgroundColor: colors.primary },

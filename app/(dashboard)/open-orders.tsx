@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Text, RefreshControl, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Text, RefreshControl, Alert, BackHandler } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '../../context/ThemeContext';
@@ -25,7 +25,7 @@ const Header = () => {
     <View style={[styles.header, { backgroundColor: colors.background }]}>
       <TouchableOpacity
         style={styles.headerButton}
-        onPress={() => router.push('/' as any)}
+        onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
         hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
       >
         <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
@@ -221,6 +221,19 @@ export default function OpenOrdersScreen() {
       loadData();
     }, [loadData])
   );
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/');
+      }
+      return true;
+    };
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => subscription.remove();
+  }, []);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

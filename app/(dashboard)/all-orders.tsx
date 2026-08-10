@@ -70,7 +70,7 @@ const Header = ({
     <View style={styles.header}>
       <TouchableOpacity
         style={styles.headerIconWrap}
-        onPress={() => router.push('/orders' as any)}
+        onPress={() => (router.canGoBack() ? router.back() : router.replace('/orders'))}
         hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
       >
         <Ionicons name="arrow-back" size={20} color={PRIMARY} />
@@ -544,6 +544,19 @@ export default function AllOrdersScreen() {
       refetch();
     }, [params.period, params.category, params.startDate, params.endDate, getPresetFromParam, refetch])
   );
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/orders');
+      }
+      return true;
+    };
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => subscription.remove();
+  }, []);
 
   const allFilteredItems = useMemo(() => {
     let filtered = items;

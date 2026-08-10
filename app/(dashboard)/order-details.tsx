@@ -552,10 +552,12 @@ export default function OrderDetailsScreen() {
   const [specsModalVisible, setSpecsModalVisible] = useState(false);
 
   const handleBack = React.useCallback(() => {
-    if (params.from) {
-      router.push(params.from as any);
+    if (router.canGoBack()) {
+      router.back();
+    } else if (params.from) {
+      router.replace(params.from as any);
     } else {
-      router.push('/all-orders' as any);
+      router.replace('/all-orders' as any);
     }
   }, [params.from]);
 

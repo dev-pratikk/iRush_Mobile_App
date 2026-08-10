@@ -50,7 +50,7 @@ const Header = () => {
     <View style={styles.header}>
       <TouchableOpacity
         style={styles.headerIconWrap}
-        onPress={() => router.push('/open-orders' as any)}
+        onPress={() => (router.canGoBack() ? router.back() : router.replace('/open-orders'))}
         hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
       >
         <Ionicons name="arrow-back" size={20} color={PRIMARY} />
@@ -326,7 +326,11 @@ export default function PendingOrdersScreen() {
   // Hardware Back button handling (Android)
   useEffect(() => {
     const onBackPress = () => {
-      router.push('/open-orders' as any);
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/open-orders');
+      }
       return true;
     };
     const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);

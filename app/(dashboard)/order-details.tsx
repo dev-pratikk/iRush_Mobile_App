@@ -325,139 +325,145 @@ const InvoiceModal = ({
   invAmount: number;
   invoices?: any[];
 }) => {
+  const insets = useSafeAreaInsets();
   const isUnpaid = invStatus.toLowerCase().includes('unpaid') || invStatus === 'Open' || invStatus === 'Pending' || invAmount === 0;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.modalOverlay}>
-          <TouchableWithoutFeedback>
-            <View style={[styles.modalCard, { maxWidth: 480, width: '96%', paddingHorizontal: 20, paddingVertical: 18 }]}>
-              {/* Header */}
-              <View style={styles.modalHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, paddingRight: 8 }}>
-                  <View style={styles.modalIconCircle}>
-                    <Ionicons name="receipt-outline" size={20} color="#0F172A" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.modalTitle} numberOfLines={1}>
-                      Invoice & Financial Breakdown
-                    </Text>
-                    <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  style={styles.modalCloseBtn}
-                  onPress={onClose}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons name="close" size={18} color="#64748B" />
-                </TouchableOpacity>
+      <View
+        style={[
+          styles.modalOverlay,
+          {
+            paddingTop: Math.max(insets.top + 16, 24),
+            paddingBottom: Math.max(insets.bottom + 16, 24),
+          },
+        ]}
+      >
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
+        <View style={[styles.modalCard, { maxWidth: 480, width: '96%', paddingHorizontal: 20, paddingVertical: 18 }]}>
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, paddingRight: 8 }}>
+              <View style={styles.modalIconCircle}>
+                <Ionicons name="receipt-outline" size={20} color="#0F172A" />
               </View>
-
-              <ScrollView style={{ maxHeight: 440 }} showsVerticalScrollIndicator={false}>
-                {/* Hero Summary Card */}
-                <View style={[styles.invoiceHeroCard, { marginBottom: 14 }]}>
-                  <Text style={styles.invoiceHeroCompany}>{companyName}</Text>
-                  <Text style={styles.invoiceHeroAmount}>{formatCurrencyWithCents(orderTotal)}</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                    <View style={isUnpaid ? styles.unpaidBadgePill : styles.paidBadgePill}>
-                      <Ionicons
-                        name={isUnpaid ? 'alert-circle' : 'checkmark-circle'}
-                        size={13}
-                        color={isUnpaid ? '#DC2626' : '#16A34A'}
-                      />
-                      <Text style={isUnpaid ? styles.unpaidBadgeText : styles.paidBadgeText}>
-                        {isUnpaid ? 'UNPAID / OPEN' : 'INVOICED & PAID'}
-                      </Text>
-                    </View>
-                    <View style={{ backgroundColor: '#F1F5F9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
-                      <Text style={{ color: '#475569', fontSize: 11, fontWeight: '600' }}>{netTerm}</Text>
-                    </View>
-                  </View>
-                </View>
-
-                {/* Calculation Breakdown Grid */}
-                <View style={styles.modalBodyGrid}>
-                  <View style={styles.modalGridRow}>
-                    <Text style={styles.gridKey}>Order Total Value</Text>
-                    <Text style={styles.gridValueBold}>{formatCurrencyWithCents(orderTotal)}</Text>
-                  </View>
-
-                  <View style={styles.modalGridRow}>
-                    <Text style={styles.gridKey}>Order Cost</Text>
-                    <Text style={styles.gridValue}>{formatCurrencyWithCents(orderCost)}</Text>
-                  </View>
-
-                  <View style={styles.modalGridRow}>
-                    <Text style={styles.gridKey}>Markup</Text>
-                    <Text style={[styles.gridValueBold, { color: '#0F172A' }]}>
-                      {formatCurrencyWithCents(markupAmount)} ({markupPct}%)
-                    </Text>
-                  </View>
-
-                  <View style={styles.modalGridRow}>
-                    <Text style={styles.gridKey}>Invoiced Amount ({totalInvoicedQty} pcs)</Text>
-                    <Text style={styles.gridValue}>{formatCurrencyWithCents(totalInvoicedAmount)}</Text>
-                  </View>
-
-                  <View style={styles.modalGridRow}>
-                    <Text style={styles.gridKey}>Pending to Invoice ({pendingQuantity} pcs)</Text>
-                    <Text style={styles.gridValue}>{formatCurrencyWithCents(pendingAmount)}</Text>
-                  </View>
-
-                  <View style={styles.modalGridRow}>
-                    <Text style={styles.gridKey}>Payments Received</Text>
-                    <Text style={styles.gridValue}>{formatCurrencyWithCents(paymentsReceived)}</Text>
-                  </View>
-
-                  <View style={[styles.modalGridRow, { backgroundColor: '#F8FAFC', marginHorizontal: -12, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginTop: 4 }]}>
-                    <Text style={[styles.gridKey, { fontWeight: '700', color: '#0F172A' }]}>Receivables Balance</Text>
-                    <Text style={{ fontSize: 15, fontWeight: '700', color: receivables > 0 ? '#DC2626' : '#16A34A' }}>
-                      {formatCurrencyWithCents(receivables)}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Individual Invoices List (if present) */}
-                {invoices.length > 0 ? (
-                  <View style={{ marginTop: 14, borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 12 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', marginBottom: 8 }}>
-                      Issued Invoices ({invoices.length})
-                    </Text>
-                    {invoices.map((invItem: any, idx: number) => (
-                      <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, borderBottomWidth: idx < invoices.length - 1 ? 0.5 : 0, borderBottomColor: '#F1F5F9' }}>
-                        <View>
-                          <Text style={{ fontSize: 13, fontWeight: '600', color: '#0F172A' }}>
-                            Invoice #{invItem.INV_NUMBER || invItem.invoiceNumber || 'N/A'}
-                          </Text>
-                          <Text style={{ fontSize: 11, color: '#64748B' }}>
-                            {invItem.CREATED_DATE ? String(invItem.CREATED_DATE).slice(0, 10) : 'N/A'}
-                          </Text>
-                        </View>
-                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#0F172A' }}>
-                          {formatCurrencyWithCents(invItem.INVOICE_AMOUNT || invItem.invoiceAmount || 0)}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
-              </ScrollView>
-
-              {/* Single Full-Width Close Button */}
-              <View style={{ marginTop: 14 }}>
-                <TouchableOpacity
-                  style={[styles.primaryActionBtnFlex, { width: '100%', justifyContent: 'center' }]}
-                  onPress={onClose}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.primaryActionBtnText}>Close</Text>
-                </TouchableOpacity>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle} numberOfLines={1}>
+                  Invoice & Financial Breakdown
+                </Text>
+                <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
               </View>
             </View>
-          </TouchableWithoutFeedback>
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close" size={18} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={{ maxHeight: 440 }} showsVerticalScrollIndicator={false}>
+            {/* Hero Summary Card */}
+            <View style={[styles.invoiceHeroCard, { marginBottom: 14 }]}>
+              <Text style={styles.invoiceHeroCompany}>{companyName}</Text>
+              <Text style={styles.invoiceHeroAmount}>{formatCurrencyWithCents(orderTotal)}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                <View style={isUnpaid ? styles.unpaidBadgePill : styles.paidBadgePill}>
+                  <Ionicons
+                    name={isUnpaid ? 'alert-circle' : 'checkmark-circle'}
+                    size={13}
+                    color={isUnpaid ? '#DC2626' : '#16A34A'}
+                  />
+                  <Text style={isUnpaid ? styles.unpaidBadgeText : styles.paidBadgeText}>
+                    {isUnpaid ? 'UNPAID / OPEN' : 'INVOICED & PAID'}
+                  </Text>
+                </View>
+                <View style={{ backgroundColor: '#F1F5F9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
+                  <Text style={{ color: '#475569', fontSize: 11, fontWeight: '600' }}>{netTerm}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Calculation Breakdown Grid */}
+            <View style={styles.modalBodyGrid}>
+              <View style={styles.modalGridRow}>
+                <Text style={styles.gridKey}>Order Total Value</Text>
+                <Text style={styles.gridValueBold}>{formatCurrencyWithCents(orderTotal)}</Text>
+              </View>
+
+              <View style={styles.modalGridRow}>
+                <Text style={styles.gridKey}>Order Cost</Text>
+                <Text style={styles.gridValue}>{formatCurrencyWithCents(orderCost)}</Text>
+              </View>
+
+              <View style={styles.modalGridRow}>
+                <Text style={styles.gridKey}>Markup</Text>
+                <Text style={[styles.gridValueBold, { color: '#0F172A' }]}>
+                  {formatCurrencyWithCents(markupAmount)} ({markupPct}%)
+                </Text>
+              </View>
+
+              <View style={styles.modalGridRow}>
+                <Text style={styles.gridKey}>Invoiced Amount ({totalInvoicedQty} pcs)</Text>
+                <Text style={styles.gridValue}>{formatCurrencyWithCents(totalInvoicedAmount)}</Text>
+              </View>
+
+              <View style={styles.modalGridRow}>
+                <Text style={styles.gridKey}>Pending to Invoice ({pendingQuantity} pcs)</Text>
+                <Text style={styles.gridValue}>{formatCurrencyWithCents(pendingAmount)}</Text>
+              </View>
+
+              <View style={styles.modalGridRow}>
+                <Text style={styles.gridKey}>Payments Received</Text>
+                <Text style={styles.gridValue}>{formatCurrencyWithCents(paymentsReceived)}</Text>
+              </View>
+
+              <View style={[styles.modalGridRow, { backgroundColor: '#F8FAFC', marginHorizontal: -12, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginTop: 4 }]}>
+                <Text style={[styles.gridKey, { fontWeight: '700', color: '#0F172A' }]}>Receivables Balance</Text>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: receivables > 0 ? '#DC2626' : '#16A34A' }}>
+                  {formatCurrencyWithCents(receivables)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Individual Invoices List (if present) */}
+            {invoices.length > 0 ? (
+              <View style={{ marginTop: 14, borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', marginBottom: 8 }}>
+                  Issued Invoices ({invoices.length})
+                </Text>
+                {invoices.map((invItem: any, idx: number) => (
+                  <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, borderBottomWidth: idx < invoices.length - 1 ? 0.5 : 0, borderBottomColor: '#F1F5F9' }}>
+                    <View>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: '#0F172A' }}>
+                        Invoice #{invItem.INV_NUMBER || invItem.invoiceNumber || 'N/A'}
+                      </Text>
+                      <Text style={{ fontSize: 11, color: '#64748B' }}>
+                        {invItem.CREATED_DATE ? String(invItem.CREATED_DATE).slice(0, 10) : 'N/A'}
+                      </Text>
+                    </View>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#0F172A' }}>
+                      {formatCurrencyWithCents(invItem.INVOICE_AMOUNT || invItem.invoiceAmount || 0)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+          </ScrollView>
+
+          {/* Single Full-Width Close Button */}
+          <View style={{ marginTop: 14 }}>
+            <TouchableOpacity
+              style={[styles.primaryActionBtnFlex, { width: '100%', justifyContent: 'center' }]}
+              onPress={onClose}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryActionBtnText}>Close</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </TouchableWithoutFeedback>
+      </View>
     </Modal>
   );
 };

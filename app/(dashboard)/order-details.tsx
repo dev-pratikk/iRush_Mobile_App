@@ -715,14 +715,43 @@ export default function OrderDetailsScreen() {
   const orderStatus = String(order?.ORDER_STATUS ?? order?.orderStatus ?? 'Open').trim();
 
   // Order info
-  const orderType = (order?.ORDER_TYPE_NAME ?? order?.orderTypeName ?? order?.ORDER_CATEGORY ?? order?.orderCategory ?? 'N/A').trim();
+  const orderType = (order?.ORDER_TYPE_NAME ?? order?.orderTypeName ?? order?.orderType ?? 'N/A').trim();
   const quoteNo = (order?.QUOTE_NO ?? order?.quoteNo ?? 'N/A').trim();
   const salesperson = (order?.SALESPERSON_NAME ?? order?.salespersonName ?? 'N/A').trim();
+  const customerStatus = (order?.CUSTOMER_STATUS ?? order?.customerStatus ?? '').trim();
+  const netTerm = String(order?.netTerm ?? order?.shippingAddress?.netTerm ?? '').trim();
+
+  // Dates
+  const formatDate = (d: string | null | undefined) => {
+    if (!d) return 'N/A';
+    const parts = d.split('T')[0]; // strip time
+    const [y, m, day] = parts.split('-');
+    if (!y || !m || !day) return d;
+    return `${m}/${day}/${y}`;
+  };
+  const orderDate = formatDate(order?.ORDER_DATE ?? order?.orderDate);
+  const updatedDate = formatDate(order?.UPDATED_DATE ?? order?.updatedDate);
+  const quoteDate = formatDate(order?.QUOTE_DATE ?? order?.quoteDate);
 
   // Line items
   const details = order?.orderDetails && order.orderDetails.length > 0 ? order.orderDetails[0] : null;
-  const lineQty = details?.QUANTITY ?? order?.orderedQuantity ?? order?.quantity ?? 0;
-  const unitPrice = details?.UNIT_PRICE ?? order?.unitPrice ?? (lineQty > 0 && orderTotal > 0 ? Math.round((orderTotal / lineQty) * 100) / 100 : 0);
+  const lineQty = Number(details?.QUANTITY ?? order?.orderedQuantity ?? order?.quantity ?? 0);
+  const unitPrice = Number(details?.UNIT_PRICE ?? order?.unitPrice ?? (lineQty > 0 && orderTotal > 0 ? Math.round((orderTotal / lineQty) * 100) / 100 : 0));
+
+  // Promised / finish dates from order detail
+  const finishDate = formatDate(details?.FINISH_DATE);
+  const promisedDate = formatDate(details?.PROMISED_DATE);
+  const turnDays = details?.DAY ?? 0;
+
+  // Vendor fulfillment info
+  const vendorFulfillment = (order?.vendorFulfillment ?? '').trim();
+  const assignedVendorCount = Number(order?.assignedVendorCount ?? 0);
+  const expectedVendorCount = Number(order?.expectedVendorCount ?? 0);
+  const vendorFulfillmentLabel =
+    vendorFulfillment === 'NO_VENDOR' ? 'No Vendor' :
+    vendorFulfillment === 'PARTIAL_VENDOR' ? 'Partially Sourced' :
+    vendorFulfillment === 'FULLY_SOURCED' ? 'Fully Sourced' :
+    vendorFulfillment || 'N/A';
 
   // Specifications
   const spec = order?.orderSpecifications && order.orderSpecifications.length > 0 ? order.orderSpecifications[0] : null;
@@ -857,7 +886,6 @@ export default function OrderDetailsScreen() {
   const pendingAmount = Number(order?.pendingAmount ?? (orderTotal > totalInvoicedAmount ? orderTotal - totalInvoicedAmount : 0));
   const paymentsReceived = Number(order?.paymentsReceived ?? 0);
   const receivables = orderTotal - paymentsReceived;
-  const netTerm = String(order?.netTerm ?? order?.shippingAddress?.netTerm ?? 'NET 30').trim();
   const invoicesList = Array.isArray(order?.invoices) ? order.invoices : [];
 
   const pack = order?.orderPackingSlips && order.orderPackingSlips.length > 0 ? order.orderPackingSlips[0] : null;
@@ -947,7 +975,12 @@ export default function OrderDetailsScreen() {
                 <Ionicons name="document-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
                 <Text style={styles.rowKey}>Quote</Text>
               </View>
-              <Text style={styles.rowValue}>{quoteNo}</Text>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={styles.rowValue}>{quoteNo}</Text>
+                {quoteDate !== 'N/A' ? (
+                  <Text style={styles.rowSubValue}>{quoteDate}</Text>
+                ) : null}
+              </View>
             </View>
 
             <View style={styles.rowItem}>
@@ -958,7 +991,7 @@ export default function OrderDetailsScreen() {
               <Text style={styles.rowValue}>{salesperson}</Text>
             </View>
 
-            <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
+            <View style={styles.rowItem}>
               <View style={styles.rowLeft}>
                 <Ionicons name="cube-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
                 <Text style={styles.rowKey}>Quantity</Text>
@@ -967,6 +1000,78 @@ export default function OrderDetailsScreen() {
                 {lineQty} pcs · {formatCurrencyWithCents(unitPrice)}/pc
               </Text>
             </View>
+
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="calendar-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Order Date</Text>
+              </View>
+              <Text style={styles.rowValue}>{orderDate}</Text>
+            </View>
+
+            {finishDate !== 'N/A' ? (
+              <View style={styles.rowItem}>
+                <View style={styles.rowLeft}>
+                  <Ionicons name="flag-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                  <Text style={styles.rowKey}>Finish Date</Text>
+                </View>
+                <Text style={styles.rowValue}>{finishDate}</Text>
+              </View>
+            ) : null}
+
+            {promisedDate !== 'N/A' ? (
+              <View style={styles.rowItem}>
+                <View style={styles.rowLeft}>
+                  <Ionicons name="checkmark-circle-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                  <Text style={styles.rowKey}>Promised Date</Text>
+                </View>
+                <Text style={styles.rowValue}>{promisedDate}</Text>
+              </View>
+            ) : null}
+
+            {turnDays > 0 ? (
+              <View style={styles.rowItem}>
+                <View style={styles.rowLeft}>
+                  <Ionicons name="time-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                  <Text style={styles.rowKey}>Lead Time</Text>
+                </View>
+                <Text style={styles.rowValue}>{turnDays} business days</Text>
+              </View>
+            ) : null}
+
+            {netTerm ? (
+              <View style={styles.rowItem}>
+                <View style={styles.rowLeft}>
+                  <Ionicons name="card-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                  <Text style={styles.rowKey}>Payment Term</Text>
+                </View>
+                <Text style={styles.rowValue}>{netTerm}</Text>
+              </View>
+            ) : null}
+
+            {customerStatus ? (
+              <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
+                <View style={styles.rowLeft}>
+                  <Ionicons name="person-circle-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                  <Text style={styles.rowKey}>Customer</Text>
+                </View>
+                <View
+                  style={[
+                    styles.customerStatusBadge,
+                    customerStatus === 'REPEATED' ? styles.badgeRepeated : styles.badgeNew,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.customerStatusBadgeText,
+                      customerStatus === 'REPEATED' ? styles.badgeRepeatedText : styles.badgeNewText,
+                    ]}
+                  >
+                    {customerStatus === 'REPEATED' ? 'Repeat' : customerStatus}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
           </View>
         </View>
 
@@ -1020,6 +1125,32 @@ export default function OrderDetailsScreen() {
                 {vendorName} · {formatCurrencyWithCents(vendorCost)}
               </Text>
             </View>
+
+            {vendorFulfillment ? (
+              <View style={styles.rowItem}>
+                <View style={styles.rowLeft}>
+                  <Ionicons name="git-branch-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                  <Text style={styles.rowKey}>Sourcing</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text
+                    style={[
+                      styles.rowValue,
+                      vendorFulfillment === 'NO_VENDOR' ? { color: '#DC2626' } :
+                      vendorFulfillment === 'FULLY_SOURCED' ? { color: '#16A34A' } :
+                      { color: '#D97706' },
+                    ]}
+                  >
+                    {vendorFulfillmentLabel}
+                  </Text>
+                  {expectedVendorCount > 0 ? (
+                    <Text style={styles.rowSubValue}>
+                      {assignedVendorCount}/{expectedVendorCount} vendors
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            ) : null}
 
             <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
               <View style={styles.rowLeft}>
@@ -1367,6 +1498,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Typography.headingSemiBold,
     color: PRIMARY,
+  },
+  rowSubValue: {
+    fontSize: 11.5,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+    marginTop: 2,
+    textAlign: 'right',
+  },
+  customerStatusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  badgeRepeated: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+  },
+  badgeNew: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
+  },
+  customerStatusBadgeText: {
+    fontSize: 12,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '700',
+  },
+  badgeRepeatedText: {
+    color: '#1D4ED8',
+  },
+  badgeNewText: {
+    color: '#15803D',
   },
 
   // ─── Modal Styles ─────────────────────────────────────────────────────────────

@@ -576,7 +576,7 @@ const AllSpecificationsModal = ({
               </View>
             </View>
             <TouchableOpacity
-              style={styles.modalCloseBtn}
+              style={styles.specsCloseBtn}
               onPress={onClose}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
@@ -588,32 +588,33 @@ const AllSpecificationsModal = ({
           <ScrollView
             style={styles.specsScrollView}
             contentContainerStyle={styles.specsScrollContent}
-            showsVerticalScrollIndicator={false}
+            showsVerticalScrollIndicator={true}
+            bounces={true}
           >
-            {specsList.map((item, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.specModalRow,
-                  index === specsList.length - 1 && styles.specModalRowLast,
-                ]}
-              >
-                <Text style={styles.specModalKey}>{item.label}</Text>
-                <Text
+            <View style={styles.cardGroup}>
+              {specsList.map((item, index) => (
+                <View
+                  key={index}
                   style={[
-                    styles.specModalValue,
-                    item.isBold && styles.specModalValueBold,
+                    styles.specRowItem,
+                    index === specsList.length - 1 ? { borderBottomWidth: 0 } : null,
                   ]}
                 >
-                  {item.value}
-                </Text>
-              </View>
-            ))}
+                  <Text style={styles.specRowKey}>{item.label}</Text>
+                  <Text style={item.isBold ? styles.specRowValueBold : styles.specRowValue}>
+                    {item.value}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </ScrollView>
 
-          <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
-            <Text style={styles.primaryActionBtnText}>Close</Text>
-          </TouchableOpacity>
+          {/* Footer Close Button */}
+          <View style={styles.specsModalFooter}>
+            <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
+              <Text style={styles.primaryActionBtnText}>Done</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>
@@ -1432,6 +1433,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 99,
     elevation: 4,
+  },
+  specsCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   demoTagPill: {

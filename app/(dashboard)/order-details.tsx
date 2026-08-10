@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -34,6 +34,62 @@ const decodeHtml = (str: string | null | undefined): string => {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .trim();
+};
+
+const extractOrderTotal = (ord: any): number => {
+  if (!ord) return 0;
+
+  const candidates = [
+    ord.ORDER_TOTAL,
+    ord.orderTotal,
+    ord.ORDER_AMOUNT,
+    ord.orderAmount,
+    ord.TOTAL_AMOUNT,
+    ord.totalAmount,
+    ord.GRAND_TOTAL,
+    ord.grandTotal,
+    ord.TOTAL_PRICE,
+    ord.totalPrice,
+    ord.AMOUNT,
+    ord.amount,
+    ord.TOTAL,
+    ord.total,
+    ord.NET_AMOUNT,
+    ord.netAmount,
+    ord.PRICE,
+    ord.price,
+  ];
+
+  for (const val of candidates) {
+    if (val !== null && val !== undefined && val !== '') {
+      const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/[^0-9.-]+/g, ''));
+      if (Number.isFinite(num) && num > 0) {
+        return num;
+      }
+    }
+  }
+
+  if (Array.isArray(ord.orderDetails) && ord.orderDetails.length > 0) {
+    let sumDetails = 0;
+    for (const d of ord.orderDetails) {
+      const dTotal = d.ORDER_TOTAL ?? d.orderTotal ?? d.TOTAL_PRICE ?? d.totalPrice ?? d.TOTAL_AMOUNT ?? d.totalAmount;
+      if (dTotal !== null && dTotal !== undefined && dTotal !== '') {
+        const num = typeof dTotal === 'number' ? dTotal : parseFloat(String(dTotal).replace(/[^0-9.-]+/g, ''));
+        if (Number.isFinite(num) && num > 0) {
+          sumDetails += num;
+        }
+      } else {
+        const q = Number(d.QUANTITY ?? d.quantity ?? 0);
+        const p = Number(d.UNIT_PRICE ?? d.unitPrice ?? d.PRICE ?? d.price ?? 0);
+        if (q > 0 && p > 0) {
+          sumDetails += q * p;
+        }
+      }
+    }
+    if (sumDetails > 0) return sumDetails;
+  }
+
+  return 0;
 };
 
 // ─── Location / Address Modal Component ───────────────────────────────────────
@@ -363,7 +419,8 @@ const InvoiceModal = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={{ maxHeight: 440 }} showsVerticalScrollIndicator={false}>
+          {/* Content Block */}
+          <View style={{ width: '100%' }}>
             {/* Hero Summary Card */}
             <View style={[styles.invoiceHeroCard, { marginBottom: 14 }]}>
               <Text style={styles.invoiceHeroCompany}>{companyName}</Text>
@@ -450,10 +507,10 @@ const InvoiceModal = ({
                 ))}
               </View>
             ) : null}
-          </ScrollView>
+          </View>
 
           {/* Single Full-Width Close Button */}
-          <View style={{ marginTop: 14 }}>
+          <View style={{ marginTop: 16 }}>
             <TouchableOpacity
               style={[styles.primaryActionBtnFlex, { width: '100%', justifyContent: 'center' }]}
               onPress={onClose}
@@ -530,93 +587,36 @@ const AllSpecificationsModal = ({
           <ScrollView
             style={styles.specsScrollView}
             contentContainerStyle={styles.specsScrollContent}
-            showsVerticalScrollIndicator={true}
-            bounces={true}
+            showsVerticalScrollIndicator={false}
           >
-            <View style={styles.cardGroup}>
-              {specsList.map((item, index) => (
-                <View
-                  key={index}
+            {specsList.map((item, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.specModalRow,
+                  index === specsList.length - 1 && styles.specModalRowLast,
+                ]}
+              >
+                <Text style={styles.specModalKey}>{item.label}</Text>
+                <Text
                   style={[
-                    styles.specRowItem,
-                    index === specsList.length - 1 ? { borderBottomWidth: 0 } : null,
+                    styles.specModalValue,
+                    item.isBold && styles.specModalValueBold,
                   ]}
                 >
-                  <Text style={styles.specRowKey}>{item.label}</Text>
-                  <Text style={item.isBold ? styles.specRowValueBold : styles.specRowValue}>
-                    {item.value}
-                  </Text>
-                </View>
-              ))}
-            </View>
+                  {item.value}
+                </Text>
+              </View>
+            ))}
           </ScrollView>
 
-          {/* Footer Close Button */}
-          <View style={styles.specsModalFooter}>
-            <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
-              <Text style={styles.primaryActionBtnText}>Done</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
+            <Text style={styles.primaryActionBtnText}>Close</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </Modal>
   );
-};
-
-const extractOrderTotal = (ord: any): number => {
-  if (!ord) return 0;
-
-  const candidates = [
-    ord.ORDER_TOTAL,
-    ord.orderTotal,
-    ord.ORDER_AMOUNT,
-    ord.orderAmount,
-    ord.TOTAL_AMOUNT,
-    ord.totalAmount,
-    ord.GRAND_TOTAL,
-    ord.grandTotal,
-    ord.TOTAL_PRICE,
-    ord.totalPrice,
-    ord.AMOUNT,
-    ord.amount,
-    ord.TOTAL,
-    ord.total,
-    ord.NET_AMOUNT,
-    ord.netAmount,
-    ord.PRICE,
-    ord.price,
-  ];
-
-  for (const val of candidates) {
-    if (val !== null && val !== undefined && val !== '') {
-      const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/[^0-9.-]+/g, ''));
-      if (Number.isFinite(num) && num > 0) {
-        return num;
-      }
-    }
-  }
-
-  if (Array.isArray(ord.orderDetails) && ord.orderDetails.length > 0) {
-    let sumDetails = 0;
-    for (const d of ord.orderDetails) {
-      const dTotal = d.ORDER_TOTAL ?? d.orderTotal ?? d.TOTAL_PRICE ?? d.totalPrice ?? d.TOTAL_AMOUNT ?? d.totalAmount;
-      if (dTotal !== null && dTotal !== undefined && dTotal !== '') {
-        const num = typeof dTotal === 'number' ? dTotal : parseFloat(String(dTotal).replace(/[^0-9.-]+/g, ''));
-        if (Number.isFinite(num) && num > 0) {
-          sumDetails += num;
-        }
-      } else {
-        const q = Number(d.QUANTITY ?? d.quantity ?? 0);
-        const p = Number(d.UNIT_PRICE ?? d.unitPrice ?? d.PRICE ?? d.price ?? 0);
-        if (q > 0 && p > 0) {
-          sumDetails += q * p;
-        }
-      }
-    }
-    if (sumDetails > 0) return sumDetails;
-  }
-
-  return 0;
 };
 
 // ─── Main Screen Component ────────────────────────────────────────────────────
@@ -642,8 +642,7 @@ export default function OrderDetailsScreen() {
     }
   }, [params.from]);
 
-  // Hardware Back button handling (Android)
-  React.useEffect(() => {
+  useEffect(() => {
     const onBackPress = () => {
       handleBack();
       return true;
@@ -652,12 +651,11 @@ export default function OrderDetailsScreen() {
     return () => subscription.remove();
   }, [handleBack]);
 
-  // Parse raw order payload or fallback
   const initialParsedOrder = useMemo(() => {
     if (params.orderData) {
       try {
         return JSON.parse(params.orderData);
-      } catch {
+      } catch (e) {
         // pass through to fallback
       }
     }
@@ -904,7 +902,7 @@ export default function OrderDetailsScreen() {
             Part #: {partNo}
           </Text>
 
-          {/* Action Buttons Row: Contact, Track & Invoice */}
+          {/* Action Buttons Row: Contact & Track */}
           <View style={styles.actionButtonsRowCentered}>
             <TouchableOpacity
               style={styles.actionItemCentered}
@@ -926,17 +924,6 @@ export default function OrderDetailsScreen() {
                 <Ionicons name="bus-outline" size={22} color="#0F172A" />
               </View>
               <Text style={styles.actionLabelCentered}>Track</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionItemCentered}
-              onPress={() => setInvoiceModalVisible(true)}
-              activeOpacity={0.75}
-            >
-              <View style={styles.actionCircleCentered}>
-                <Ionicons name="receipt-outline" size={22} color="#0F172A" />
-              </View>
-              <Text style={styles.actionLabelCentered}>Invoice</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -969,31 +956,13 @@ export default function OrderDetailsScreen() {
               <Text style={styles.rowValue}>{salesperson}</Text>
             </View>
 
-            <View style={styles.rowItem}>
+            <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
               <View style={styles.rowLeft}>
                 <Ionicons name="cube-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
                 <Text style={styles.rowKey}>Quantity</Text>
               </View>
               <Text style={styles.rowValue}>
                 {lineQty} pcs · {formatCurrencyWithCents(unitPrice)}/pc
-              </Text>
-            </View>
-
-            <View style={styles.rowItem}>
-              <View style={styles.rowLeft}>
-                <Ionicons name="wallet-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                <Text style={styles.rowKey}>Order Cost</Text>
-              </View>
-              <Text style={styles.rowValue}>{formatCurrencyWithCents(orderCost)}</Text>
-            </View>
-
-            <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
-              <View style={styles.rowLeft}>
-                <Ionicons name="trending-up-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                <Text style={styles.rowKey}>Markup</Text>
-              </View>
-              <Text style={styles.rowValue}>
-                {formatCurrencyWithCents(markupAmount)} ({markupPct}%)
               </Text>
             </View>
           </View>
@@ -1711,6 +1680,31 @@ const styles = StyleSheet.create({
   },
   specsScrollContent: {
     paddingVertical: 14,
+  },
+  specModalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  specModalRowLast: {
+    borderBottomWidth: 0,
+  },
+  specModalKey: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: '#64748B',
+  },
+  specModalValue: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: '#0F172A',
+  },
+  specModalValueBold: {
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '600',
   },
   specsModalFooter: {
     paddingHorizontal: 20,

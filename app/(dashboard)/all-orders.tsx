@@ -522,7 +522,7 @@ export default function AllOrdersScreen() {
     fetchNextPage,
     refetch,
     isRefreshing,
-  } = useOrders(apiPeriod, token, searchParam, calculatedRange);
+  } = useOrders(apiPeriod, token, searchParam, calculatedRange, selectedCategory);
 
   useFocusEffect(
     useCallback(() => {

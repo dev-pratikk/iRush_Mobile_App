@@ -16,6 +16,8 @@ export const PINGPONG_MONITORED_APIS: { id: string; name: string; path: string; 
   { id: 'stats', name: 'Dashboard Stats API', path: '/dashboard/stats' },
   { id: 'open-orders', name: 'Open Orders Summary API', path: '/dashboard/open-orders' },
   { id: 'orders-list', name: 'Orders List API', path: '/dashboard/orders' },
+  { id: 'orders-new', name: 'New Orders Category API', path: '/dashboard/orders', query: '?orderCategory=new' },
+  { id: 'orders-repeat', name: 'Repeated Orders Category API', path: '/dashboard/orders', query: '?orderCategory=repeated' },
   { id: 'orders-search', name: 'Fast Search API', path: '/dashboard/orders/search/test' },
   { id: 'pending-orders', name: 'Pending Orders List API', path: '/dashboard/open-orders', query: '?filter=pending' },
   { id: 'partial-orders', name: 'Partial Orders List API', path: '/dashboard/open-orders', query: '?filter=partial' },

@@ -116,6 +116,7 @@ export const fetchOrdersPage = async (
     limit?: number;
     search?: OrdersSearchParam | null;
     customRange?: { startDate: string; endDate: string } | null;
+    orderCategory?: 'new' | 'repeated' | 'NEW' | 'REPEAT' | 'REPEATED' | string | null;
   }
 ): Promise<PaginatedResult<OrderItem>> => {
   const page = options.page ?? 1;
@@ -123,6 +124,17 @@ export const fetchOrdersPage = async (
   const { startDate, endDate } = options.customRange ?? getDateRangeForPeriod(period);
 
   const query: Record<string, any> = { startDate, endDate, page, limit };
+
+  if (options.orderCategory) {
+    const cat = String(options.orderCategory).toLowerCase().trim();
+    if (cat === 'new') {
+      query.orderCategory = 'new';
+    } else if (cat === 'repeat' || cat === 'repeated') {
+      query.orderCategory = 'repeated';
+    } else {
+      query.orderCategory = options.orderCategory;
+    }
+  }
 
   if (options.search && options.search.value.trim()) {
     const val = options.search.value.trim();

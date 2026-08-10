@@ -84,12 +84,14 @@ export function useOrders(
   period: DashboardPeriod,
   token: string | null | undefined,
   search?: OrdersSearchParam | null,
-  customRange?: { startDate: string; endDate: string } | null
+  customRange?: { startDate: string; endDate: string } | null,
+  orderCategory?: 'NEW' | 'REPEAT' | 'new' | 'repeated' | string | null
 ) {
   const searchValue = search?.value?.trim() ?? '';
   const searchType = search?.type ?? 'orderNo';
   const startISO = customRange?.startDate ?? '';
   const endISO = customRange?.endDate ?? '';
+  const categoryParam = orderCategory ? String(orderCategory).trim() : '';
 
   const fetcher = useCallback(
     (page: number) =>
@@ -98,12 +100,13 @@ export function useOrders(
         page,
         search: searchValue ? { type: searchType, value: searchValue } : null,
         customRange: startISO && endISO ? { startDate: startISO, endDate: endISO } : null,
+        orderCategory: categoryParam || null,
       }),
-    [period, token, searchType, searchValue, startISO, endISO]
+    [period, token, searchType, searchValue, startISO, endISO, categoryParam]
   );
 
   return useInfiniteResource<OrderItem, OrdersRowItem>({
-    queryKey: ['orders', period, token ?? null, searchType, searchValue, startISO, endISO],
+    queryKey: ['orders', period, token ?? null, searchType, searchValue, startISO, endISO, categoryParam],
     fetcher,
     mapItem: mapOrderItem,
   });

@@ -56,34 +56,68 @@ const safeString = (val: any): string | null => {
   return String(val);
 };
 
+const parseMessageObject = (msg: any): string | null => {
+  if (!msg) return null;
+  if (typeof msg === 'string') return msg.trim() || null;
+  if (typeof msg === 'object') {
+    const parts: string[] = [];
+    if (typeof msg.customerTop === 'string' && msg.customerTop.trim()) parts.push(msg.customerTop.trim());
+    if (typeof msg.sales === 'string' && msg.sales.trim()) parts.push(msg.sales.trim());
+    if (typeof msg.customerBottom === 'string' && msg.customerBottom.trim()) parts.push(msg.customerBottom.trim());
+    if (typeof msg.vendorTop === 'string' && msg.vendorTop.trim()) parts.push(msg.vendorTop.trim());
+    if (typeof msg.vendorBottom === 'string' && msg.vendorBottom.trim()) parts.push(msg.vendorBottom.trim());
+    return parts.length > 0 ? parts.join('\n\n') : null;
+  }
+  return String(msg);
+};
+
 const normalizeItem = (raw: any): QuoteListItem => ({
   quoteId: Number(raw?.QUOTE_ID ?? raw?.quote_id ?? raw?.QUOTEID ?? raw?.quoteId ?? raw?.id ?? raw?.QUOTE_NO ?? raw?.quoteNo ?? 0),
   quoteNo: String(raw?.QUOTE_NO ?? raw?.quoteNo ?? raw?.QUOTENO ?? ''),
   quoteDate: safeString(raw?.QUOTE_DATE ?? raw?.quoteDate),
   companyName: safeString(raw?.companyName ?? raw?.COMPANY_NAME) ?? '',
   companyCode: safeString(raw?.companyCode ?? raw?.COMPANY_CODE) ?? '',
-  salesPersonName: safeString(raw?.SALESPERSON_NAME ?? raw?.salesPersonName),
+  salesPersonName: safeString(raw?.salesPerson ?? raw?.salesPersonName ?? raw?.salesperson ?? raw?.SALESPERSON_NAME),
   orderId: raw?.ORDER_ID != null ? Number(raw.ORDER_ID) : (raw?.orderId != null ? Number(raw.orderId) : null),
   orderNo: safeString(raw?.ORDER_NO ?? raw?.orderNo),
   customerCategory: safeString(raw?.customerCategory ?? raw?.CUSTOMER_CATEGORY),
 });
 
-const normalizeDetail = (raw: any): QuoteDetail => ({
-  ...normalizeItem(raw),
-  quoteContacts: Array.isArray(raw?.quoteContacts)
-    ? raw.quoteContacts.map((c: any): QuoteContact => ({
-        firstName: safeString(c?.firstName ?? c?.FIRST_NAME),
-        lastName: safeString(c?.lastName ?? c?.LAST_NAME),
-        email: safeString(c?.email ?? c?.EMAIL),
-        phone1: safeString(c?.phone1 ?? c?.PHONE1 ?? c?.phone),
-        jobTitle: safeString(c?.jobTitle ?? c?.JOB_TITLE),
-        isPrimary: Boolean(c?.isPrimary ?? c?.IS_PRIMARY),
-      }))
-    : [],
-  quoteSpecifications: Array.isArray(raw?.quoteSpecifications) ? raw.quoteSpecifications : [],
-  quoteMessage: safeString(raw?.quoteMessage ?? raw?.QUOTE_MESSAGE),
-  quoteDetails: Array.isArray(raw?.quoteDetails) ? raw.quoteDetails : [],
-});
+const normalizeDetail = (raw: any): QuoteDetail => {
+  let rawContacts: any[] = [];
+  if (Array.isArray(raw?.quoteContacts)) {
+    rawContacts = raw.quoteContacts;
+  } else if (Array.isArray(raw?.quoteContact)) {
+    rawContacts = raw.quoteContact;
+  } else if (raw?.quoteContact && typeof raw.quoteContact === 'object') {
+    rawContacts = [raw.quoteContact];
+  }
+
+  const contacts: QuoteContact[] = rawContacts.map((c: any) => ({
+    firstName: safeString(c?.firstName ?? c?.FIRST_NAME),
+    lastName: safeString(c?.lastName ?? c?.LAST_NAME),
+    email: safeString(c?.email ?? c?.EMAIL),
+    phone1: safeString(c?.phone1 ?? c?.PHONE1 ?? c?.phone),
+    jobTitle: safeString(c?.contactJobTitle ?? c?.jobTitle ?? c?.JOB_TITLE),
+    isPrimary: c?.isPrimaryContact === 'Yes' || Boolean(c?.isPrimary ?? c?.IS_PRIMARY),
+  }));
+
+  let specs: Record<string, unknown>[] = [];
+  const rawSpec = raw?.specification ?? raw?.specifications ?? raw?.quoteSpecifications;
+  if (Array.isArray(rawSpec)) {
+    specs = rawSpec;
+  } else if (rawSpec && typeof rawSpec === 'object') {
+    specs = [rawSpec];
+  }
+
+  return {
+    ...normalizeItem(raw),
+    quoteContacts: contacts,
+    quoteSpecifications: specs,
+    quoteMessage: parseMessageObject(raw?.quoteMessage ?? raw?.QUOTE_MESSAGE),
+    quoteDetails: Array.isArray(raw?.quoteDetails) ? raw.quoteDetails : [],
+  };
+};
 
 // ─── Error Handling ───────────────────────────────────────────────────────────
 

@@ -60,18 +60,41 @@ const formatPhone = (raw: string | null | undefined): string => {
 const formatSpecKey = (key: string): string => {
   if (!key) return '';
   const lower = key.toLowerCase();
-  if (lower === 'pcbpartno' || lower === 'partno') return 'Pcb Part No';
+  if (lower === 'pcbpartno' || lower === 'partno') return 'PCB Part No';
   if (lower === 'rev' || lower === 'revision') return 'Revision';
-  if (lower === 'itar') return 'ITAR';
+  if (lower === 'itar') return 'ITAR Restricted';
   if (lower === 'ipcclass') return 'IPC Class';
   if (lower === 'rohs') return 'RoHS Compliance';
   if (lower === 'smdsided') return 'SMD Placement';
-  if (lower === 'smdpitch') return 'SMD Pitch';
+  if (lower === 'smdpitch' || lower === 'txtsmdpitch') return 'SMD Pitch';
   if (lower === 'noofsmdpads') return 'SMD Pads Count';
-  if (lower === 'approxholes') return 'Total Hole Count';
-  if (lower === 'smallestholes') return 'Smallest Hole Size';
-  if (lower === 'mintrace') return 'Min Trace Width';
-  if (lower === 'minspace') return 'Min Trace Spacing';
+  if (lower === 'approxholes' || lower === 'aproxholes' || lower === 'noofohles') return 'Hole Count';
+  if (lower === 'smallestholes' || lower === 'txtsmallesthole') return 'Smallest Hole Size';
+  if (lower === 'mintrace' || lower === 'txtmintrace') return 'Min Trace Width';
+  if (lower === 'minspace' || lower === 'mintracespace' || lower === 'txtminspace') return 'Min Trace Spacing';
+  if (lower === 'layer') return 'Layers';
+  if (lower === 'dimensionl') return 'Board Length (mils)';
+  if (lower === 'dimensionb') return 'Board Width (mils)';
+  if (lower === 'panelsizel') return 'Panel Length (mils)';
+  if (lower === 'panelsizeb') return 'Panel Width (mils)';
+  if (lower === 'boardperpanel') return 'Boards Per Panel';
+  if (lower === 'maskcolor') return 'Solder Mask Color';
+  if (lower === 'silkscreencolor') return 'Silkscreen Color';
+  if (lower === 'innercopper') return 'Inner Copper Weight';
+  if (lower === 'outercopper') return 'Outer Copper Weight';
+  if (lower === 'plating') return 'Plating Finish';
+  if (lower === 'material') return 'Base Material';
+  if (lower === 'thickness') return 'Board Thickness';
+  if (lower === 'typeoforder') return 'Order Type';
+  if (lower === 'testing') return 'Electrical Testing';
+  if (lower === 'routing') return 'Routing Method';
+  if (lower === 'contolleddelecric') return 'Controlled Dielectric';
+  if (lower === 'controlledimpedance') return 'Controlled Impedance';
+  if (lower === 'platededges') return 'Plated Edges';
+  if (lower === 'blindorburiedvias') return 'Blind / Buried Vias';
+  if (lower === 'masktented') return 'Solder Mask Tented';
+  if (lower === 'cutoutslots') return 'Cutout Slots';
+  if (lower === 'noofgoldfingers') return 'Gold Fingers Count';
 
   const spaced = key
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
@@ -345,7 +368,12 @@ export default function QuoteDetailsScreen() {
         'SPEC_ID', 'specId', 'ORDER_ID', 'orderId', 'QUOTE_ID', 'quoteId',
         'CUSTOMERID', 'customerId', 'CREATED_BY', 'UPDATED_BY',
         'CREATED_DATE', 'UPDATED_DATE', 'IS_ACTIVE', 'is_active', 'DELETED', 'deleted',
+        'cust_reference1', 'cust_reference2', 'tooling', 'electrictesting',
+        'stencil_charge', 'setup_charge', 'prog_charge', 'pdfdate',
+        'counterboreholes', 'countersinkholes', 'masksideName', 'silkscreenSideName'
       ]);
+
+      const seenLabels = new Set<string>();
 
       specsArray.forEach((specObj) => {
         if (!specObj || typeof specObj !== 'object') return;
@@ -353,11 +381,18 @@ export default function QuoteDetailsScreen() {
           if (ignoredKeys.has(k)) return;
           if (v === null || v === undefined) return;
 
+          let valStr = safeDisplayString(v).trim();
+          if (!valStr || valStr === 'null' || valStr === 'undefined') return;
+
+          if (valStr === '0' && (k.startsWith('counter') || k.startsWith('txtcounter') || k === 'noofohles')) return;
+
           const label = formatSpecKey(k);
-          let valStr = safeDisplayString(v);
+          if (seenLabels.has(label)) return;
 
           if (v === true || valStr.toLowerCase() === 'true') valStr = 'Yes';
           if (v === false || valStr.toLowerCase() === 'false') valStr = 'No';
+
+          seenLabels.add(label);
 
           const isBoldKey =
             k.toLowerCase().includes('part') ||
@@ -380,11 +415,8 @@ export default function QuoteDetailsScreen() {
   const isItar = useMemo(() => {
     if (!quote?.quoteSpecifications || quote.quoteSpecifications.length === 0) return false;
     const firstSpec = quote.quoteSpecifications[0] as any;
-    return (
-      firstSpec?.ITAR === 1 ||
-      String(firstSpec?.ITAR).toLowerCase() === 'yes' ||
-      String(firstSpec?.itar).toLowerCase() === 'yes'
-    );
+    const val = String(firstSpec?.ITAR ?? firstSpec?.itar ?? '').toLowerCase().trim();
+    return val === '1' || val === 'yes' || val === 'true';
   }, [quote?.quoteSpecifications]);
 
   // Core spec summary for the inline card

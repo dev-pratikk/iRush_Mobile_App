@@ -332,15 +332,17 @@ const InvoiceModal = ({
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.modalOverlay}>
           <TouchableWithoutFeedback>
-            <View style={[styles.modalCard, { maxWidth: 440, width: '92%' }]}>
+            <View style={[styles.modalCard, { maxWidth: 480, width: '96%', paddingHorizontal: 20, paddingVertical: 18 }]}>
               {/* Header */}
               <View style={styles.modalHeader}>
-                <View style={styles.modalHeaderLeft}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, paddingRight: 8 }}>
                   <View style={styles.modalIconCircle}>
                     <Ionicons name="receipt-outline" size={20} color="#0F172A" />
                   </View>
-                  <View>
-                    <Text style={styles.modalTitle}>Invoice & Financial Breakdown</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.modalTitle} numberOfLines={1}>
+                      Invoice & Financial Breakdown
+                    </Text>
                     <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
                   </View>
                 </View>
@@ -349,13 +351,13 @@ const InvoiceModal = ({
                   onPress={onClose}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="close" size={20} color="#64748B" />
+                  <Ionicons name="close" size={18} color="#64748B" />
                 </TouchableOpacity>
               </View>
 
-              <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
+              <ScrollView style={{ maxHeight: 440 }} showsVerticalScrollIndicator={false}>
                 {/* Hero Summary Card */}
-                <View style={styles.invoiceHeroCard}>
+                <View style={[styles.invoiceHeroCard, { marginBottom: 14 }]}>
                   <Text style={styles.invoiceHeroCompany}>{companyName}</Text>
                   <Text style={styles.invoiceHeroAmount}>{formatCurrencyWithCents(orderTotal)}</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
@@ -369,8 +371,8 @@ const InvoiceModal = ({
                         {isUnpaid ? 'UNPAID / OPEN' : 'INVOICED & PAID'}
                       </Text>
                     </View>
-                    <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
-                      <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '600' }}>{netTerm}</Text>
+                    <View style={{ backgroundColor: '#F1F5F9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
+                      <Text style={{ color: '#475569', fontSize: 11, fontWeight: '600' }}>{netTerm}</Text>
                     </View>
                   </View>
                 </View>
@@ -419,7 +421,7 @@ const InvoiceModal = ({
 
                 {/* Individual Invoices List (if present) */}
                 {invoices.length > 0 ? (
-                  <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 12 }}>
+                  <View style={{ marginTop: 14, borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 12 }}>
                     <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', marginBottom: 8 }}>
                       Issued Invoices ({invoices.length})
                     </Text>
@@ -442,22 +444,14 @@ const InvoiceModal = ({
                 ) : null}
               </ScrollView>
 
-              {/* Action Buttons */}
-              <View style={styles.modalFooterRow}>
-                <TouchableOpacity style={styles.secondaryActionBtn} onPress={onClose} activeOpacity={0.8}>
-                  <Text style={styles.secondaryActionBtnText}>Close</Text>
-                </TouchableOpacity>
-
+              {/* Single Full-Width Close Button */}
+              <View style={{ marginTop: 14 }}>
                 <TouchableOpacity
-                  style={styles.primaryActionBtnFlex}
-                  onPress={() => {
-                    onClose();
-                    Alert.alert('Invoice', `Viewing Invoice Breakdown for Order #${orderNo}`);
-                  }}
+                  style={[styles.primaryActionBtnFlex, { width: '100%', justifyContent: 'center' }]}
+                  onPress={onClose}
                   activeOpacity={0.85}
                 >
-                  <Ionicons name="document-text-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.primaryActionBtnText}>View Breakdown</Text>
+                  <Text style={styles.primaryActionBtnText}>Close</Text>
                 </TouchableOpacity>
               </View>
             </View>

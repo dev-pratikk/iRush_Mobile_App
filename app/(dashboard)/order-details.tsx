@@ -399,7 +399,7 @@ const InvoiceModal = ({
         <View style={[styles.modalCard, { maxWidth: 480, width: '96%', paddingHorizontal: 20, paddingVertical: 18 }]}>
           {/* Header */}
           <View style={styles.modalHeader}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, paddingRight: 8 }}>
+            <View style={styles.modalHeaderLeft}>
               <View style={styles.modalIconCircle}>
                 <Ionicons name="receipt-outline" size={20} color="#0F172A" />
               </View>
@@ -413,10 +413,10 @@ const InvoiceModal = ({
             <TouchableOpacity
               style={styles.modalCloseBtn}
               onPress={onClose}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               activeOpacity={0.7}
             >
-              <Ionicons name="close" size={18} color="#64748B" />
+              <Ionicons name="close" size={20} color="#475569" />
             </TouchableOpacity>
           </View>
 
@@ -1393,11 +1393,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    width: '100%',
   },
   modalHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
+    paddingRight: 8,
   },
   modalIconCircle: {
     width: 40,
@@ -1419,12 +1422,16 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F8FAFC',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 99,
+    elevation: 4,
   },
 
   demoTagPill: {

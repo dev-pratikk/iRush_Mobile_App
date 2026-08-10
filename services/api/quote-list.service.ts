@@ -42,32 +42,46 @@ export interface QuoteListResponse {
 
 // ─── Normalizers ──────────────────────────────────────────────────────────────
 
+const safeString = (val: any): string | null => {
+  if (val === null || val === undefined) return null;
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  if (typeof val === 'object') {
+    if (val.name) return String(val.name);
+    if (val.label) return String(val.label);
+    if (val.categoryName) return String(val.categoryName);
+    if (val.title) return String(val.title);
+    return JSON.stringify(val);
+  }
+  return String(val);
+};
+
 const normalizeItem = (raw: any): QuoteListItem => ({
   quoteId: Number(raw?.QUOTEID ?? raw?.quoteId ?? 0),
   quoteNo: String(raw?.QUOTE_NO ?? raw?.quoteNo ?? raw?.QUOTENO ?? ''),
-  quoteDate: raw?.QUOTE_DATE ?? raw?.quoteDate ?? null,
-  companyName: String(raw?.companyName ?? raw?.COMPANY_NAME ?? ''),
-  companyCode: String(raw?.companyCode ?? raw?.COMPANY_CODE ?? ''),
-  salesPersonName: raw?.SALESPERSON_NAME ?? raw?.salesPersonName ?? null,
+  quoteDate: safeString(raw?.QUOTE_DATE ?? raw?.quoteDate),
+  companyName: safeString(raw?.companyName ?? raw?.COMPANY_NAME) ?? '',
+  companyCode: safeString(raw?.companyCode ?? raw?.COMPANY_CODE) ?? '',
+  salesPersonName: safeString(raw?.SALESPERSON_NAME ?? raw?.salesPersonName),
   orderId: raw?.ORDER_ID != null ? Number(raw.ORDER_ID) : (raw?.orderId != null ? Number(raw.orderId) : null),
-  orderNo: raw?.ORDER_NO ?? raw?.orderNo ?? null,
-  customerCategory: raw?.customerCategory ?? raw?.CUSTOMER_CATEGORY ?? null,
+  orderNo: safeString(raw?.ORDER_NO ?? raw?.orderNo),
+  customerCategory: safeString(raw?.customerCategory ?? raw?.CUSTOMER_CATEGORY),
 });
 
 const normalizeDetail = (raw: any): QuoteDetail => ({
   ...normalizeItem(raw),
   quoteContacts: Array.isArray(raw?.quoteContacts)
     ? raw.quoteContacts.map((c: any): QuoteContact => ({
-        firstName: c?.firstName ?? c?.FIRST_NAME ?? null,
-        lastName: c?.lastName ?? c?.LAST_NAME ?? null,
-        email: c?.email ?? c?.EMAIL ?? null,
-        phone1: c?.phone1 ?? c?.PHONE1 ?? c?.phone ?? null,
-        jobTitle: c?.jobTitle ?? c?.JOB_TITLE ?? null,
+        firstName: safeString(c?.firstName ?? c?.FIRST_NAME),
+        lastName: safeString(c?.lastName ?? c?.LAST_NAME),
+        email: safeString(c?.email ?? c?.EMAIL),
+        phone1: safeString(c?.phone1 ?? c?.PHONE1 ?? c?.phone),
+        jobTitle: safeString(c?.jobTitle ?? c?.JOB_TITLE),
         isPrimary: Boolean(c?.isPrimary ?? c?.IS_PRIMARY),
       }))
     : [],
   quoteSpecifications: Array.isArray(raw?.quoteSpecifications) ? raw.quoteSpecifications : [],
-  quoteMessage: raw?.quoteMessage ?? raw?.QUOTE_MESSAGE ?? null,
+  quoteMessage: safeString(raw?.quoteMessage ?? raw?.QUOTE_MESSAGE),
   quoteDetails: Array.isArray(raw?.quoteDetails) ? raw.quoteDetails : [],
 });
 

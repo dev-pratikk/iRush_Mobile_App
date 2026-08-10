@@ -13,7 +13,7 @@ import {
   ScrollView,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { router, usePathname } from 'expo-router';
 import { NotificationHeaderButton } from '../../components/navigation/NotificationHeaderButton';
@@ -22,22 +22,32 @@ import { DateFilterPreset, getDateRangeForFilter, formatCustomRangeLabel } from 
 import { DateFilterModal } from '../../components/ui/DateFilterModal';
 import { formatOrderDate } from '../../lib/formatters';
 import { fetchQuotesList, type QuoteListItem } from '../../services/api/quote-list.service';
+import { useSalespersons } from '../../hooks/useSalespersons';
+import { SkeletonRowItem, SkeletonKpiCard } from '../../components/ui/SkeletonLoader';
+import { PaginationFooter } from '../../components/ui/PaginationFooter';
 
-// ─── Theme ────────────────────────────────────────────────────────────────────
+// ─── Theme (matches all-orders.tsx exactly) ───────────────────────────────────
 
 const PRIMARY   = '#2C2C2A';
 const SECONDARY = '#9C9B95';
-const PAGE_BG   = '#F8FAFC';
-const CARD_BG   = '#FFFFFF';
-const BORDER    = '#E2E8F0';
-const DARK_CARD = '#1E293B';
+const PAGE_BG   = '#FFFFFF';
+const INPUT_BG  = '#F5F5F2';
 const GREEN     = '#16A34A';
 const GREEN_BG  = '#DCFCE7';
-const INPUT_BG  = '#F1F5F9';
 
 const hairline = StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5;
 
-type QuoteStatusFilter = 'all' | 'converted' | 'notconverted';
+type QuoteStatusFilter = null | 'converted' | 'notconverted';
+
+const ORDERS_PAGE_LIMIT = 25;
+
+// ─── Strip non-numeric prefix from quote number ───────────────────────────────
+// e.g. "PCB-12345" → "12345", "PCBA-67890" → "67890", "12345" → "12345"
+
+const stripQuotePrefix = (raw: string | null | undefined): string => {
+  if (!raw) return 'N/A';
+  return raw.replace(/^[A-Za-z\-]+/, '').trim() || raw.trim();
+};
 
 // ─── Header ──────────────────────────────────────────────────────────────────
 
@@ -69,12 +79,12 @@ const Header = ({
         <Ionicons name="arrow-back" size={20} color={PRIMARY} />
       </TouchableOpacity>
 
-      <Text style={styles.headerTitle}>Quotes</Text>
+      <Text style={styles.headerTitleLeft}>Quotes</Text>
 
-      <View style={styles.headerRight}>
-        <TouchableOpacity style={styles.filterPill} onPress={onOpenFilter} activeOpacity={0.8}>
+      <View style={styles.headerRightWrap}>
+        <TouchableOpacity style={styles.filterBtnPill} onPress={onOpenFilter} activeOpacity={0.8}>
           <Ionicons name="calendar-outline" size={13} color={PRIMARY} />
-          <Text style={styles.filterPillText}>{getFilterLabel()}</Text>
+          <Text style={styles.filterBtnText}>{getFilterLabel()}</Text>
           <Ionicons name="chevron-down" size={12} color={PRIMARY} />
         </TouchableOpacity>
         <NotificationHeaderButton iconColor={PRIMARY} size={20} />
@@ -83,261 +93,295 @@ const Header = ({
   );
 };
 
-// ─── Summary Hero Card ────────────────────────────────────────────────────────
+// ─── Summary Card (matches all-orders SummaryOverviewCard style) ──────────────
 
 const SummaryCard = ({
-  total,
-  converted,
+  totalRecords,
+  convertedCount,
   loading,
-  salesPerson,
+  selectedSalesperson,
   statusFilter,
+  activePreset,
+  customRange,
 }: {
-  total: number;
-  converted: number;
+  totalRecords: number;
+  convertedCount: number;
   loading: boolean;
-  salesPerson: string | null;
+  selectedSalesperson: string | null;
   statusFilter: QuoteStatusFilter;
+  activePreset: DateFilterPreset;
+  customRange?: { startDate: string; endDate: string } | null;
 }) => {
-  const notConverted = Math.max(0, total - converted);
-  const pct = total > 0 ? Math.round((converted / total) * 100) : 0;
+  let periodLabel =
+    activePreset === 'today'
+      ? 'Today'
+      : activePreset === 'week'
+      ? 'This week'
+      : activePreset === 'month'
+      ? 'This month'
+      : 'Custom range';
 
-  let label = 'Total Quotes';
   const qualifiers: string[] = [];
-  if (salesPerson) qualifiers.push(salesPerson);
+  if (selectedSalesperson) qualifiers.push(selectedSalesperson);
   if (statusFilter === 'converted') qualifiers.push('Converted');
   if (statusFilter === 'notconverted') qualifiers.push('Not Converted');
-  if (qualifiers.length > 0) label = `Quotes (${qualifiers.join(' · ')})`;
+  if (qualifiers.length > 0) periodLabel = `${periodLabel} (${qualifiers.join(' · ')})`;
 
-  if (loading && total === 0) {
+  if (loading && totalRecords === 0) {
     return (
-      <View style={[styles.summaryCard, { minHeight: 88, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator color="rgba(255,255,255,0.7)" />
+      <View style={styles.summaryCardWrap}>
+        <SkeletonKpiCard />
       </View>
     );
   }
 
   return (
-    <View style={styles.summaryCard}>
-      <View style={styles.summaryRow}>
-        <View>
-          <Text style={styles.summaryLabel}>{label}</Text>
-          <Text style={styles.summaryBigNum}>{total}</Text>
-        </View>
-        <View style={styles.summaryRight}>
-          <View style={styles.summaryChip}>
-            <Ionicons name="checkmark-circle" size={13} color="#DCFCE7" />
-            <Text style={styles.summaryChipText}>{converted} converted</Text>
+    <View style={styles.summaryCardWrap}>
+      <View style={styles.summaryCardWhite}>
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryColLeft}>
+            <Text style={styles.summaryPeriodLabel}>{periodLabel}</Text>
+            <Text style={styles.summaryCount}>{totalRecords}</Text>
           </View>
-          <View style={[styles.summaryChip, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-            <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.8)" />
-            <Text style={styles.summaryChipText}>{notConverted} pending</Text>
+          <View style={styles.summaryColRight}>
+            <View style={styles.convertedBadge}>
+              <Ionicons name="checkmark-circle" size={13} color={GREEN} />
+              <Text style={styles.convertedBadgeText}>{convertedCount} converted</Text>
+            </View>
+            {statusFilter === null && totalRecords > 0 ? (
+              <Text style={styles.conversionPct}>
+                {Math.round((convertedCount / totalRecords) * 100)}% conversion rate
+              </Text>
+            ) : null}
           </View>
-          {statusFilter === 'all' && (
-            <Text style={styles.summaryPct}>{pct}% conversion</Text>
-          )}
         </View>
       </View>
     </View>
   );
 };
 
-// ─── Search Bar ───────────────────────────────────────────────────────────────
+// ─── Search + Filter Bar Section (matches all-orders SearchBarSection) ─────────
 
-const SearchBar = ({
-  value,
-  onChange,
+const SearchBarSection = ({
+  inputText,
+  setInputText,
+  selectedSalesperson,
+  setSelectedSalesperson,
+  statusFilter,
+  setStatusFilter,
   onClear,
 }: {
-  value: string;
-  onChange: (t: string) => void;
+  inputText: string;
+  setInputText: (t: string) => void;
+  selectedSalesperson: string | null;
+  setSelectedSalesperson: (s: string | null) => void;
+  statusFilter: QuoteStatusFilter;
+  setStatusFilter: (s: QuoteStatusFilter) => void;
   onClear: () => void;
-}) => (
-  <View style={styles.searchWrap}>
-    <Ionicons name="search-outline" size={17} color={SECONDARY} />
-    <TextInput
-      style={styles.searchInput}
-      value={value}
-      onChangeText={onChange}
-      placeholder="Search by quote no or company…"
-      placeholderTextColor={SECONDARY}
-      returnKeyType="search"
-      autoCorrect={false}
-    />
-    {value.length > 0 && (
-      <TouchableOpacity onPress={onClear} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <Ionicons name="close-circle" size={17} color={SECONDARY} />
-      </TouchableOpacity>
-    )}
-  </View>
-);
-
-// ─── Status Filter Chips ──────────────────────────────────────────────────────
-
-const StatusFilterChips = ({
-  value,
-  onChange,
-}: {
-  value: QuoteStatusFilter;
-  onChange: (v: QuoteStatusFilter) => void;
 }) => {
-  const chips: { label: string; key: QuoteStatusFilter }[] = [
-    { label: 'All', key: 'all' },
-    { label: 'Converted', key: 'converted' },
-    { label: 'Not Converted', key: 'notconverted' },
-  ];
+  const { user } = useAuthContext();
+  const token = (user as any)?.token ?? null;
+  const { data: salespersons = [], isLoading: spLoading } = useSalespersons(token);
+  const [modalVisible, setModalVisible] = useState(false);
+
   return (
-    <View style={styles.chipsRow}>
-      {chips.map((chip) => {
-        const active = value === chip.key;
-        return (
-          <TouchableOpacity
-            key={chip.key}
-            style={[styles.chip, active && styles.chipActive]}
-            onPress={() => onChange(chip.key)}
-            activeOpacity={0.75}
+    <View style={styles.searchSection}>
+      {/* Row 1: Search Input + Filter Button */}
+      <View style={styles.searchRow}>
+        <View style={styles.searchInputWrap}>
+          <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder="Search by quote no or company…"
+            placeholderTextColor={SECONDARY}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+          />
+          {inputText.length > 0 ? (
+            <TouchableOpacity onPress={onClear} style={styles.clearButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="close-circle" size={18} color={SECONDARY} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {/* Salesperson filter button — same as all-orders */}
+        <TouchableOpacity
+          style={[styles.filterButton, !!selectedSalesperson && styles.filterButtonActive]}
+          onPress={() => setModalVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="funnel-outline"
+            size={14}
+            color={selectedSalesperson ? '#FFFFFF' : PRIMARY}
+            style={{ marginRight: 4 }}
+          />
+          <Text
+            style={[styles.filterButtonText, !!selectedSalesperson && styles.filterButtonTextActive]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
           >
-            <Text style={[styles.chipText, active && styles.chipTextActive]}>
-              {chip.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+            {selectedSalesperson ?? 'Filter'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Row 2: Status tabs — All / Converted / Not Converted */}
+      <View style={styles.categoryTabRow}>
+        <TouchableOpacity
+          style={[styles.categoryTabPill, statusFilter === null && styles.categoryTabPillActive]}
+          onPress={() => setStatusFilter(null)}
+          activeOpacity={0.75}
+        >
+          <Text style={[styles.categoryTabText, statusFilter === null && styles.categoryTabTextActive]}>
+            All
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.categoryTabPill, statusFilter === 'converted' && styles.categoryTabPillActive]}
+          onPress={() => setStatusFilter(statusFilter === 'converted' ? null : 'converted')}
+          activeOpacity={0.75}
+        >
+          <Text style={[styles.categoryTabText, statusFilter === 'converted' && styles.categoryTabTextActive]}>
+            Converted
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.categoryTabPill, statusFilter === 'notconverted' && styles.categoryTabPillActive]}
+          onPress={() => setStatusFilter(statusFilter === 'notconverted' ? null : 'notconverted')}
+          activeOpacity={0.75}
+        >
+          <Text style={[styles.categoryTabText, statusFilter === 'notconverted' && styles.categoryTabTextActive]}>
+            Not Converted
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Salesperson Modal */}
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Filter by Salesperson</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={24} color={PRIMARY} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+              <TouchableOpacity
+                style={[styles.modalItem, !selectedSalesperson && styles.modalItemActive]}
+                onPress={() => { setSelectedSalesperson(null); setModalVisible(false); }}
+              >
+                <Text style={[styles.modalItemText, !selectedSalesperson && styles.modalItemTextActive]}>
+                  All Salespersons (No filter)
+                </Text>
+                {!selectedSalesperson && <Ionicons name="checkmark" size={18} color={PRIMARY} />}
+              </TouchableOpacity>
+
+              {spLoading ? (
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color={PRIMARY} />
+                </View>
+              ) : (
+                salespersons.map((sp) => {
+                  const spName = sp.salespersonName;
+                  const isActive = selectedSalesperson === spName;
+                  return (
+                    <TouchableOpacity
+                      key={sp.salespersonId}
+                      style={[styles.modalItem, isActive && styles.modalItemActive]}
+                      onPress={() => { setSelectedSalesperson(spName); setModalVisible(false); }}
+                    >
+                      <Text style={[styles.modalItemText, isActive && styles.modalItemTextActive]}>
+                        {spName}
+                      </Text>
+                      {isActive && <Ionicons name="checkmark" size={18} color={PRIMARY} />}
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
 
-// ─── Salesperson Dropdown ─────────────────────────────────────────────────────
+// ─── Quote Row Card (matches OrderCard style: full-width, divider-based) ──────
 
-const SALESPERSON_LIST = ['Imran', 'Roy', 'John', 'Sarah', 'Alex', 'Michael', 'David'];
-
-const SalespersonPicker = ({
-  value,
-  onChange,
-  knownNames,
-}: {
-  value: string | null;
-  onChange: (v: string | null) => void;
-  knownNames: string[];
-}) => {
-  const insets = useSafeAreaInsets();
-  const [modalOpen, setModalOpen] = useState(false);
-
-  // Merge hardcoded + dynamically discovered names, dedup
-  const allNames = useMemo(() => {
-    const set = new Set<string>([...SALESPERSON_LIST, ...knownNames].map((n) => n.trim()).filter(Boolean));
-    return Array.from(set).sort();
-  }, [knownNames]);
-
-  return (
-    <>
-      <TouchableOpacity
-        style={[styles.spPicker, value ? styles.spPickerActive : null]}
-        onPress={() => setModalOpen(true)}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="person-outline" size={14} color={value ? PRIMARY : SECONDARY} />
-        <Text style={[styles.spPickerText, value ? styles.spPickerTextActive : null]} numberOfLines={1}>
-          {value ?? 'All Salespersons'}
-        </Text>
-        <Ionicons name="chevron-down" size={13} color={value ? PRIMARY : SECONDARY} />
-      </TouchableOpacity>
-
-      <Modal visible={modalOpen} transparent animationType="slide" onRequestClose={() => setModalOpen(false)}>
-        <TouchableOpacity style={styles.spOverlay} activeOpacity={1} onPress={() => setModalOpen(false)} />
-        <View style={[styles.spSheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <View style={styles.spSheetHandle} />
-          <Text style={styles.spSheetTitle}>Filter by Salesperson</Text>
-
-          <ScrollView showsVerticalScrollIndicator={false} style={styles.spScroll}>
-            {/* Clear option */}
-            <TouchableOpacity
-              style={[styles.spRow, !value && styles.spRowActive]}
-              onPress={() => { onChange(null); setModalOpen(false); }}
-            >
-              <Text style={[styles.spRowText, !value && styles.spRowTextActive]}>All Salespersons</Text>
-              {!value && <Ionicons name="checkmark" size={16} color={PRIMARY} />}
-            </TouchableOpacity>
-
-            {allNames.map((name) => (
-              <TouchableOpacity
-                key={name}
-                style={[styles.spRow, value === name && styles.spRowActive]}
-                onPress={() => { onChange(name); setModalOpen(false); }}
-              >
-                <Text style={[styles.spRowText, value === name && styles.spRowTextActive]}>{name}</Text>
-                {value === name && <Ionicons name="checkmark" size={16} color={PRIMARY} />}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      </Modal>
-    </>
-  );
-};
-
-// ─── Quote Card ───────────────────────────────────────────────────────────────
-
-const QuoteCard = ({
+const QuoteRow = React.memo(function QuoteRow({
   item,
   onPress,
 }: {
   item: QuoteListItem;
   onPress: () => void;
-}) => {
+}) {
   const isConverted = item.orderId != null && item.orderId > 0;
+  const displayNo = stripQuotePrefix(item.quoteNo);
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
-      {/* Top row: Quote number (bare) + Converted badge */}
-      <View style={styles.cardTopRow}>
-        <Text style={styles.cardQuoteNo}>{item.quoteNo}</Text>
-        <View style={[styles.statusPill, isConverted ? styles.statusConverted : styles.statusPending]}>
-          <Text style={[styles.statusText, isConverted ? styles.statusTextConverted : styles.statusTextPending]}>
-            {isConverted ? 'Converted' : 'Pending'}
+      <View style={styles.mainRow}>
+        {/* Left: Quote No badge + company + salesperson */}
+        <View style={styles.leftCol}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <View style={styles.quoteNoBadge}>
+              <Text style={styles.quoteNoText} numberOfLines={1}>{displayNo}</Text>
+            </View>
+            <View style={[styles.statusBadge, isConverted ? styles.statusBadgeConverted : styles.statusBadgePending]}>
+              <Text style={[styles.statusBadgeText, isConverted ? styles.statusBadgeTextConverted : styles.statusBadgeTextPending]}>
+                {isConverted ? 'CONVERTED' : 'PENDING'}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.companyText} numberOfLines={1} ellipsizeMode="tail">
+            {item.companyName || 'N/A'}
           </Text>
+          {item.companyCode ? (
+            <Text style={styles.orderTypeText} numberOfLines={1}>{item.companyCode}</Text>
+          ) : null}
         </View>
-      </View>
 
-      {/* Company */}
-      <Text style={styles.cardCompany} numberOfLines={1}>
-        {item.companyName || 'N/A'}
-        {item.companyCode ? <Text style={styles.cardCompanyCode}> · {item.companyCode}</Text> : null}
-      </Text>
-
-      {/* Bottom row: Date + Salesperson + Order link */}
-      <View style={styles.cardBottomRow}>
-        <View style={styles.cardMetaItem}>
-          <Ionicons name="calendar-outline" size={12} color={SECONDARY} />
-          <Text style={styles.cardMetaText}>{formatOrderDate(item.quoteDate)}</Text>
+        {/* Right: Date + salesperson */}
+        <View style={styles.rightCol}>
+          <Text style={styles.dateText}>{formatOrderDate(item.quoteDate)}</Text>
+          {item.salesPersonName ? (
+            <Text style={styles.salespersonText}>{item.salesPersonName}</Text>
+          ) : null}
+          {isConverted && item.orderNo ? (
+            <View style={styles.orderLinkPill}>
+              <Ionicons name="checkmark-circle-outline" size={11} color={GREEN} />
+              <Text style={styles.orderLinkText}>#{item.orderNo}</Text>
+            </View>
+          ) : null}
         </View>
-        {item.salesPersonName ? (
-          <View style={styles.cardMetaItem}>
-            <Ionicons name="person-outline" size={12} color={SECONDARY} />
-            <Text style={styles.cardMetaText}>{item.salesPersonName}</Text>
-          </View>
-        ) : null}
-        {isConverted && item.orderNo ? (
-          <View style={styles.cardMetaItem}>
-            <Ionicons name="checkmark-circle-outline" size={12} color={GREEN} />
-            <Text style={[styles.cardMetaText, { color: GREEN }]}>Order #{item.orderNo}</Text>
-          </View>
-        ) : null}
       </View>
     </TouchableOpacity>
   );
-};
+});
 
-// ─── Empty State ──────────────────────────────────────────────────────────────
+// ─── Empty States ─────────────────────────────────────────────────────────────
 
-const EmptyState = ({ query }: { query: string }) => (
-  <View style={styles.emptyWrap}>
-    <Ionicons name="document-text-outline" size={40} color="#CBD5E1" />
-    <Text style={styles.emptyTitle}>
-      {query ? 'No matching quotes' : 'No quotes found'}
-    </Text>
-    <Text style={styles.emptySubtitle}>
-      {query ? 'Try a different search term.' : 'Pull down to refresh.'}
-    </Text>
+const DefaultEmptyState = () => (
+  <View style={styles.emptyState}>
+    <Ionicons name="document-text-outline" size={36} color={SECONDARY} />
+    <Text style={styles.emptyTitle}>No quotes found</Text>
+    <Text style={styles.emptySubtitle}>Pull down to refresh</Text>
+  </View>
+);
+
+const SearchEmptyState = ({ query, onClear }: { query: string; onClear: () => void }) => (
+  <View style={styles.emptyState}>
+    <Ionicons name="search-outline" size={38} color={SECONDARY} />
+    <Text style={styles.emptyTitle}>No matching quotes</Text>
+    <Text style={styles.emptySubtitle}>No results for "{query}"</Text>
+    <TouchableOpacity style={styles.clearSearchBtn} onPress={onClear} activeOpacity={0.8}>
+      <Text style={styles.clearSearchBtnText}>Clear search</Text>
+    </TouchableOpacity>
   </View>
 );
 
@@ -357,11 +401,7 @@ const BottomNav = () => {
         const active = pathname === tab.route;
         return (
           <TouchableOpacity key={i} style={styles.navTab} onPress={() => router.push(tab.route as any)}>
-            <Ionicons
-              name={(active ? tab.icon : `${tab.icon}-outline`) as any}
-              size={24}
-              color={active ? PRIMARY : SECONDARY}
-            />
+            <Ionicons name={(active ? tab.icon : `${tab.icon}-outline`) as any} size={24} color={active ? PRIMARY : SECONDARY} />
             <Text style={[styles.navLabel, { color: active ? PRIMARY : SECONDARY }]}>{tab.label}</Text>
           </TouchableOpacity>
         );
@@ -380,45 +420,36 @@ export default function QuotesScreen() {
   const [customRange, setCustomRange] = useState<{ startDate: string; endDate: string } | null>(null);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
-  const [searchText, setSearchText] = useState('');
+  const [inputText, setInputText] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-
-  // Server-side filters
-  const [statusFilter, setStatusFilter] = useState<QuoteStatusFilter>('all');
-  const [salesPersonFilter, setSalesPersonFilter] = useState<string | null>(null);
+  const [selectedSalesperson, setSelectedSalesperson] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<QuoteStatusFilter>(null);
 
   const [allItems, setAllItems] = useState<QuoteListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
 
-  const PAGE_LIMIT = 30;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Debounce search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setDebouncedSearch(searchText);
-    }, 350);
+    debounceRef.current = setTimeout(() => setDebouncedSearch(inputText), 350);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [searchText]);
+  }, [inputText]);
 
-  // Compute date range
   const dateRange = useMemo(
     () => getDateRangeForFilter(activePreset, customRange),
     [activePreset, customRange]
   );
 
   const loadQuotes = useCallback(
-    async (currentPage: number, silent = false) => {
-      if (!silent) {
-        if (currentPage === 1) setLoading(true);
-        else setLoadingMore(true);
-      }
+    async (pageArg: number, silent = false) => {
+      if (!silent) setLoading(pageArg === 1);
       setError(null);
 
       try {
@@ -431,31 +462,38 @@ export default function QuotesScreen() {
           endDate: dateRange.endDate,
           quoteNo: isNumeric ? q : undefined,
           companyName: !isNumeric && q ? q : undefined,
-          quoteStatus: statusFilter !== 'all' ? statusFilter : undefined,
-          salesPerson: salesPersonFilter ?? undefined,
-          page: currentPage,
-          limit: PAGE_LIMIT,
+          quoteStatus: statusFilter ?? undefined,
+          salesPerson: selectedSalesperson ?? undefined,
+          page: pageArg,
+          limit: ORDERS_PAGE_LIMIT,
         });
 
-        setAllItems((prev) => currentPage === 1 ? res.data : [...prev, ...res.data]);
-        setHasMore(res.data.length >= PAGE_LIMIT);
+        if (pageArg === 1) {
+          setAllItems(res.data);
+        } else {
+          setAllItems((prev) => [...prev, ...res.data]);
+        }
+        setTotalRecords(res.totalRecords || res.data.length);
+        setHasMore(res.data.length >= ORDERS_PAGE_LIMIT);
       } catch (err: any) {
         setError(err?.message ?? 'Failed to load quotes');
       } finally {
         setLoading(false);
-        setLoadingMore(false);
         setRefreshing(false);
       }
     },
-    [token, dateRange, debouncedSearch, statusFilter, salesPersonFilter]
+    [token, dateRange, debouncedSearch, statusFilter, selectedSalesperson]
   );
 
-  // Reload when any filter/search changes
   useEffect(() => {
-    setPage(1);
+    setCurrentPage(1);
     setAllItems([]);
     loadQuotes(1);
   }, [loadQuotes]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activePreset, customRange, statusFilter, selectedSalesperson, debouncedSearch]);
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -468,111 +506,80 @@ export default function QuotesScreen() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    setPage(1);
-    setAllItems([]);
+    setCurrentPage(1);
     loadQuotes(1, true);
   }, [loadQuotes]);
 
-  const onEndReached = useCallback(() => {
-    if (!loadingMore && hasMore && !loading) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      loadQuotes(nextPage);
-    }
-  }, [loadingMore, hasMore, loading, page, loadQuotes]);
+  const handleClear = useCallback(() => {
+    setInputText('');
+    setDebouncedSearch('');
+    setSelectedSalesperson(null);
+    setStatusFilter(null);
+    setCurrentPage(1);
+  }, []);
 
   const convertedCount = useMemo(
     () => allItems.filter((it) => it.orderId != null && it.orderId > 0).length,
     [allItems]
   );
 
-  // Collect salesperson names from current results for the picker
-  const knownSalespersons = useMemo(() => {
-    const names = allItems
-      .map((it) => it.salesPersonName)
-      .filter((n): n is string => typeof n === 'string' && n.trim().length > 0);
-    return Array.from(new Set(names));
-  }, [allItems]);
+  // Pagination
+  const totalPages = totalRecords > 0 ? Math.ceil(totalRecords / ORDERS_PAGE_LIMIT) : Math.max(1, Math.ceil(allItems.length / ORDERS_PAGE_LIMIT));
+  const displayItems = useMemo(
+    () => allItems.slice((currentPage - 1) * ORDERS_PAGE_LIMIT, currentPage * ORDERS_PAGE_LIMIT),
+    [allItems, currentPage]
+  );
 
-  const keyExtractor = useCallback((item: QuoteListItem, index: number) =>
-    `${item.quoteId}-${index}`, []);
+  const handlePrev = useCallback(() => setCurrentPage((p) => Math.max(1, p - 1)), []);
+  const handleNext = useCallback(() => {
+    const next = currentPage + 1;
+    if (next * ORDERS_PAGE_LIMIT > allItems.length && hasMore) {
+      loadQuotes(Math.ceil(allItems.length / ORDERS_PAGE_LIMIT) + 1);
+    }
+    setCurrentPage(next);
+  }, [currentPage, allItems.length, hasMore, loadQuotes]);
 
+  const keyExtractor = useCallback((item: QuoteListItem, index: number) => `${item.quoteId}-${index}`, []);
   const renderItem = useCallback(({ item }: { item: QuoteListItem }) => (
-    <QuoteCard
+    <QuoteRow
       item={item}
-      onPress={() =>
-        router.push({
-          pathname: '/quote-details',
-          params: { quoteId: String(item.quoteId) },
-        })
-      }
+      onPress={() => router.push({ pathname: '/quote-details', params: { quoteId: String(item.quoteId) } })}
     />
   ), []);
-
-  const handleStatusChange = useCallback((v: QuoteStatusFilter) => {
-    setStatusFilter(v);
-    setPage(1);
-    setAllItems([]);
-  }, []);
-
-  const handleSalesPersonChange = useCallback((v: string | null) => {
-    setSalesPersonFilter(v);
-    setPage(1);
-    setAllItems([]);
-  }, []);
+  const ItemSeparator = useCallback(() => <View style={styles.separator} />, []);
 
   const ListHeader = useMemo(() => (
-    <View style={styles.listHeader}>
+    <View style={{ paddingTop: 12 }}>
       <SummaryCard
-        total={allItems.length}
-        converted={convertedCount}
+        totalRecords={totalRecords || allItems.length}
+        convertedCount={convertedCount}
         loading={loading}
-        salesPerson={salesPersonFilter}
+        selectedSalesperson={selectedSalesperson}
         statusFilter={statusFilter}
+        activePreset={activePreset}
+        customRange={customRange}
       />
-      <SearchBar
-        value={searchText}
-        onChange={(t) => setSearchText(t)}
-        onClear={() => setSearchText('')}
-      />
-      <View style={styles.filterRow}>
-        <StatusFilterChips value={statusFilter} onChange={handleStatusChange} />
-      </View>
-      <SalespersonPicker
-        value={salesPersonFilter}
-        onChange={handleSalesPersonChange}
-        knownNames={knownSalespersons}
+      <SearchBarSection
+        inputText={inputText}
+        setInputText={setInputText}
+        selectedSalesperson={selectedSalesperson}
+        setSelectedSalesperson={setSelectedSalesperson}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        onClear={handleClear}
       />
       {error ? (
-        <TouchableOpacity style={styles.errorRow} onPress={() => loadQuotes(1)}>
-          <Ionicons name="warning-outline" size={15} color="#8A1C1C" />
-          <Text style={styles.errorText}>{error} — tap to retry</Text>
+        <TouchableOpacity style={styles.errorRow} onPress={() => loadQuotes(1)} activeOpacity={0.8}>
+          <Ionicons name="warning-outline" size={16} color="#8A1C1C" />
+          <Text style={styles.errorRowText}>{error} — tap to retry</Text>
         </TouchableOpacity>
       ) : null}
+      <View style={styles.listDivider} />
     </View>
   ), [
-    allItems.length, convertedCount, loading, searchText, statusFilter,
-    salesPersonFilter, knownSalespersons, error, loadQuotes,
-    handleStatusChange, handleSalesPersonChange,
+    totalRecords, allItems.length, convertedCount, loading, selectedSalesperson,
+    statusFilter, activePreset, customRange, inputText, error, loadQuotes, handleClear,
   ]);
-
-  const ListFooter = useMemo(() => {
-    if (loadingMore) {
-      return (
-        <View style={styles.footerWrap}>
-          <ActivityIndicator color={PRIMARY} size="small" />
-        </View>
-      );
-    }
-    if (!hasMore && allItems.length > 0) {
-      return (
-        <View style={styles.footerWrap}>
-          <Text style={styles.footerText}>All {allItems.length} quotes loaded</Text>
-        </View>
-      );
-    }
-    return null;
-  }, [loadingMore, hasMore, allItems.length]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -582,23 +589,33 @@ export default function QuotesScreen() {
         onOpenFilter={() => setFilterModalVisible(true)}
       />
 
-      {loading && allItems.length === 0 ? (
-        <View style={styles.centeredLoading}>
-          <ActivityIndicator color={PRIMARY} size="large" />
-          <Text style={styles.loadingText}>Loading quotes…</Text>
-        </View>
-      ) : (
+      <View style={styles.mainContainer}>
         <FlatList
-          data={allItems}
-          keyExtractor={keyExtractor}
+          data={displayItems}
           renderItem={renderItem}
+          keyExtractor={keyExtractor}
           ListHeaderComponent={ListHeader}
-          ListEmptyComponent={<EmptyState query={debouncedSearch} />}
-          ListFooterComponent={ListFooter}
-          contentContainerStyle={styles.listContent}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          onEndReached={onEndReached}
-          onEndReachedThreshold={0.25}
+          ListEmptyComponent={
+            loading ? (
+              <View style={{ paddingTop: 4 }}>
+                <SkeletonRowItem />
+                <SkeletonRowItem />
+                <SkeletonRowItem />
+                <SkeletonRowItem />
+              </View>
+            ) : inputText.trim() || selectedSalesperson || statusFilter ? (
+              <SearchEmptyState query={inputText.trim() || selectedSalesperson || ''} onClear={handleClear} />
+            ) : (
+              <DefaultEmptyState />
+            )
+          }
+          ItemSeparatorComponent={ItemSeparator}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.flatlistContent}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -607,10 +624,18 @@ export default function QuotesScreen() {
               colors={[PRIMARY]}
             />
           }
-          showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         />
-      )}
+
+        <PaginationFooter
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalRecords={totalRecords || allItems.length}
+          isFetchingNextPage={false}
+          onPrev={handlePrev}
+          onNext={handleNext}
+        />
+      </View>
 
       <DateFilterModal
         visible={filterModalVisible}
@@ -620,7 +645,7 @@ export default function QuotesScreen() {
         onApply={(preset, range) => {
           setActivePreset(preset);
           setCustomRange(range);
-          setPage(1);
+          setCurrentPage(1);
           setAllItems([]);
         }}
       />
@@ -630,226 +655,211 @@ export default function QuotesScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─── Styles (mirrors all-orders.tsx styles exactly) ───────────────────────────
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: PAGE_BG },
+  mainContainer: { flex: 1, justifyContent: 'space-between' },
+  flatlistContent: { paddingBottom: 16, flexGrow: 1 },
 
-  // Header
+  // Header — identical to all-orders
   header: {
     height: 54,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    backgroundColor: CARD_BG,
+    backgroundColor: PAGE_BG,
     borderBottomWidth: hairline,
-    borderBottomColor: BORDER,
-    gap: 8,
+    borderBottomColor: '#E7E6E2',
   },
   headerIconWrap: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: {
-    flex: 1,
+  headerTitleLeft: {
     fontSize: 19,
     fontFamily: Typography.titleSerif,
     fontWeight: '500',
     color: PRIMARY,
-    marginLeft: 2,
+    marginLeft: 4,
+    flex: 1,
   },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  filterPill: {
+  headerRightWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  filterBtnPill: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#E2E8F0',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
     gap: 5,
   },
-  filterPillText: { fontSize: 12, fontFamily: Typography.headingSemiBold, color: PRIMARY },
+  filterBtnText: { fontSize: 12, fontFamily: Typography.headingSemiBold, color: PRIMARY },
 
-  // Summary card
-  summaryCard: {
-    backgroundColor: DARK_CARD,
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 4,
-  },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  summaryLabel: { fontSize: 13, fontFamily: Typography.bodyMedium, color: 'rgba(255,255,255,0.65)' },
-  summaryBigNum: { fontSize: 38, fontFamily: Typography.numberHeavy, color: '#FFFFFF', lineHeight: 44 },
-  summaryRight: { alignItems: 'flex-end', gap: 6 },
-  summaryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: `${GREEN}33`,
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  summaryChipText: { fontSize: 12, fontFamily: Typography.bodyMedium, color: '#FFFFFF' },
-  summaryPct: { fontSize: 12, fontFamily: Typography.bodyMedium, color: 'rgba(255,255,255,0.55)' },
-
-  // Search
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: INPUT_BG,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    gap: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: Typography.body,
-    color: PRIMARY,
-    padding: 0,
-  },
-
-  // Filter row
-  filterRow: { flexDirection: 'row', alignItems: 'center' },
-
-  // Status filter chips
-  chipsRow: { flexDirection: 'row', gap: 8 },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: INPUT_BG,
+  // Summary Card — matches all-orders SummaryCardWhite
+  summaryCardWrap: { paddingHorizontal: 16, marginBottom: 12 },
+  summaryCardWhite: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#E7E6E2',
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  chipActive: { backgroundColor: PRIMARY, borderColor: PRIMARY },
-  chipText: { fontSize: 12, fontFamily: Typography.bodyMedium, color: SECONDARY },
-  chipTextActive: { color: '#FFFFFF' },
-
-  // Salesperson picker
-  spPicker: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    backgroundColor: INPUT_BG,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: BORDER,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  spPickerActive: { borderColor: PRIMARY, backgroundColor: `${PRIMARY}0D` },
-  spPickerText: { flex: 1, fontSize: 14, fontFamily: Typography.body, color: SECONDARY },
-  spPickerTextActive: { color: PRIMARY, fontFamily: Typography.bodyMedium },
-
-  // Salesperson modal sheet
-  spOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
-  spSheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: CARD_BG,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 12,
-    maxHeight: '55%',
-  },
-  spSheetHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#D1D5DB',
-    alignSelf: 'center',
-    marginBottom: 12,
-  },
-  spSheetTitle: {
-    fontSize: 15,
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  summaryColLeft: { gap: 4 },
+  summaryPeriodLabel: {
+    fontSize: 12,
     fontFamily: Typography.headingSemiBold,
-    fontWeight: '600',
-    color: PRIMARY,
-    paddingHorizontal: 20,
-    marginBottom: 8,
+    color: '#8C94A0',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  spScroll: { paddingHorizontal: 12 },
-  spRow: {
+  summaryCount: { fontSize: 26, fontFamily: Typography.numberHeavy, fontWeight: '800', color: '#0F172A' },
+  summaryColRight: { alignItems: 'flex-end', gap: 4 },
+  convertedBadge: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  convertedBadgeText: { fontSize: 14, fontFamily: Typography.headingSemiBold, fontWeight: '700', color: '#0F172A' },
+  conversionPct: { fontSize: 12, fontFamily: Typography.bodyMedium, color: SECONDARY },
+
+  // Search Section — matches all-orders SearchBarSection
+  searchSection: { paddingHorizontal: 16, marginBottom: 12 },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  searchInputWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: INPUT_BG,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 42,
+  },
+  searchIcon: { marginRight: 6 },
+  searchInput: { flex: 1, fontSize: 13, fontFamily: Typography.body, color: PRIMARY, height: '100%' },
+  clearButton: { padding: 4 },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: INPUT_BG,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 42,
+    minWidth: 80,
+  },
+  filterButtonActive: { backgroundColor: PRIMARY },
+  filterButtonText: { fontSize: 12, fontFamily: Typography.bodyMedium, color: PRIMARY },
+  filterButtonTextActive: { color: '#FFFFFF', fontFamily: Typography.headingSemiBold },
+
+  // Category tabs — matches all-orders categoryTabRow
+  categoryTabRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
+  categoryTabPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: INPUT_BG,
+    borderWidth: 1,
+    borderColor: '#E7E6E2',
+  },
+  categoryTabPillActive: { backgroundColor: '#0F172A', borderColor: '#0F172A' },
+  categoryTabText: { fontSize: 12, fontFamily: Typography.bodyMedium, color: '#64748B' },
+  categoryTabTextActive: { color: '#FFFFFF', fontFamily: Typography.headingSemiBold },
+
+  // Modal — identical to all-orders
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalCard: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '60%', paddingBottom: 24 },
+  modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 14,
-    borderRadius: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E7E6E2',
   },
-  spRowActive: { backgroundColor: `${PRIMARY}0D` },
-  spRowText: { fontSize: 14, fontFamily: Typography.bodyMedium, color: PRIMARY },
-  spRowTextActive: { fontFamily: Typography.headingSemiBold, fontWeight: '600' },
+  modalTitle: { fontSize: 17, fontFamily: Typography.headingSemiBold, color: PRIMARY },
+  modalList: { paddingHorizontal: 20 },
+  modalItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: hairline,
+    borderBottomColor: '#E7E6E2',
+  },
+  modalItemActive: { backgroundColor: '#F8FAFC' },
+  modalItemText: { fontSize: 14, fontFamily: Typography.body, color: PRIMARY },
+  modalItemTextActive: { fontFamily: Typography.headingSemiBold, color: PRIMARY },
 
-  // Error row
+  // Quote Row Card — matches OrderCard style
+  card: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  mainRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  leftCol: { flex: 1, paddingRight: 10 },
+
+  quoteNoBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  quoteNoText: { fontSize: 14, fontFamily: Typography.heading, color: '#0F172A', letterSpacing: -0.2 },
+
+  statusBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  statusBadgeConverted: { backgroundColor: GREEN_BG, borderColor: '#BBF7D0' },
+  statusBadgePending: { backgroundColor: '#F5F5F2', borderColor: '#E7E6E2' },
+  statusBadgeText: { fontSize: 10, fontFamily: Typography.headingSemiBold },
+  statusBadgeTextConverted: { color: GREEN },
+  statusBadgeTextPending: { color: '#64748B' },
+
+  companyText: { fontSize: 14, fontFamily: Typography.headingSemiBold, color: '#334155' },
+  orderTypeText: { fontSize: 12, fontFamily: Typography.bodyMedium, color: '#64748B', marginTop: 2 },
+
+  rightCol: { alignItems: 'flex-end' },
+  dateText: { fontSize: 12, fontFamily: Typography.bodyMedium, color: '#64748B', marginTop: 2 },
+  salespersonText: { fontSize: 12, fontFamily: Typography.bodyMedium, color: SECONDARY, marginTop: 3 },
+  orderLinkPill: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 },
+  orderLinkText: { fontSize: 11, fontFamily: Typography.headingSemiBold, color: GREEN },
+
+  separator: { height: 0 },
+  listDivider: { height: 1, backgroundColor: '#E7E6E2' },
+
   errorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  errorText: { flex: 1, fontSize: 13, fontFamily: Typography.bodyMedium, color: '#8A1C1C' },
-
-  // List
-  listHeader: { paddingHorizontal: 16, paddingTop: 14, gap: 10 },
-  listContent: { paddingBottom: 20 },
-  separator: { height: 8, marginHorizontal: 16 },
-
-  // Quote card
-  card: {
-    backgroundColor: CARD_BG,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: BORDER,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    gap: 6,
     marginHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
-    gap: 5,
+    marginBottom: 8,
+    padding: 8,
+    backgroundColor: '#FDF2F2',
+    borderRadius: 6,
   },
-  cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardQuoteNo: { fontSize: 15, fontFamily: Typography.numberHeavy, color: PRIMARY },
-  statusPill: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 },
-  statusConverted: { backgroundColor: GREEN_BG },
-  statusPending: { backgroundColor: INPUT_BG },
-  statusText: { fontSize: 11, fontFamily: Typography.headingSemiBold, fontWeight: '600' },
-  statusTextConverted: { color: GREEN },
-  statusTextPending: { color: SECONDARY },
+  errorRowText: { fontSize: 12, color: '#8A1C1C', flex: 1 },
 
-  cardCompany: { fontSize: 14, fontFamily: Typography.bodyMedium, color: PRIMARY },
-  cardCompanyCode: { fontSize: 12, fontFamily: Typography.body, color: SECONDARY },
-  cardBottomRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 2 },
-  cardMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  cardMetaText: { fontSize: 12, fontFamily: Typography.body, color: SECONDARY },
-
-  // Loading / empty / footer
-  centeredLoading: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  loadingText: { fontSize: 14, fontFamily: Typography.bodyMedium, color: SECONDARY },
-  emptyWrap: { alignItems: 'center', paddingTop: 60, gap: 8, paddingHorizontal: 32 },
-  emptyTitle: { fontSize: 16, fontFamily: Typography.headingSemiBold, fontWeight: '600', color: PRIMARY },
-  emptySubtitle: { fontSize: 13, fontFamily: Typography.body, color: SECONDARY, textAlign: 'center' },
-  footerWrap: { paddingVertical: 20, alignItems: 'center' },
-  footerText: { fontSize: 12, fontFamily: Typography.body, color: SECONDARY },
+  emptyState: { paddingVertical: 40, alignItems: 'center', gap: 8 },
+  emptyTitle: { fontSize: 16, fontFamily: Typography.headingSemiBold, color: PRIMARY },
+  emptySubtitle: { fontSize: 13, fontFamily: Typography.body, color: SECONDARY },
+  clearSearchBtn: { marginTop: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: PRIMARY, borderRadius: 8 },
+  clearSearchBtnText: { color: '#FFFFFF', fontSize: 13, fontFamily: Typography.headingSemiBold },
 
   // Bottom nav
-  bottomNav: {
-    height: 56,
-    flexDirection: 'row',
-    backgroundColor: CARD_BG,
-    borderTopWidth: hairline,
-    borderTopColor: BORDER,
-  },
+  bottomNav: { height: 56, flexDirection: 'row', backgroundColor: '#FFFFFF', borderTopWidth: hairline, borderTopColor: '#E7E6E2' },
   navTab: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   navLabel: { fontSize: 10, fontFamily: Typography.body, marginTop: 3 },
 });

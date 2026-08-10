@@ -66,6 +66,19 @@ const formatSpecKey = (key: string): string => {
 
 // ─── Row Item ─────────────────────────────────────────────────────────────────
 
+const safeDisplayString = (val: any): string => {
+  if (val === null || val === undefined) return 'N/A';
+  if (typeof val === 'string') return val.trim() || 'N/A';
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  if (typeof val === 'object') {
+    if (val.name) return String(val.name);
+    if (val.label) return String(val.label);
+    if (val.categoryName) return String(val.categoryName);
+    return JSON.stringify(val);
+  }
+  return String(val);
+};
+
 const RowItem = ({
   icon,
   label,
@@ -75,7 +88,7 @@ const RowItem = ({
 }: {
   icon: string;
   label: string;
-  value: string;
+  value: any;
   last?: boolean;
   valueColor?: string;
 }) => (
@@ -85,7 +98,7 @@ const RowItem = ({
       <Text style={styles.rowKey}>{label}</Text>
     </View>
     <Text style={[styles.rowValue, valueColor ? { color: valueColor } : null]} numberOfLines={2}>
-      {value || 'N/A'}
+      {safeDisplayString(value)}
     </Text>
   </View>
 );
@@ -102,7 +115,7 @@ const SectionCard = ({ title, children }: { title: string; children: React.React
 // ─── Contact Card ─────────────────────────────────────────────────────────────
 
 const ContactCard = ({ contact, last }: { contact: QuoteContact; last: boolean }) => {
-  const name = [contact.firstName, contact.lastName].filter(Boolean).join(' ') || 'N/A';
+  const name = [contact.firstName, contact.lastName].filter(Boolean).map(safeDisplayString).join(' ') || 'N/A';
   return (
     <View style={[styles.contactCard, last && { marginBottom: 0 }]}>
       <View style={styles.contactHeader}>
@@ -111,7 +124,7 @@ const ContactCard = ({ contact, last }: { contact: QuoteContact; last: boolean }
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.contactName}>{name}</Text>
-          {contact.jobTitle ? <Text style={styles.contactJob}>{contact.jobTitle}</Text> : null}
+          {contact.jobTitle ? <Text style={styles.contactJob}>{safeDisplayString(contact.jobTitle)}</Text> : null}
         </View>
         {contact.isPrimary && (
           <View style={styles.primaryBadge}>
@@ -122,13 +135,13 @@ const ContactCard = ({ contact, last }: { contact: QuoteContact; last: boolean }
       {contact.email ? (
         <View style={styles.contactMeta}>
           <Ionicons name="mail-outline" size={14} color={SECONDARY} />
-          <Text style={styles.contactMetaText}>{contact.email}</Text>
+          <Text style={styles.contactMetaText}>{safeDisplayString(contact.email)}</Text>
         </View>
       ) : null}
       {contact.phone1 ? (
         <View style={styles.contactMeta}>
           <Ionicons name="call-outline" size={14} color={SECONDARY} />
-          <Text style={styles.contactMetaText}>{formatPhone(contact.phone1)}</Text>
+          <Text style={styles.contactMetaText}>{formatPhone(safeDisplayString(contact.phone1))}</Text>
         </View>
       ) : null}
     </View>
@@ -145,19 +158,19 @@ const IGNORED_SPEC_KEYS = new Set([
 
 const SpecsSection = ({ specs }: { specs: Record<string, unknown>[] }) => {
   const items = useMemo(() => {
-    const raw = specs.length > 0 ? specs[0] : null;
-    if (!raw || typeof raw !== 'object') return [];
+    if (!Array.isArray(specs) || specs.length === 0) return [];
     const list: { label: string; value: string }[] = [];
-    Object.entries(raw).forEach(([k, v]) => {
-      if (IGNORED_SPEC_KEYS.has(k)) return;
-      if (v === null || v === undefined) return;
-      if (typeof v === 'object') return;
-      const label = formatSpecKey(k);
-      let val = String(v).trim();
-      if (!val || val === 'null' || val === 'undefined') val = 'N/A';
-      if (val.toLowerCase() === 'true') val = 'Yes';
-      if (val.toLowerCase() === 'false') val = 'No';
-      list.push({ label, value: val });
+    specs.forEach((specObj) => {
+      if (!specObj || typeof specObj !== 'object') return;
+      Object.entries(specObj).forEach(([k, v]) => {
+        if (IGNORED_SPEC_KEYS.has(k)) return;
+        if (v === null || v === undefined) return;
+        const label = formatSpecKey(k);
+        let val = safeDisplayString(v);
+        if (val.toLowerCase() === 'true') val = 'Yes';
+        if (val.toLowerCase() === 'false') val = 'No';
+        list.push({ label, value: val });
+      });
     });
     return list;
   }, [specs]);

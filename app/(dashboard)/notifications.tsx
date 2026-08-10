@@ -70,10 +70,9 @@ export default function NotificationsScreen() {
 
   const handleItemPress = (notif: AppNotification) => {
     markAsRead(notif.id);
-    const countStr = notif.count > 1 ? `\nOccurrences: ${notif.count} times (Nested)` : '';
     Alert.alert(
       notif.title,
-      `${notif.message}${countStr}\n\nEndpoint: ${notif.endpoint || 'N/A'}\nStatus: ${
+      `${notif.message}\n\nEndpoint: ${notif.endpoint || 'N/A'}\nStatus: ${
         notif.statusCode ? `HTTP ${notif.statusCode}` : 'Failed'
       }\nLast Check: ${notif.timestamp}`,
       [
@@ -238,11 +237,6 @@ export default function NotificationsScreen() {
                           <Text style={styles.notifTitle} numberOfLines={1}>
                             {notif.title}
                           </Text>
-                          {notif.count > 1 ? (
-                            <View style={styles.repeatBadge}>
-                              <Text style={styles.repeatBadgeText}>{notif.count}x</Text>
-                            </View>
-                          ) : null}
                         </View>
                         <Text style={styles.notifTime}>{notif.timestamp}</Text>
                       </View>

@@ -1,5 +1,4 @@
 import Constants from 'expo-constants';
-import { notificationService } from '../services/api/notification.service';
 
 type Primitive = string | number | boolean | null | undefined;
 
@@ -141,13 +140,6 @@ export const apiClient = {
         try {
           details = (await response.text()).slice(0, 250);
         } catch {}
-
-        notificationService.pushApiError(
-          options.path,
-          url,
-          response.status,
-          details || `Server returned status ${response.status}`
-        );
 
         throw new ApiClientError(`Server error ${response.status}`, {
           kind: 'http',

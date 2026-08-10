@@ -1,5 +1,4 @@
 import { apiClient } from '../../lib/api-client';
-import { notificationService } from './notification.service';
 
 export interface PingPongEndpointReport {
   id: string;
@@ -127,15 +126,6 @@ class PingPongService {
       this.reports.set(apiItem.id, result);
       this.notify();
 
-      if (!response.ok) {
-        notificationService.pushApiError(
-          apiItem.name,
-          `${apiItem.path}${apiItem.query || ''}`,
-          response.status,
-          `HTTP ${response.status} ${response.statusText}`
-        );
-      }
-
       return result;
     } catch (err: any) {
       const latencyMs = Date.now() - startTime;
@@ -163,13 +153,6 @@ class PingPongService {
 
       this.reports.set(apiItem.id, result);
       this.notify();
-
-      notificationService.pushApiError(
-        apiItem.name,
-        `${apiItem.path}${apiItem.query || ''}`,
-        statusCode,
-        errMsg
-      );
 
       return result;
     }

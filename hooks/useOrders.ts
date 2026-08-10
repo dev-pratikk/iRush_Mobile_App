@@ -35,8 +35,10 @@ const mapOrderItem = (raw: OrderItem): OrdersRowItem => {
     : 1;
 
   const orderTotal = Number.isFinite(raw.ORDER_TOTAL)
-    ? raw.ORDER_TOTAL
-    : (Number.isFinite(raw.orderTotal) ? raw.orderTotal : 0);
+    ? raw.ORDER_TOTAL!
+    : Number.isFinite(raw.ORDER_TOTALCOST_AF_DISCCHRG)
+    ? raw.ORDER_TOTALCOST_AF_DISCCHRG!
+    : (Number.isFinite(raw.orderTotal) ? raw.orderTotal! : 0);
 
   const orderCost = Number.isFinite(raw.ORDER_COST)
     ? raw.ORDER_COST!
@@ -58,7 +60,13 @@ const mapOrderItem = (raw: OrderItem): OrdersRowItem => {
     orderDate: raw.ORDER_DATE ?? raw.orderDate ?? '',
     updatedDate: raw.UPDATED_DATE ?? raw.updatedDate ?? '',
     orderTypeName: (raw.ORDER_TYPE_NAME ?? raw.orderTypeName ?? raw.orderType ?? '').trim(),
-    salespersonName: (raw.SALESPERSON_NAME ?? raw.salespersonName ?? '').trim(),
+    salespersonName: (
+      raw.SALESPERSON_NAME ??
+      raw.salesPersonName ??   // new endpoint: capital P
+      raw.salespersonName ??
+      raw.shippingAddress?.salesPersonName ??
+      ''
+    ).trim(),
     orderTotal,
     orderCost,
     markup,

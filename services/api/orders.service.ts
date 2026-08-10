@@ -54,8 +54,16 @@ export const getOrderCategoryRawString = (ord: any): string => {
     ord.customerType ??
     ord.CATEGORY ??
     ord.category ??
-    '';
-  return String(val).toUpperCase().trim();
+    null;
+
+  if (val != null) return String(val).toUpperCase().trim();
+
+  // Derive from new endpoint ORDER_REPEATOF: 0 = new customer, >0 = repeat
+  if (ord.ORDER_REPEATOF != null) {
+    return Number(ord.ORDER_REPEATOF) === 0 ? 'NEW' : 'REPEATED';
+  }
+
+  return '';
 };
 
 export const isOrderNew = (ord: any): boolean => {
@@ -209,8 +217,8 @@ export const fetchOrdersPage = async (
 
     if (ordersList.length > 0) {
       ordersList.forEach((ord) => {
-        const cat = String(ord.CUSTOMER_STATUS || ord.ORDER_CATEGORY || '').toUpperCase().trim();
-        const amt = Number(ord.ORDER_TOTAL) || 0;
+        const cat = getOrderCategoryRawString(ord);
+        const amt = Number(ord.ORDER_TOTAL ?? ord.ORDER_TOTALCOST_AF_DISCCHRG ?? ord.orderTotal ?? 0);
         if (cat === 'NEW') {
           cntNew += 1;
           sumNewAmt += amt;

@@ -69,26 +69,48 @@ export interface OrderSpecification {
 }
 
 export interface OrderItem {
+  // ─── Old UPPER_SNAKE endpoint fields ──────────────────────────────────────────
   ORDER_ID: number | string;
-  ORDER_NO: string;
-  COMPANY_NAME: string;
-  COMPANY_CODE: string;
-  ORDER_DATE: string;
-  UPDATED_DATE: string;
-  ORDER_TYPE_NAME: string;
-  CUSTOMERID: number | string;
+  ORDER_NO?: string;
+  COMPANY_NAME?: string;
+  COMPANY_CODE?: string;
+  ORDER_DATE?: string;
+  UPDATED_DATE?: string;
+  ORDER_TYPE_NAME?: string;
+  CUSTOMERID?: number | string;
   SALESPERSON_ID?: number;
-  SALESPERSON_NAME: string;
+  SALESPERSON_NAME?: string;
   CUSTOMER_STATUS?: string;
-  ORDER_TOTAL: number;
+  ORDER_TOTAL?: number;
+  ORDER_TOTALCOST_AF_DISCCHRG?: number;   // new /orders/:id endpoint total key
   ORDER_COST?: number;
   MARKUP?: number;
   MARKUP_PERCENTAGE?: number;
-  ORDER_CATEGORY: string;
-  ORDER_STATUS: string;
+  ORDER_CATEGORY?: string;
+  ORDER_STATUS?: string;
+  ORDER_REPEATOF?: number;                 // 0 = new customer, >0 = repeat
   QUOTE_ID?: number | string | null;
   QUOTE_NO?: string | null;
   QUOTE_DATE?: string | null;
+  QUOTEID?: string | null;
+
+  // ─── New camelCase endpoint fields (/dashboard/orders/:id) ────────────────────
+  orderNo?: string;
+  companyName?: string;
+  companyCode?: string;
+  orderDate?: string;
+  updatedDate?: string;
+  orderType?: string;
+  orderStatus?: string;
+  salesPersonId?: number;
+  salesPersonName?: string;    // capital P — from new endpoint
+  salespersonName?: string;    // lowercase p — alternate fallback
+  orderTotal?: number;
+  quoteId?: string | number | null;
+  quoteNo?: string | null;
+  PO_NO?: string;
+
+  // ─── Shared fields (both endpoints) ───────────────────────────────────────────
   netTerm?: string;
   orderedQuantity?: number;
   totalInvoicedQty?: number;
@@ -101,6 +123,8 @@ export interface OrderItem {
   vendorFulfillment?: string;
   assignedVendorCount?: number;
   expectedVendorCount?: number;
+  customerMessageTop?: string | null;
+  customerMessageBottom?: string | null;
   orderDetails?: OpenOrderDetail[];
   orderSpecifications?: OrderSpecification[];
   shippingAddress?: OpenOrderShippingAddress;

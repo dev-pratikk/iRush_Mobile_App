@@ -41,6 +41,7 @@ const extractOrderTotal = (ord: any): number => {
 
   const candidates = [
     ord.ORDER_TOTAL,
+    ord.ORDER_TOTALCOST_AF_DISCCHRG,   // new endpoint key
     ord.orderTotal,
     ord.ORDER_AMOUNT,
     ord.orderAmount,
@@ -714,12 +715,33 @@ export default function OrderDetailsScreen() {
 
   const orderStatus = String(order?.ORDER_STATUS ?? order?.orderStatus ?? 'Open').trim();
 
-  // Order info
-  const orderType = (order?.ORDER_TYPE_NAME ?? order?.orderTypeName ?? order?.orderType ?? 'N/A').trim();
-  const quoteNo = (order?.QUOTE_NO ?? order?.quoteNo ?? 'N/A').trim();
-  const salesperson = (order?.SALESPERSON_NAME ?? order?.salespersonName ?? 'N/A').trim();
-  const customerStatus = (order?.CUSTOMER_STATUS ?? order?.customerStatus ?? '').trim();
-  const netTerm = String(order?.netTerm ?? order?.shippingAddress?.netTerm ?? '').trim();
+  // Order info — handle both UPPER_SNAKE (old endpoint) and camelCase (new /orders/:id endpoint)
+  const orderType = (
+    order?.ORDER_TYPE_NAME ?? order?.orderTypeName ?? order?.orderType ?? 'N/A'
+  ).trim();
+  const quoteNo = (
+    order?.QUOTE_NO ?? order?.quoteNo ?? 'N/A'
+  ).trim();
+  const salesperson = (
+    // new endpoint: salesPersonName (capital P), old: SALESPERSON_NAME / salespersonName
+    order?.SALESPERSON_NAME ??
+    order?.salesPersonName ??
+    order?.salespersonName ??
+    order?.shippingAddress?.salesPersonName ??
+    'N/A'
+  ).trim();
+
+  // customerStatus — old endpoint has CUSTOMER_STATUS; new endpoint derives from ORDER_REPEATOF
+  const customerStatus = (
+    order?.CUSTOMER_STATUS ??
+    order?.customerStatus ??
+    (order?.ORDER_REPEATOF != null
+      ? (Number(order.ORDER_REPEATOF) === 0 ? 'NEW' : 'REPEATED')
+      : '')
+  ).trim();
+  const netTerm = String(
+    order?.netTerm ?? order?.shippingAddress?.netTerm ?? ''
+  ).trim();
 
   // Dates
   const formatDate = (d: string | null | undefined) => {

@@ -7,10 +7,9 @@ import {
   Text,
   BackHandler,
   ActivityIndicator,
-  Modal,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuthContext } from '../../context/AuthContext';

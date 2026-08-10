@@ -93,6 +93,8 @@ export interface FetchQuotesListOptions {
   quoteNo?: string;
   companyName?: string;
   companyCode?: string;
+  quoteStatus?: 'converted' | 'notconverted';
+  salesPerson?: string;
   page?: number;
   limit?: number;
 }
@@ -100,7 +102,7 @@ export interface FetchQuotesListOptions {
 export const fetchQuotesList = async (
   options: FetchQuotesListOptions = {}
 ): Promise<QuoteListResponse> => {
-  const { token, startDate, endDate, quoteNo, companyName, companyCode, page = 1, limit = 30 } = options;
+  const { token, startDate, endDate, quoteNo, companyName, companyCode, quoteStatus, salesPerson, page = 1, limit = 30 } = options;
 
   try {
     const data = await apiClient.get<any>({
@@ -111,6 +113,8 @@ export const fetchQuotesList = async (
         quoteNo,
         companyName,
         companyCode,
+        quoteStatus,
+        salesPerson,
         page,
         limit,
       },

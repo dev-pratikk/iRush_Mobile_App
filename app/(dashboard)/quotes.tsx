@@ -9,9 +9,11 @@ import {
   ActivityIndicator,
   RefreshControl,
   BackHandler,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { router, usePathname } from 'expo-router';
 import { NotificationHeaderButton } from '../../components/navigation/NotificationHeaderButton';
@@ -31,8 +33,11 @@ const BORDER    = '#E2E8F0';
 const DARK_CARD = '#1E293B';
 const GREEN     = '#16A34A';
 const GREEN_BG  = '#DCFCE7';
+const INPUT_BG  = '#F1F5F9';
 
 const hairline = StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5;
+
+type QuoteStatusFilter = 'all' | 'converted' | 'notconverted';
 
 // ─── Header ──────────────────────────────────────────────────────────────────
 
@@ -84,17 +89,28 @@ const SummaryCard = ({
   total,
   converted,
   loading,
+  salesPerson,
+  statusFilter,
 }: {
   total: number;
   converted: number;
   loading: boolean;
+  salesPerson: string | null;
+  statusFilter: QuoteStatusFilter;
 }) => {
   const notConverted = Math.max(0, total - converted);
   const pct = total > 0 ? Math.round((converted / total) * 100) : 0;
 
+  let label = 'Total Quotes';
+  const qualifiers: string[] = [];
+  if (salesPerson) qualifiers.push(salesPerson);
+  if (statusFilter === 'converted') qualifiers.push('Converted');
+  if (statusFilter === 'notconverted') qualifiers.push('Not Converted');
+  if (qualifiers.length > 0) label = `Quotes (${qualifiers.join(' · ')})`;
+
   if (loading && total === 0) {
     return (
-      <View style={[styles.summaryCard, { minHeight: 88 }]}>
+      <View style={[styles.summaryCard, { minHeight: 88, justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator color="rgba(255,255,255,0.7)" />
       </View>
     );
@@ -104,26 +120,28 @@ const SummaryCard = ({
     <View style={styles.summaryCard}>
       <View style={styles.summaryRow}>
         <View>
-          <Text style={styles.summaryLabel}>Total Quotes</Text>
+          <Text style={styles.summaryLabel}>{label}</Text>
           <Text style={styles.summaryBigNum}>{total}</Text>
         </View>
         <View style={styles.summaryRight}>
           <View style={styles.summaryChip}>
-            <Ionicons name="checkmark-circle" size={13} color={GREEN_BG} />
+            <Ionicons name="checkmark-circle" size={13} color="#DCFCE7" />
             <Text style={styles.summaryChipText}>{converted} converted</Text>
           </View>
           <View style={[styles.summaryChip, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
             <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.8)" />
             <Text style={styles.summaryChipText}>{notConverted} pending</Text>
           </View>
-          <Text style={styles.summaryPct}>{pct}% conversion</Text>
+          {statusFilter === 'all' && (
+            <Text style={styles.summaryPct}>{pct}% conversion</Text>
+          )}
         </View>
       </View>
     </View>
   );
 };
 
-// ─── Search + Filter Bar ──────────────────────────────────────────────────────
+// ─── Search Bar ───────────────────────────────────────────────────────────────
 
 const SearchBar = ({
   value,
@@ -153,21 +171,19 @@ const SearchBar = ({
   </View>
 );
 
-// ─── Filter Chips (Converted / Pending) ──────────────────────────────────────
+// ─── Status Filter Chips ──────────────────────────────────────────────────────
 
-type ConvertedFilter = 'all' | 'converted' | 'pending';
-
-const FilterChips = ({
+const StatusFilterChips = ({
   value,
   onChange,
 }: {
-  value: ConvertedFilter;
-  onChange: (v: ConvertedFilter) => void;
+  value: QuoteStatusFilter;
+  onChange: (v: QuoteStatusFilter) => void;
 }) => {
-  const chips: { label: string; key: ConvertedFilter }[] = [
+  const chips: { label: string; key: QuoteStatusFilter }[] = [
     { label: 'All', key: 'all' },
     { label: 'Converted', key: 'converted' },
-    { label: 'Pending', key: 'pending' },
+    { label: 'Not Converted', key: 'notconverted' },
   ];
   return (
     <View style={styles.chipsRow}>
@@ -190,6 +206,75 @@ const FilterChips = ({
   );
 };
 
+// ─── Salesperson Dropdown ─────────────────────────────────────────────────────
+
+const SALESPERSON_LIST = ['Imran', 'Roy', 'John', 'Sarah', 'Alex', 'Michael', 'David'];
+
+const SalespersonPicker = ({
+  value,
+  onChange,
+  knownNames,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+  knownNames: string[];
+}) => {
+  const insets = useSafeAreaInsets();
+  const [modalOpen, setModalOpen] = useState(false);
+
+  // Merge hardcoded + dynamically discovered names, dedup
+  const allNames = useMemo(() => {
+    const set = new Set<string>([...SALESPERSON_LIST, ...knownNames].map((n) => n.trim()).filter(Boolean));
+    return Array.from(set).sort();
+  }, [knownNames]);
+
+  return (
+    <>
+      <TouchableOpacity
+        style={[styles.spPicker, value ? styles.spPickerActive : null]}
+        onPress={() => setModalOpen(true)}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="person-outline" size={14} color={value ? PRIMARY : SECONDARY} />
+        <Text style={[styles.spPickerText, value ? styles.spPickerTextActive : null]} numberOfLines={1}>
+          {value ?? 'All Salespersons'}
+        </Text>
+        <Ionicons name="chevron-down" size={13} color={value ? PRIMARY : SECONDARY} />
+      </TouchableOpacity>
+
+      <Modal visible={modalOpen} transparent animationType="slide" onRequestClose={() => setModalOpen(false)}>
+        <TouchableOpacity style={styles.spOverlay} activeOpacity={1} onPress={() => setModalOpen(false)} />
+        <View style={[styles.spSheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <View style={styles.spSheetHandle} />
+          <Text style={styles.spSheetTitle}>Filter by Salesperson</Text>
+
+          <ScrollView showsVerticalScrollIndicator={false} style={styles.spScroll}>
+            {/* Clear option */}
+            <TouchableOpacity
+              style={[styles.spRow, !value && styles.spRowActive]}
+              onPress={() => { onChange(null); setModalOpen(false); }}
+            >
+              <Text style={[styles.spRowText, !value && styles.spRowTextActive]}>All Salespersons</Text>
+              {!value && <Ionicons name="checkmark" size={16} color={PRIMARY} />}
+            </TouchableOpacity>
+
+            {allNames.map((name) => (
+              <TouchableOpacity
+                key={name}
+                style={[styles.spRow, value === name && styles.spRowActive]}
+                onPress={() => { onChange(name); setModalOpen(false); }}
+              >
+                <Text style={[styles.spRowText, value === name && styles.spRowTextActive]}>{name}</Text>
+                {value === name && <Ionicons name="checkmark" size={16} color={PRIMARY} />}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
+    </>
+  );
+};
+
 // ─── Quote Card ───────────────────────────────────────────────────────────────
 
 const QuoteCard = ({
@@ -203,9 +288,9 @@ const QuoteCard = ({
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
-      {/* Top row: Quote No + Converted badge */}
+      {/* Top row: Quote number (bare) + Converted badge */}
       <View style={styles.cardTopRow}>
-        <Text style={styles.cardQuoteNo}>Quote #{item.quoteNo}</Text>
+        <Text style={styles.cardQuoteNo}>{item.quoteNo}</Text>
         <View style={[styles.statusPill, isConverted ? styles.statusConverted : styles.statusPending]}>
           <Text style={[styles.statusText, isConverted ? styles.statusTextConverted : styles.statusTextPending]}>
             {isConverted ? 'Converted' : 'Pending'}
@@ -219,7 +304,7 @@ const QuoteCard = ({
         {item.companyCode ? <Text style={styles.cardCompanyCode}> · {item.companyCode}</Text> : null}
       </Text>
 
-      {/* Bottom row: Date + Salesperson */}
+      {/* Bottom row: Date + Salesperson + Order link */}
       <View style={styles.cardBottomRow}>
         <View style={styles.cardMetaItem}>
           <Ionicons name="calendar-outline" size={12} color={SECONDARY} />
@@ -297,7 +382,10 @@ export default function QuotesScreen() {
 
   const [searchText, setSearchText] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [convertedFilter, setConvertedFilter] = useState<ConvertedFilter>('all');
+
+  // Server-side filters
+  const [statusFilter, setStatusFilter] = useState<QuoteStatusFilter>('all');
+  const [salesPersonFilter, setSalesPersonFilter] = useState<string | null>(null);
 
   const [allItems, setAllItems] = useState<QuoteListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -310,13 +398,11 @@ export default function QuotesScreen() {
   const PAGE_LIMIT = 30;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Debounce search text
+  // Debounce search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setDebouncedSearch(searchText);
-      setPage(1);
-      setAllItems([]);
     }, 350);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [searchText]);
@@ -345,6 +431,8 @@ export default function QuotesScreen() {
           endDate: dateRange.endDate,
           quoteNo: isNumeric ? q : undefined,
           companyName: !isNumeric && q ? q : undefined,
+          quoteStatus: statusFilter !== 'all' ? statusFilter : undefined,
+          salesPerson: salesPersonFilter ?? undefined,
           page: currentPage,
           limit: PAGE_LIMIT,
         });
@@ -359,9 +447,10 @@ export default function QuotesScreen() {
         setRefreshing(false);
       }
     },
-    [token, dateRange, debouncedSearch]
+    [token, dateRange, debouncedSearch, statusFilter, salesPersonFilter]
   );
 
+  // Reload when any filter/search changes
   useEffect(() => {
     setPage(1);
     setAllItems([]);
@@ -370,7 +459,8 @@ export default function QuotesScreen() {
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (router.canGoBack()) { router.back(); } else { router.replace('/'); }
+      if (router.canGoBack()) router.back();
+      else router.replace('/');
       return true;
     });
     return () => sub.remove();
@@ -391,19 +481,18 @@ export default function QuotesScreen() {
     }
   }, [loadingMore, hasMore, loading, page, loadQuotes]);
 
-  // Apply client-side converted/pending filter
-  const filteredItems = useMemo(() => {
-    if (convertedFilter === 'all') return allItems;
-    return allItems.filter((it) => {
-      const isConverted = it.orderId != null && it.orderId > 0;
-      return convertedFilter === 'converted' ? isConverted : !isConverted;
-    });
-  }, [allItems, convertedFilter]);
-
   const convertedCount = useMemo(
     () => allItems.filter((it) => it.orderId != null && it.orderId > 0).length,
     [allItems]
   );
+
+  // Collect salesperson names from current results for the picker
+  const knownSalespersons = useMemo(() => {
+    const names = allItems
+      .map((it) => it.salesPersonName)
+      .filter((n): n is string => typeof n === 'string' && n.trim().length > 0);
+    return Array.from(new Set(names));
+  }, [allItems]);
 
   const keyExtractor = useCallback((item: QuoteListItem, index: number) =>
     `${item.quoteId}-${index}`, []);
@@ -420,15 +509,40 @@ export default function QuotesScreen() {
     />
   ), []);
 
+  const handleStatusChange = useCallback((v: QuoteStatusFilter) => {
+    setStatusFilter(v);
+    setPage(1);
+    setAllItems([]);
+  }, []);
+
+  const handleSalesPersonChange = useCallback((v: string | null) => {
+    setSalesPersonFilter(v);
+    setPage(1);
+    setAllItems([]);
+  }, []);
+
   const ListHeader = useMemo(() => (
     <View style={styles.listHeader}>
-      <SummaryCard total={allItems.length} converted={convertedCount} loading={loading} />
+      <SummaryCard
+        total={allItems.length}
+        converted={convertedCount}
+        loading={loading}
+        salesPerson={salesPersonFilter}
+        statusFilter={statusFilter}
+      />
       <SearchBar
         value={searchText}
         onChange={(t) => setSearchText(t)}
         onClear={() => setSearchText('')}
       />
-      <FilterChips value={convertedFilter} onChange={setConvertedFilter} />
+      <View style={styles.filterRow}>
+        <StatusFilterChips value={statusFilter} onChange={handleStatusChange} />
+      </View>
+      <SalespersonPicker
+        value={salesPersonFilter}
+        onChange={handleSalesPersonChange}
+        knownNames={knownSalespersons}
+      />
       {error ? (
         <TouchableOpacity style={styles.errorRow} onPress={() => loadQuotes(1)}>
           <Ionicons name="warning-outline" size={15} color="#8A1C1C" />
@@ -436,7 +550,11 @@ export default function QuotesScreen() {
         </TouchableOpacity>
       ) : null}
     </View>
-  ), [allItems.length, convertedCount, loading, searchText, convertedFilter, error, loadQuotes]);
+  ), [
+    allItems.length, convertedCount, loading, searchText, statusFilter,
+    salesPersonFilter, knownSalespersons, error, loadQuotes,
+    handleStatusChange, handleSalesPersonChange,
+  ]);
 
   const ListFooter = useMemo(() => {
     if (loadingMore) {
@@ -446,15 +564,15 @@ export default function QuotesScreen() {
         </View>
       );
     }
-    if (!hasMore && filteredItems.length > 0) {
+    if (!hasMore && allItems.length > 0) {
       return (
         <View style={styles.footerWrap}>
-          <Text style={styles.footerText}>All {filteredItems.length} quotes loaded</Text>
+          <Text style={styles.footerText}>All {allItems.length} quotes loaded</Text>
         </View>
       );
     }
     return null;
-  }, [loadingMore, hasMore, filteredItems.length]);
+  }, [loadingMore, hasMore, allItems.length]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -471,7 +589,7 @@ export default function QuotesScreen() {
         </View>
       ) : (
         <FlatList
-          data={filteredItems}
+          data={allItems}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
           ListHeaderComponent={ListHeader}
@@ -578,12 +696,11 @@ const styles = StyleSheet.create({
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: INPUT_BG,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 9,
     gap: 8,
-    marginBottom: 8,
   },
   searchInput: {
     flex: 1,
@@ -593,19 +710,80 @@ const styles = StyleSheet.create({
     padding: 0,
   },
 
-  // Filter chips
-  chipsRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
+  // Filter row
+  filterRow: { flexDirection: 'row', alignItems: 'center' },
+
+  // Status filter chips
+  chipsRow: { flexDirection: 'row', gap: 8 },
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: INPUT_BG,
     borderWidth: 1,
     borderColor: BORDER,
   },
   chipActive: { backgroundColor: PRIMARY, borderColor: PRIMARY },
-  chipText: { fontSize: 13, fontFamily: Typography.bodyMedium, color: SECONDARY },
+  chipText: { fontSize: 12, fontFamily: Typography.bodyMedium, color: SECONDARY },
   chipTextActive: { color: '#FFFFFF' },
+
+  // Salesperson picker
+  spPicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: INPUT_BG,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  spPickerActive: { borderColor: PRIMARY, backgroundColor: `${PRIMARY}0D` },
+  spPickerText: { flex: 1, fontSize: 14, fontFamily: Typography.body, color: SECONDARY },
+  spPickerTextActive: { color: PRIMARY, fontFamily: Typography.bodyMedium },
+
+  // Salesperson modal sheet
+  spOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
+  spSheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: CARD_BG,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 12,
+    maxHeight: '55%',
+  },
+  spSheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#D1D5DB',
+    alignSelf: 'center',
+    marginBottom: 12,
+  },
+  spSheetTitle: {
+    fontSize: 15,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '600',
+    color: PRIMARY,
+    paddingHorizontal: 20,
+    marginBottom: 8,
+  },
+  spScroll: { paddingHorizontal: 12 },
+  spRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    borderRadius: 10,
+  },
+  spRowActive: { backgroundColor: `${PRIMARY}0D` },
+  spRowText: { fontSize: 14, fontFamily: Typography.bodyMedium, color: PRIMARY },
+  spRowTextActive: { fontFamily: Typography.headingSemiBold, fontWeight: '600' },
 
   // Error row
   errorRow: {
@@ -616,7 +794,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    marginTop: 4,
   },
   errorText: { flex: 1, fontSize: 13, fontFamily: Typography.bodyMedium, color: '#8A1C1C' },
 
@@ -642,10 +819,10 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardQuoteNo: { fontSize: 15, fontFamily: Typography.headingSemiBold, fontWeight: '600', color: PRIMARY },
+  cardQuoteNo: { fontSize: 15, fontFamily: Typography.numberHeavy, color: PRIMARY },
   statusPill: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 },
   statusConverted: { backgroundColor: GREEN_BG },
-  statusPending: { backgroundColor: '#F1F5F9' },
+  statusPending: { backgroundColor: INPUT_BG },
   statusText: { fontSize: 11, fontFamily: Typography.headingSemiBold, fontWeight: '600' },
   statusTextConverted: { color: GREEN },
   statusTextPending: { color: SECONDARY },

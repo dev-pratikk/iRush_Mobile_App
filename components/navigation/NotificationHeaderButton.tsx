@@ -9,24 +9,8 @@ interface Props {
   size?: number;
 }
 
-export const NotificationHeaderButton: React.FC<Props> = ({ iconColor = '#0F172A', size = 22 }) => {
-  const { unreadCount } = useNotifications();
-
-  return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={() => router.push('/notifications' as any)}
-      activeOpacity={0.7}
-      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-    >
-      <Ionicons name="notifications-outline" size={size} color={iconColor} />
-      {unreadCount > 0 ? (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
-        </View>
-      ) : null}
-    </TouchableOpacity>
-  );
+export const NotificationHeaderButton: React.FC<Props> = () => {
+  return null;
 };
 
 const styles = StyleSheet.create({

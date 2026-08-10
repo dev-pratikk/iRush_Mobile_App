@@ -69,43 +69,17 @@ class NotificationService {
   }
 
   public getNotifications(): AppNotification[] {
-    return [...this.notifications];
+    return [];
   }
 
   public getUnreadCount(): number {
-    return this.notifications.filter((n) => !n.isRead).length;
+    return 0;
   }
 
   public addNotification(
     item: Omit<AppNotification, 'id' | 'createdAtMs' | 'isRead' | 'timestamp' | 'count'> & { count?: number }
   ): AppNotification | null {
-    const now = new Date();
-    const createdAtMs = now.getTime();
-    const timeStr = now.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true,
-    });
-
-    const newNotif: AppNotification = {
-      ...item,
-      id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-      createdAtMs,
-      timestamp: timeStr,
-      isRead: false,
-      count: item.count || 1,
-    };
-
-    this.notifications.unshift(newNotif);
-
-    if (this.notifications.length > MAX_NOTIFICATIONS) {
-      this.notifications = this.notifications.slice(0, MAX_NOTIFICATIONS);
-    }
-
-    this.saveToStorage();
-    this.notify();
-    return newNotif;
+    return null;
   }
 
   public markAsRead(id: string): void {

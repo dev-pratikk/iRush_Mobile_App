@@ -464,16 +464,6 @@ const InvoiceModal = ({
               </View>
 
               <View style={styles.modalGridRow}>
-                <Text style={styles.gridKey}>Invoiced Amount ({totalInvoicedQty} pcs)</Text>
-                <Text style={styles.gridValue}>{formatCurrencyWithCents(totalInvoicedAmount)}</Text>
-              </View>
-
-              <View style={styles.modalGridRow}>
-                <Text style={styles.gridKey}>Pending to Invoice ({pendingQuantity} pcs)</Text>
-                <Text style={styles.gridValue}>{formatCurrencyWithCents(pendingAmount)}</Text>
-              </View>
-
-              <View style={styles.modalGridRow}>
                 <Text style={styles.gridKey}>Payments Received</Text>
                 <Text style={styles.gridValue}>{formatCurrencyWithCents(paymentsReceived)}</Text>
               </View>
@@ -1031,16 +1021,6 @@ export default function OrderDetailsScreen() {
               <Text style={styles.rowValue}>{orderDate}</Text>
             </View>
 
-            {finishDate !== 'N/A' ? (
-              <View style={styles.rowItem}>
-                <View style={styles.rowLeft}>
-                  <Ionicons name="flag-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                  <Text style={styles.rowKey}>Finish Date</Text>
-                </View>
-                <Text style={styles.rowValue}>{finishDate}</Text>
-              </View>
-            ) : null}
-
             {promisedDate !== 'N/A' ? (
               <View style={styles.rowItem}>
                 <View style={styles.rowLeft}>
@@ -1051,13 +1031,13 @@ export default function OrderDetailsScreen() {
               </View>
             ) : null}
 
-            {turnDays > 0 ? (
+            {finishDate !== 'N/A' ? (
               <View style={styles.rowItem}>
                 <View style={styles.rowLeft}>
-                  <Ionicons name="time-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                  <Text style={styles.rowKey}>Lead Time</Text>
+                  <Ionicons name="flag-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                  <Text style={styles.rowKey}>Finish Date</Text>
                 </View>
-                <Text style={styles.rowValue}>{turnDays} business days</Text>
+                <Text style={styles.rowValue}>{finishDate}</Text>
               </View>
             ) : null}
 

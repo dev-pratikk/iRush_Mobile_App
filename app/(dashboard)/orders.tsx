@@ -620,10 +620,13 @@ export default function OrdersScreen() {
       const navParams: Record<string, string> = {};
       if (category) navParams.category = category;
       if (activePreset) navParams.period = activePreset;
-      if (activePreset === 'custom' && customRange) {
-        navParams.startDate = customRange.startDate;
-        navParams.endDate = customRange.endDate;
+
+      const currentRange = customRange || getDateRangeForFilter(activePreset, customRange);
+      if (currentRange?.startDate && currentRange?.endDate) {
+        navParams.startDate = currentRange.startDate;
+        navParams.endDate = currentRange.endDate;
       }
+
       router.push({
         pathname: '/all-orders' as any,
         params: navParams,

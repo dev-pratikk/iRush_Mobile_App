@@ -533,7 +533,7 @@ export default function AllOrdersScreen() {
 
       const p = getPresetFromParam(params.period);
       setActivePreset(p);
-      if (p === 'custom' && params.startDate && params.endDate) {
+      if (params.startDate && params.endDate) {
         setCustomRange({ startDate: params.startDate, endDate: params.endDate });
       } else if (p !== 'custom') {
         setCustomRange(null);

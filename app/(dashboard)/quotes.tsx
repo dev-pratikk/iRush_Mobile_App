@@ -326,17 +326,10 @@ const QuoteRow = React.memo(function QuoteRow({
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
       <View style={styles.mainRow}>
-        {/* Left: Quote No badge + company + salesperson */}
+        {/* Left: Quote No badge + company + company code */}
         <View style={styles.leftCol}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <View style={styles.quoteNoBadge}>
-              <Text style={styles.quoteNoText} numberOfLines={1}>{displayNo}</Text>
-            </View>
-            <View style={[styles.statusBadge, isConverted ? styles.statusBadgeConverted : styles.statusBadgePending]}>
-              <Text style={[styles.statusBadgeText, isConverted ? styles.statusBadgeTextConverted : styles.statusBadgeTextPending]}>
-                {isConverted ? 'CONVERTED' : 'PENDING'}
-              </Text>
-            </View>
+          <View style={[styles.quoteNoBadge, { marginBottom: 6 }]}>
+            <Text style={styles.quoteNoText} numberOfLines={1}>{displayNo}</Text>
           </View>
           <Text style={styles.companyText} numberOfLines={1} ellipsizeMode="tail">
             {item.companyName || 'N/A'}
@@ -346,8 +339,13 @@ const QuoteRow = React.memo(function QuoteRow({
           ) : null}
         </View>
 
-        {/* Right: Date + salesperson */}
+        {/* Right: Status badge (CONVERTED / NOT CONVERTED) above Date */}
         <View style={styles.rightCol}>
+          <View style={[styles.statusBadge, isConverted ? styles.statusBadgeConverted : styles.statusBadgeNotConverted]}>
+            <Text style={[styles.statusBadgeText, isConverted ? styles.statusBadgeTextConverted : styles.statusBadgeTextNotConverted]}>
+              {isConverted ? 'CONVERTED' : 'NOT CONVERTED'}
+            </Text>
+          </View>
           <Text style={styles.dateText}>{formatOrderDate(item.quoteDate)}</Text>
           {item.salesPersonName ? (
             <Text style={styles.salespersonText}>{item.salesPersonName}</Text>
@@ -821,12 +819,13 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 6,
     borderWidth: 1,
+    marginBottom: 4,
   },
   statusBadgeConverted: { backgroundColor: GREEN_BG, borderColor: '#BBF7D0' },
-  statusBadgePending: { backgroundColor: '#F5F5F2', borderColor: '#E7E6E2' },
+  statusBadgeNotConverted: { backgroundColor: '#F1F5F9', borderColor: '#CBD5E1' },
   statusBadgeText: { fontSize: 10, fontFamily: Typography.headingSemiBold },
   statusBadgeTextConverted: { color: GREEN },
-  statusBadgeTextPending: { color: '#64748B' },
+  statusBadgeTextNotConverted: { color: '#64748B' },
 
   companyText: { fontSize: 14, fontFamily: Typography.headingSemiBold, color: '#334155' },
   orderTypeText: { fontSize: 12, fontFamily: Typography.bodyMedium, color: '#64748B', marginTop: 2 },

@@ -521,7 +521,7 @@ export default function QuoteDetailsScreen() {
             </Text>
             <Text style={styles.heroDotTextCentered}> · </Text>
             <Text style={[styles.heroStatusTextCentered, isConverted ? styles.statusOpen : styles.statusOther]}>
-              {isConverted ? 'Converted' : 'Pending'}
+              {isConverted ? 'Converted' : 'Not Converted'}
             </Text>
           </View>
           {isConverted && quote.orderNo ? (

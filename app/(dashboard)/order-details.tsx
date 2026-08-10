@@ -405,7 +405,7 @@ const InvoiceModal = ({
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.modalTitle} numberOfLines={1}>
-                  Invoice & Financial Breakdown
+                  Invoice Breakdown
                 </Text>
                 <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
               </View>
@@ -414,6 +414,7 @@ const InvoiceModal = ({
               style={styles.modalCloseBtn}
               onPress={onClose}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              activeOpacity={0.7}
             >
               <Ionicons name="close" size={18} color="#64748B" />
             </TouchableOpacity>
@@ -1570,7 +1571,7 @@ const styles = StyleSheet.create({
   },
   invoiceHeroAmount: {
     fontSize: 26,
-    fontFamily: Typography.titleSerif,
+    fontFamily: Typography.headingSemiBold,
     fontWeight: '700',
     color: '#0F172A',
   },

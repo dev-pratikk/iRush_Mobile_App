@@ -21,18 +21,21 @@ export const AnimatedSplash: React.FC<AnimatedSplashProps> = ({ onFinish }) => {
   const textOpacity = useSharedValue(0);
 
   const handleAnimationFinish = () => {
+    // Hold the splash visible for 1800ms after animations complete
     setTimeout(() => {
       onFinish();
-    }, 350);
+    }, 1800);
   };
 
   useEffect(() => {
-    logoOpacity.value = withTiming(1, { duration: 750, easing: Easing.out(Easing.exp) });
-    logoScale.value = withTiming(1, { duration: 750, easing: Easing.out(Easing.back(1.4)) });
+    // Logo fades + scales in over 900ms
+    logoOpacity.value = withTiming(1, { duration: 900, easing: Easing.out(Easing.exp) });
+    logoScale.value = withTiming(1, { duration: 900, easing: Easing.out(Easing.back(1.4)) });
 
+    // Text fades in 500ms after logo starts, over 700ms, then triggers hold
     textOpacity.value = withDelay(
-      400,
-      withTiming(1, { duration: 600, easing: Easing.out(Easing.exp) }, (finished) => {
+      500,
+      withTiming(1, { duration: 700, easing: Easing.out(Easing.exp) }, (finished) => {
         if (finished) {
           runOnJS(handleAnimationFinish)();
         }

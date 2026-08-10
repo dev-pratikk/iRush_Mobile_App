@@ -41,16 +41,51 @@ const normalizeOrdersResponse = (data: OrdersListResponse | null | undefined): O
   orders: Array.isArray(data?.orders) ? data!.orders : EMPTY_ORDERS.orders,
 });
 
+export const getOrderCategoryRawString = (ord: any): string => {
+  if (!ord) return '';
+  const val =
+    ord.ORDER_CATEGORY ??
+    ord.orderCategory ??
+    ord.ORDER_CATEGORY_NAME ??
+    ord.orderCategoryName ??
+    ord.CUSTOMER_STATUS ??
+    ord.customerStatus ??
+    ord.CUSTOMER_TYPE ??
+    ord.customerType ??
+    ord.CATEGORY ??
+    ord.category ??
+    '';
+  return String(val).toUpperCase().trim();
+};
+
 export const isOrderNew = (ord: any): boolean => {
   if (!ord) return false;
-  const cat = String(ord.ORDER_CATEGORY ?? ord.orderCategory ?? ord.CUSTOMER_STATUS ?? ord.customerStatus ?? '').toUpperCase().trim();
-  return cat === 'NEW';
+  if (ord.isNew === true || ord.IS_NEW === true || ord.is_new === 1 || ord.IS_NEW === 1) return true;
+  if (ord.isRepeat === true || ord.IS_REPEAT === true || ord.is_repeat === 1 || ord.IS_REPEAT === 1) return false;
+
+  const cat = getOrderCategoryRawString(ord);
+  if (cat.includes('REPEAT') || cat.includes('REPEATED') || cat.includes('EXISTING')) {
+    return false;
+  }
+  if (cat === 'NEW' || cat.startsWith('NEW') || cat.includes('NEW')) {
+    return true;
+  }
+  return false;
 };
 
 export const isOrderRepeat = (ord: any): boolean => {
   if (!ord) return false;
-  const cat = String(ord.ORDER_CATEGORY ?? ord.orderCategory ?? ord.CUSTOMER_STATUS ?? ord.customerStatus ?? '').toUpperCase().trim();
-  return cat === 'REPEAT' || cat === 'REPEATED';
+  if (ord.isRepeat === true || ord.IS_REPEAT === true || ord.is_repeat === 1 || ord.IS_REPEAT === 1) return true;
+  if (ord.isNew === true || ord.IS_NEW === true || ord.is_new === 1 || ord.IS_NEW === 1) return false;
+
+  const cat = getOrderCategoryRawString(ord);
+  if (cat.includes('REPEAT') || cat.includes('REPEATED') || cat.includes('EXISTING') || cat.includes('RETURNING')) {
+    return true;
+  }
+  if (cat === 'NEW' || cat.startsWith('NEW') || cat.includes('NEW')) {
+    return false;
+  }
+  return true;
 };
 
 const toServiceError = (error: unknown) => {

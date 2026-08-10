@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Typography } from '../../constants/Typography';
 import { formatCurrencyWithCents, formatOrderDate } from '../../lib/formatters';
+import { isOrderNew, isOrderRepeat } from '../../services/api/orders.service';
 
 export interface OrderCardProps {
   orderNo: string;
@@ -56,9 +57,9 @@ export const OrderCard = React.memo(function OrderCard({
   const isLate = typeof daysLeft === 'number' && daysLeft < 0;
   const daysBadge = isLate ? `+${Math.abs(daysLeft)}d late` : `${daysLeft}d left`;
 
-  const category = String(customerStatus || orderCategory || '').toUpperCase().trim();
-  const isNewCustomer = category === 'NEW';
-  const isRepeatCustomer = category === 'REPEATED' || category === 'REPEAT';
+  const itemPayload = { customerStatus, orderCategory, ORDER_CATEGORY: orderCategory, CUSTOMER_STATUS: customerStatus };
+  const isNewCustomer = isOrderNew(itemPayload);
+  const isRepeatCustomer = isOrderRepeat(itemPayload);
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>

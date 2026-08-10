@@ -253,6 +253,16 @@ export default function DashboardLayout() {
         }}
       />
       <Drawer.Screen
+        name="quote-details"
+        options={{
+          title: 'Quote Details',
+          drawerItemStyle: { display: 'none' },
+          drawerIcon: ({ color, size }) => (
+            <Ionicons name="document-text-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
         name="reports"
         options={{
           title: 'Reports',

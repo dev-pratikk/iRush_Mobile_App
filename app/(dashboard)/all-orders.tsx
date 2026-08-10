@@ -603,23 +603,43 @@ export default function AllOrdersScreen() {
   const hasActiveFilter = !!(selectedCategory || selectedSalesperson || debouncedValue.trim());
 
   const totalAmountCalculated = useMemo(() => {
+    if (selectedCategory === 'NEW') {
+      const backendAmt = (meta?.newOrdersAmount as number | undefined) ?? (meta?.newOrderValue as number | undefined);
+      if (typeof backendAmt === 'number' && backendAmt > 0) return backendAmt;
+    }
+    if (selectedCategory === 'REPEAT') {
+      const backendAmt = (meta?.repeatedOrdersAmount as number | undefined) ?? (meta?.repeatedOrderValue as number | undefined);
+      if (typeof backendAmt === 'number' && backendAmt > 0) return backendAmt;
+    }
     if (!hasActiveFilter && meta?.totalAmount && meta.totalAmount > 0) return meta.totalAmount;
     return allFilteredItems.reduce((acc, it) => acc + (it.orderTotal || (it as any).ORDER_TOTAL || 0), 0);
-  }, [meta, hasActiveFilter, allFilteredItems]);
+  }, [meta, selectedCategory, hasActiveFilter, allFilteredItems]);
 
   const summaryCount = useMemo(() => {
+    if (selectedCategory === 'NEW') {
+      const backendCount =
+        (meta?.totalRecords as number | undefined) ??
+        (meta?.count as number | undefined) ??
+        (meta?.newOrdersCount as number | undefined);
+      if (typeof backendCount === 'number' && backendCount >= 0) {
+        return backendCount;
+      }
+    }
+    if (selectedCategory === 'REPEAT') {
+      const backendCount =
+        (meta?.totalRecords as number | undefined) ??
+        (meta?.count as number | undefined) ??
+        (meta?.repeatedOrdersCount as number | undefined);
+      if (typeof backendCount === 'number' && backendCount >= 0) {
+        return backendCount;
+      }
+    }
+
     if (!hasActiveFilter) {
       return (meta?.count as number | undefined) ?? (meta?.totalRecords as number | undefined) ?? items.length;
     }
     return allFilteredItems.length;
-  }, [meta, hasActiveFilter, items.length, allFilteredItems.length]);
-
-  // Auto-fetch remaining pages when category filter is active so all category items load into the list
-  useEffect(() => {
-    if (selectedCategory && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [selectedCategory, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [meta, selectedCategory, hasActiveFilter, items.length, allFilteredItems.length]);
 
   const availableSalespersons = useMemo(() => {
     const fromItems = items

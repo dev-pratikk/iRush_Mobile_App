@@ -129,8 +129,10 @@ class NotificationService {
     errorMessage: string
   ): AppNotification | null {
     const codeText = statusCode ? `HTTP ${statusCode}` : 'Error';
+    const cleanApiName = apiName.replace(/^API Failure:\s*/i, '').trim();
+
     return this.addNotification({
-      title: `API Failure: ${apiName}`,
+      title: `⚠️ Heartbeat Alert: ${cleanApiName} Not Working`,
       message: `${codeText} on ${pathOrEndpoint} — ${errorMessage}`,
       type: 'api_error',
       endpoint: pathOrEndpoint,

@@ -29,6 +29,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return unsubscribe;
   }, []);
 
+  // Global Auto Heartbeat Ping-Pong Service (pings every 30 seconds)
+  useEffect(() => {
+    pingPongService.startAutoPingPong(token, 30000);
+
+    return () => {
+      pingPongService.stopAutoPingPong();
+    };
+  }, [token]);
+
   const markAsRead = (id: string) => {
     notificationService.markAsRead(id);
   };

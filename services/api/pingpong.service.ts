@@ -1,4 +1,5 @@
 import { apiClient } from '../../lib/api-client';
+import { notificationService } from './notification.service';
 
 export interface PingPongEndpointReport {
   id: string;
@@ -125,6 +126,16 @@ class PingPongService {
 
       this.reports.set(apiItem.id, result);
       this.notify();
+
+      if (!response.ok) {
+        notificationService.pushApiError(
+          apiItem.name,
+          `${apiItem.path}${apiItem.query || ''}`,
+          response.status,
+          `HTTP ${response.status} ${response.statusText}`
+        );
+      }
+
       return result;
     } catch (err: any) {
       const latencyMs = Date.now() - startTime;
@@ -135,20 +146,31 @@ class PingPongService {
         hour12: false,
       });
 
+      const errMsg = err?.name === 'AbortError' ? 'Ping Timeout (10s)' : err?.message || 'Network Error';
+      const statusCode = err?.name === 'AbortError' ? 408 : 500;
+
       const result: PingPongEndpointReport = {
         id: apiItem.id,
         name: apiItem.name,
         endpoint: fullUrl,
         path: `${apiItem.path}${apiItem.query || ''}`,
         status: 'error',
-        statusCode: err?.name === 'AbortError' ? 408 : 500,
+        statusCode,
         latencyMs,
         lastChecked: nowStr,
-        errorMessage: err?.name === 'AbortError' ? 'Ping Timeout (10s)' : err?.message || 'Network Error',
+        errorMessage: errMsg,
       };
 
       this.reports.set(apiItem.id, result);
       this.notify();
+
+      notificationService.pushApiError(
+        apiItem.name,
+        `${apiItem.path}${apiItem.query || ''}`,
+        statusCode,
+        errMsg
+      );
+
       return result;
     }
   }

@@ -12,6 +12,7 @@ import { Typography } from '../../constants/Typography';
 import { useNavigation } from '@react-navigation/native';
 import { DrawerActions } from '@react-navigation/native';
 import { router, usePathname, useFocusEffect } from 'expo-router';
+import { NotificationHeaderButton } from '../../components/navigation/NotificationHeaderButton';
 import {
   getDashboardStats,
   DashboardStatsResponse,
@@ -43,22 +44,7 @@ const Header = () => {
         </Text>
       </View>
       <View style={styles.headerRight}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => router.push('/notifications' as any)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons
-            name="notifications-outline"
-            size={22}
-            color={colors.textPrimary}
-          />
-          <View
-            style={[styles.badge, { backgroundColor: colors.primary }]}
-          >
-            <Text style={styles.badgeText}>3</Text>
-          </View>
-        </TouchableOpacity>
+        <NotificationHeaderButton iconColor={colors.textPrimary} size={22} />
       </View>
     </View>
   );

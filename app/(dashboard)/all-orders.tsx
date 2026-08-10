@@ -16,6 +16,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { NotificationHeaderButton } from '../../components/navigation/NotificationHeaderButton';
 import { useAuthContext } from '../../context/AuthContext';
 import { OrderCard } from '../../components/dashboard/OrderCard';
 import {
@@ -91,16 +92,7 @@ const Header = ({
           <Ionicons name="chevron-down" size={12} color={PRIMARY} />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.headerIconInner}
-          onPress={() => router.push('/notifications' as any)}
-          hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
-        >
-          <Ionicons name="notifications-outline" size={20} color={PRIMARY} />
-          <View style={styles.badge} pointerEvents="none">
-            <Text style={styles.badgeText}>3</Text>
-          </View>
-        </TouchableOpacity>
+        <NotificationHeaderButton iconColor={PRIMARY} size={20} />
       </View>
     </View>
   );

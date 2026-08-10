@@ -7,9 +7,11 @@ import {
   Text,
   BackHandler,
   ActivityIndicator,
+  Modal,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuthContext } from '../../context/AuthContext';
@@ -18,53 +20,22 @@ import { fetchQuoteById, type QuoteDetail, type QuoteContact } from '../../servi
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 
-const PRIMARY   = '#0F172A';
-const SECONDARY = '#64748B';
-const PAGE_BG   = '#F8FAFC';
-const CARD_BG   = '#FFFFFF';
+const PRIMARY     = '#0F172A';
+const SECONDARY   = '#64748B';
+const PAGE_BG     = '#F8FAFC';
+const CARD_BG     = '#FFFFFF';
 const CARD_BORDER = '#E2E8F0';
-const GREEN     = '#16A34A';
-const GREEN_BG  = '#DCFCE7';
-const DARK_CARD = '#1E293B';
+const GREEN       = '#16A34A';
+const GREEN_BG    = '#DCFCE7';
 
 const hairline = StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const formatPhone = (raw: string | null | undefined): string => {
+const stripQuotePrefix = (raw: string | null | undefined): string => {
   if (!raw) return 'N/A';
-  const digits = raw.replace(/\D/g, '');
-  if (digits.length === 10) return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-  return raw;
+  return raw.replace(/^[A-Za-z\-]+/, '').trim() || raw.trim();
 };
-
-const formatSpecKey = (key: string): string => {
-  if (!key) return '';
-  const lower = key.toLowerCase();
-  if (lower === 'pcbpartno' || lower === 'partno') return 'Pcb Part No';
-  if (lower === 'rev') return 'Revision';
-  if (lower === 'itar') return 'ITAR';
-  if (lower === 'ipcclass') return 'IPC Class';
-  if (lower === 'rohs') return 'RoHS Compliance';
-  if (lower === 'smdsided') return 'SMD Placement';
-  if (lower === 'smdpitch') return 'SMD Pitch';
-  if (lower === 'noofsmdpads') return 'SMD Pads Count';
-  if (lower === 'approxholes') return 'Total Hole Count';
-  if (lower === 'smallestholes') return 'Smallest Hole Size';
-  if (lower === 'mintrace') return 'Min Trace Width';
-  if (lower === 'minspace') return 'Min Trace Spacing';
-  const spaced = key
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
-    .replace(/_/g, ' ');
-  return spaced
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(' ');
-};
-
-// ─── Row Item ─────────────────────────────────────────────────────────────────
 
 const safeDisplayString = (val: any): string => {
   if (val === null || val === undefined) return 'N/A';
@@ -79,123 +50,242 @@ const safeDisplayString = (val: any): string => {
   return String(val);
 };
 
-const RowItem = ({
-  icon,
-  label,
-  value,
-  last = false,
-  valueColor,
+const formatPhone = (raw: string | null | undefined): string => {
+  if (!raw) return 'N/A';
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length === 10) return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  return raw;
+};
+
+const formatSpecKey = (key: string): string => {
+  if (!key) return '';
+  const lower = key.toLowerCase();
+  if (lower === 'pcbpartno' || lower === 'partno') return 'Pcb Part No';
+  if (lower === 'rev' || lower === 'revision') return 'Revision';
+  if (lower === 'itar') return 'ITAR';
+  if (lower === 'ipcclass') return 'IPC Class';
+  if (lower === 'rohs') return 'RoHS Compliance';
+  if (lower === 'smdsided') return 'SMD Placement';
+  if (lower === 'smdpitch') return 'SMD Pitch';
+  if (lower === 'noofsmdpads') return 'SMD Pads Count';
+  if (lower === 'approxholes') return 'Total Hole Count';
+  if (lower === 'smallestholes') return 'Smallest Hole Size';
+  if (lower === 'mintrace') return 'Min Trace Width';
+  if (lower === 'minspace') return 'Min Trace Spacing';
+
+  const spaced = key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .replace(/_/g, ' ');
+
+  return spaced
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+};
+
+// ─── Contact Info Modal Component (matches order-details ContactModal) ────────
+
+const ContactModal = ({
+  visible,
+  onClose,
+  quoteNo,
+  contacts,
 }: {
-  icon: string;
-  label: string;
-  value: any;
-  last?: boolean;
-  valueColor?: string;
-}) => (
-  <View style={[styles.rowItem, last ? { borderBottomWidth: 0 } : null]}>
-    <View style={styles.rowLeft}>
-      <Ionicons name={icon as any} size={17} color={SECONDARY} style={styles.rowIcon} />
-      <Text style={styles.rowKey}>{label}</Text>
-    </View>
-    <Text style={[styles.rowValue, valueColor ? { color: valueColor } : null]} numberOfLines={2}>
-      {safeDisplayString(value)}
-    </Text>
-  </View>
-);
-
-// ─── Section Card ─────────────────────────────────────────────────────────────
-
-const SectionCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <View style={styles.sectionWrap}>
-    <Text style={styles.sectionTitle}>{title}</Text>
-    <View style={styles.cardGroup}>{children}</View>
-  </View>
-);
-
-// ─── Contact Card ─────────────────────────────────────────────────────────────
-
-const ContactCard = ({ contact, last }: { contact: QuoteContact; last: boolean }) => {
-  const name = [contact.firstName, contact.lastName].filter(Boolean).map(safeDisplayString).join(' ') || 'N/A';
+  visible: boolean;
+  onClose: () => void;
+  quoteNo: string;
+  contacts: QuoteContact[];
+}) => {
   return (
-    <View style={[styles.contactCard, last && { marginBottom: 0 }]}>
-      <View style={styles.contactHeader}>
-        <View style={styles.contactAvatar}>
-          <Ionicons name="person" size={18} color={PRIMARY} />
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback>
+            <View style={styles.modalCard}>
+              {/* Header */}
+              <View style={styles.modalHeader}>
+                <View style={styles.modalHeaderLeft}>
+                  <View style={styles.modalIconCircle}>
+                    <Ionicons name="person-outline" size={20} color="#0F172A" />
+                  </View>
+                  <View>
+                    <Text style={styles.modalTitle}>Contact Information</Text>
+                    <Text style={styles.modalSubTitle}>Quote #{quoteNo}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.modalCloseBtn}
+                  onPress={onClose}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="close" size={20} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Info Grid */}
+              <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+                {contacts.length === 0 ? (
+                  <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 13, color: SECONDARY, fontFamily: Typography.body }}>
+                      No contact details available
+                    </Text>
+                  </View>
+                ) : (
+                  contacts.map((c, idx) => {
+                    const fullName = [c.firstName, c.lastName].filter(Boolean).map(safeDisplayString).join(' ') || 'N/A';
+                    return (
+                      <View
+                        key={idx}
+                        style={[
+                          styles.modalBodyGrid,
+                          idx < contacts.length - 1 ? { borderBottomWidth: 1, borderBottomColor: '#E2E8F0', paddingBottom: 12, marginBottom: 12 } : null,
+                        ]}
+                      >
+                        <View style={styles.modalGridRow}>
+                          <Text style={styles.gridKey}>Contact Name</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={styles.gridValueBold}>{fullName}</Text>
+                            {c.isPrimary ? (
+                              <View style={styles.primaryBadge}>
+                                <Text style={styles.primaryBadgeText}>Primary</Text>
+                              </View>
+                            ) : null}
+                          </View>
+                        </View>
+                        {c.jobTitle ? (
+                          <View style={styles.modalGridRow}>
+                            <Text style={styles.gridKey}>Job Title</Text>
+                            <Text style={styles.gridValue}>{safeDisplayString(c.jobTitle)}</Text>
+                          </View>
+                        ) : null}
+                        {c.phone1 ? (
+                          <View style={styles.modalGridRow}>
+                            <Text style={styles.gridKey}>Phone</Text>
+                            <Text style={styles.gridValue}>{formatPhone(safeDisplayString(c.phone1))}</Text>
+                          </View>
+                        ) : null}
+                        {c.email ? (
+                          <View style={styles.modalGridRow}>
+                            <Text style={styles.gridKey}>Email</Text>
+                            <Text style={styles.gridValue}>{safeDisplayString(c.email)}</Text>
+                          </View>
+                        ) : null}
+                      </View>
+                    );
+                  })
+                )}
+              </ScrollView>
+
+              {/* Close Button */}
+              <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
+                <Text style={styles.primaryActionBtnText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.contactName}>{name}</Text>
-          {contact.jobTitle ? <Text style={styles.contactJob}>{safeDisplayString(contact.jobTitle)}</Text> : null}
-        </View>
-        {contact.isPrimary && (
-          <View style={styles.primaryBadge}>
-            <Text style={styles.primaryBadgeText}>Primary</Text>
-          </View>
-        )}
-      </View>
-      {contact.email ? (
-        <View style={styles.contactMeta}>
-          <Ionicons name="mail-outline" size={14} color={SECONDARY} />
-          <Text style={styles.contactMetaText}>{safeDisplayString(contact.email)}</Text>
-        </View>
-      ) : null}
-      {contact.phone1 ? (
-        <View style={styles.contactMeta}>
-          <Ionicons name="call-outline" size={14} color={SECONDARY} />
-          <Text style={styles.contactMetaText}>{formatPhone(safeDisplayString(contact.phone1))}</Text>
-        </View>
-      ) : null}
-    </View>
+      </TouchableWithoutFeedback>
+    </Modal>
   );
 };
 
-// ─── Specs Section ────────────────────────────────────────────────────────────
+// ─── Specifications Modal Component (matches order-details AllSpecificationsModal)
 
-const IGNORED_SPEC_KEYS = new Set([
-  'SPEC_ID', 'specId', 'ORDER_ID', 'orderId', 'QUOTE_ID', 'quoteId',
-  'CUSTOMERID', 'customerId', 'CREATED_BY', 'UPDATED_BY',
-  'CREATED_DATE', 'UPDATED_DATE', 'IS_ACTIVE', 'is_active', 'DELETED', 'deleted',
-]);
-
-const SpecsSection = ({ specs }: { specs: Record<string, unknown>[] }) => {
-  const items = useMemo(() => {
-    if (!Array.isArray(specs) || specs.length === 0) return [];
-    const list: { label: string; value: string }[] = [];
-    specs.forEach((specObj) => {
-      if (!specObj || typeof specObj !== 'object') return;
-      Object.entries(specObj).forEach(([k, v]) => {
-        if (IGNORED_SPEC_KEYS.has(k)) return;
-        if (v === null || v === undefined) return;
-        const label = formatSpecKey(k);
-        let val = safeDisplayString(v);
-        if (val.toLowerCase() === 'true') val = 'Yes';
-        if (val.toLowerCase() === 'false') val = 'No';
-        list.push({ label, value: val });
-      });
-    });
-    return list;
-  }, [specs]);
-
-  if (items.length === 0) return null;
+const AllSpecificationsModal = ({
+  visible,
+  onClose,
+  quoteNo,
+  isItar,
+  specsList,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  quoteNo: string;
+  isItar: boolean;
+  specsList: { label: string; value: string; isBold?: boolean }[];
+}) => {
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.sectionWrap}>
-      <Text style={styles.sectionTitle}>SPECIFICATIONS</Text>
-      <View style={styles.cardGroup}>
-        {items.map((it, i) => (
-          <View
-            key={i}
-            style={[styles.specRow, i === items.length - 1 ? { borderBottomWidth: 0 } : null]}
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View
+        style={[
+          styles.specsModalOverlay,
+          {
+            paddingTop: Math.max(insets.top + 16, 24),
+            paddingBottom: Math.max(insets.bottom + 16, 24),
+          },
+        ]}
+      >
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
+        <View style={[styles.specsModalCard, { width: '96%', maxWidth: 480, maxHeight: '88%' }]}>
+          {/* Header */}
+          <View style={styles.specsModalHeader}>
+            <View style={styles.modalHeaderLeft}>
+              <View style={styles.modalIconCircle}>
+                <Ionicons name="list-outline" size={20} color="#0F172A" />
+              </View>
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.modalTitle}>All Specifications</Text>
+                  {isItar ? (
+                    <View style={styles.itarBadge}>
+                      <Ionicons name="shield-checkmark" size={10} color="#DC2626" />
+                      <Text style={styles.itarBadgeText}>ITAR</Text>
+                    </View>
+                  ) : null}
+                </View>
+                <Text style={styles.modalSubTitle}>Quote #{quoteNo}</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.specsCloseBtn}
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close" size={20} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Scrollable Specs List */}
+          <ScrollView
+            style={styles.specsScrollView}
+            contentContainerStyle={styles.specsScrollContent}
+            showsVerticalScrollIndicator={true}
+            bounces={true}
           >
-            <Text style={styles.specKey}>{it.label}</Text>
-            <Text style={styles.specValue}>{it.value}</Text>
+            <View style={styles.cardGroup}>
+              {specsList.map((item, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.specRowItem,
+                    index === specsList.length - 1 ? { borderBottomWidth: 0 } : null,
+                  ]}
+                >
+                  <Text style={styles.specRowKey}>{item.label}</Text>
+                  <Text style={item.isBold ? styles.specRowValueBold : styles.specRowValue}>
+                    {item.value}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+
+          {/* Footer Close Button */}
+          <View style={styles.specsModalFooter}>
+            <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
+              <Text style={styles.primaryActionBtnText}>Done</Text>
+            </TouchableOpacity>
           </View>
-        ))}
+        </View>
       </View>
-    </View>
+    </Modal>
   );
 };
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+// ─── Main Screen Component ────────────────────────────────────────────────────
 
 export default function QuoteDetailsScreen() {
   const params = useLocalSearchParams<{ quoteId?: string }>();
@@ -205,44 +295,121 @@ export default function QuoteDetailsScreen() {
   const [quote, setQuote] = useState<QuoteDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (router.canGoBack()) router.back();
-      else router.replace('/quotes');
-      return true;
-    });
-    return () => sub.remove();
-  }, []);
-
-  useEffect(() => {
-    const id = params.quoteId;
-    if (!id) { setError('No quote ID provided'); setLoading(false); return; }
-
-    setLoading(true);
-    setError(null);
-    fetchQuoteById(id, { token })
-      .then((data) => { setQuote(data); setLoading(false); })
-      .catch((err) => { setError(err?.message ?? 'Failed to load quote'); setLoading(false); });
-  }, [params.quoteId, token]);
+  const [contactModalVisible, setContactModalVisible] = useState(false);
+  const [specsModalVisible, setSpecsModalVisible] = useState(false);
 
   const handleBack = useCallback(() => {
     if (router.canGoBack()) router.back();
     else router.replace('/quotes');
   }, []);
 
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleBack();
+      return true;
+    });
+    return () => sub.remove();
+  }, [handleBack]);
+
+  useEffect(() => {
+    const id = params.quoteId;
+    if (!id) {
+      setError('No quote ID provided');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    fetchQuoteById(id, { token })
+      .then((data) => {
+        setQuote(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err?.message ?? 'Failed to load quote details');
+        setLoading(false);
+      });
+  }, [params.quoteId, token]);
+
+  const isConverted = quote?.orderId != null && quote.orderId > 0;
+  const quoteNo = stripQuotePrefix(quote?.quoteNo);
+
+  // Specifications processing (matches order-details dynamicSpecsList logic)
+  const specsList = useMemo(() => {
+    const list: { label: string; value: string; isBold?: boolean }[] = [];
+    const specsArray = quote?.quoteSpecifications;
+
+    if (Array.isArray(specsArray) && specsArray.length > 0) {
+      const ignoredKeys = new Set([
+        'SPEC_ID', 'specId', 'ORDER_ID', 'orderId', 'QUOTE_ID', 'quoteId',
+        'CUSTOMERID', 'customerId', 'CREATED_BY', 'UPDATED_BY',
+        'CREATED_DATE', 'UPDATED_DATE', 'IS_ACTIVE', 'is_active', 'DELETED', 'deleted',
+      ]);
+
+      specsArray.forEach((specObj) => {
+        if (!specObj || typeof specObj !== 'object') return;
+        Object.entries(specObj).forEach(([k, v]) => {
+          if (ignoredKeys.has(k)) return;
+          if (v === null || v === undefined) return;
+
+          const label = formatSpecKey(k);
+          let valStr = safeDisplayString(v);
+
+          if (v === true || valStr.toLowerCase() === 'true') valStr = 'Yes';
+          if (v === false || valStr.toLowerCase() === 'false') valStr = 'No';
+
+          const isBoldKey =
+            k.toLowerCase().includes('part') ||
+            k.toLowerCase().includes('layer') ||
+            k.toLowerCase().includes('type');
+
+          list.push({
+            label,
+            value: valStr,
+            isBold: isBoldKey,
+          });
+        });
+      });
+    }
+
+    return list;
+  }, [quote?.quoteSpecifications]);
+
+  // Check ITAR restriction
+  const isItar = useMemo(() => {
+    if (!quote?.quoteSpecifications || quote.quoteSpecifications.length === 0) return false;
+    const firstSpec = quote.quoteSpecifications[0] as any;
+    return (
+      firstSpec?.ITAR === 1 ||
+      String(firstSpec?.ITAR).toLowerCase() === 'yes' ||
+      String(firstSpec?.itar).toLowerCase() === 'yes'
+    );
+  }, [quote?.quoteSpecifications]);
+
+  // Core spec summary for the inline card
+  const layerCount = useMemo(() => {
+    const item = specsList.find((s) => s.label.toLowerCase().includes('layer'));
+    return item ? item.value : 'N/A';
+  }, [specsList]);
+
+  const partNo = useMemo(() => {
+    const item = specsList.find((s) => s.label.toLowerCase().includes('part'));
+    return item ? item.value : 'N/A';
+  }, [specsList]);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={handleBack} hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}>
+          <TouchableOpacity style={styles.backButton} onPress={handleBack} hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}>
             <Ionicons name="arrow-back" size={20} color={PRIMARY} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Quote Details</Text>
+          <Text style={styles.headerTitleLeft}>Quote Details</Text>
         </View>
-        <View style={styles.centered}>
+        <View style={styles.centeredWrap}>
           <ActivityIndicator color={PRIMARY} size="large" />
-          <Text style={styles.loadingText}>Loading quote…</Text>
+          <Text style={styles.loadingText}>Loading quote details…</Text>
         </View>
       </SafeAreaView>
     );
@@ -252,217 +419,442 @@ export default function QuoteDetailsScreen() {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={handleBack} hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}>
+          <TouchableOpacity style={styles.backButton} onPress={handleBack} hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}>
             <Ionicons name="arrow-back" size={20} color={PRIMARY} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Quote Details</Text>
+          <Text style={styles.headerTitleLeft}>Quote Details</Text>
         </View>
-        <View style={styles.centered}>
-          <Ionicons name="warning-outline" size={40} color="#CBD5E1" />
+        <View style={styles.centeredWrap}>
+          <Ionicons name="warning-outline" size={38} color={SECONDARY} />
           <Text style={styles.errorTitle}>{error ?? 'Quote not found'}</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={handleBack}>
-            <Text style={styles.retryBtnText}>Go Back</Text>
+          <TouchableOpacity style={styles.primaryActionBtn} onPress={handleBack}>
+            <Text style={styles.primaryActionBtnText}>Go Back</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
-  const isConverted = quote.orderId != null && quote.orderId > 0;
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      {/* Header */}
+      {/* Header Bar — identical to order-details */}
       <View style={styles.header}>
         <TouchableOpacity
-          style={styles.backBtn}
+          style={styles.backButton}
           onPress={handleBack}
           hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
         >
           <Ionicons name="arrow-back" size={20} color={PRIMARY} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Quote Details</Text>
+        <Text style={styles.headerTitleLeft}>Quote Details</Text>
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Hero Section */}
-        <View style={styles.hero}>
-          <Text style={styles.heroCompany} numberOfLines={2}>{quote.companyName || 'N/A'}</Text>
-          <Text style={styles.heroQuoteNo}>Quote #{quote.quoteNo}</Text>
-          <View style={styles.heroStatusRow}>
-            <View style={[styles.statusPill, isConverted ? styles.pillConverted : styles.pillPending]}>
-              <Ionicons
-                name={isConverted ? 'checkmark-circle' : 'time-outline'}
-                size={13}
-                color={isConverted ? GREEN : SECONDARY}
-              />
-              <Text style={[styles.statusText, isConverted ? styles.statusTextGreen : styles.statusTextGrey]}>
-                {isConverted ? 'Converted to Order' : 'Pending'}
-              </Text>
-            </View>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Top Hero Section (Centered layout matching order-details) */}
+        <View style={styles.heroSectionCentered}>
+          <Text style={styles.heroCompanyNameCentered} numberOfLines={1}>
+            {quote.companyName || 'N/A'}
+          </Text>
+          <Text style={styles.heroOrderNoCentered} numberOfLines={1}>
+            Quote #{quoteNo}
+          </Text>
+          <View style={styles.heroStatusRowCentered}>
+            <Text style={styles.heroAmountTextCentered}>
+              {formatOrderDate(quote.quoteDate)}
+            </Text>
+            <Text style={styles.heroDotTextCentered}> · </Text>
+            <Text style={[styles.heroStatusTextCentered, isConverted ? styles.statusOpen : styles.statusOther]}>
+              {isConverted ? 'Converted' : 'Pending'}
+            </Text>
           </View>
           {isConverted && quote.orderNo ? (
-            <Text style={styles.heroOrderLink}>→ Order #{quote.orderNo}</Text>
+            <Text style={styles.heroPartNoTextCentered}>
+              Order #{quote.orderNo}
+            </Text>
           ) : null}
+
+          {/* Action Buttons Row: Contact button */}
+          <View style={styles.actionButtonsRowCentered}>
+            <TouchableOpacity
+              style={styles.actionItemCentered}
+              onPress={() => setContactModalVisible(true)}
+              activeOpacity={0.75}
+            >
+              <View style={styles.actionCircleCentered}>
+                <Ionicons name="call-outline" size={22} color="#0F172A" />
+              </View>
+              <Text style={styles.actionLabelCentered}>Contact</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Section 1: Overview */}
-        <SectionCard title="OVERVIEW">
-          <RowItem icon="document-text-outline" label="Quote No" value={`#${quote.quoteNo}`} />
-          <RowItem icon="calendar-outline" label="Quote Date" value={formatOrderDate(quote.quoteDate)} />
-          <RowItem icon="business-outline" label="Company" value={quote.companyName} />
-          <RowItem icon="barcode-outline" label="Company Code" value={quote.companyCode} />
-          <RowItem icon="person-outline" label="Salesperson" value={quote.salesPersonName ?? 'N/A'} />
-          <RowItem
-            icon="people-outline"
-            label="Customer Category"
-            value={quote.customerCategory ?? 'N/A'}
-            last={!isConverted}
-          />
-          {isConverted ? (
-            <RowItem
-              icon="checkmark-done-outline"
-              label="Order No"
-              value={`#${quote.orderNo ?? ''}`}
-              valueColor={GREEN}
-              last
-            />
-          ) : null}
-        </SectionCard>
-
-        {/* Section 2: Contacts */}
-        {quote.quoteContacts && quote.quoteContacts.length > 0 ? (
-          <View style={styles.sectionWrap}>
-            <Text style={styles.sectionTitle}>CONTACT</Text>
-            <View style={styles.cardGroup}>
-              {quote.quoteContacts.map((c, i) => (
-                <ContactCard key={i} contact={c} last={i === quote.quoteContacts.length - 1} />
-              ))}
-            </View>
-          </View>
-        ) : null}
-
-        {/* Section 3: Specifications */}
-        {quote.quoteSpecifications && quote.quoteSpecifications.length > 0 ? (
-          <SpecsSection specs={quote.quoteSpecifications} />
-        ) : null}
-
-        {/* Section 4: Quote Message */}
-        {quote.quoteMessage ? (
-          <View style={styles.sectionWrap}>
-            <Text style={styles.sectionTitle}>QUOTE MESSAGE</Text>
-            <View style={styles.cardGroup}>
-              <View style={styles.messagePad}>
-                <Ionicons name="chatbubble-outline" size={16} color={SECONDARY} style={{ marginBottom: 6 }} />
-                <Text style={styles.messageText}>{quote.quoteMessage}</Text>
+        {/* Section 1: QUOTE OVERVIEW */}
+        <View style={styles.sectionWrap}>
+          <Text style={styles.sectionHeaderTitle}>QUOTE</Text>
+          <View style={styles.cardGroup}>
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="document-text-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Quote No</Text>
               </View>
+              <Text style={styles.rowValue}>#{quoteNo}</Text>
+            </View>
+
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="calendar-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Quote Date</Text>
+              </View>
+              <Text style={styles.rowValue}>{formatOrderDate(quote.quoteDate)}</Text>
+            </View>
+
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="business-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Company</Text>
+              </View>
+              <Text style={styles.rowValue}>{quote.companyName || 'N/A'}</Text>
+            </View>
+
+            {quote.companyCode ? (
+              <View style={styles.rowItem}>
+                <View style={styles.rowLeft}>
+                  <Ionicons name="barcode-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                  <Text style={styles.rowKey}>Company Code</Text>
+                </View>
+                <Text style={styles.rowValue}>{quote.companyCode}</Text>
+              </View>
+            ) : null}
+
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="person-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Salesperson</Text>
+              </View>
+              <Text style={styles.rowValue}>{quote.salesPersonName || 'N/A'}</Text>
+            </View>
+
+            {quote.customerCategory ? (
+              <View style={[styles.rowItem, !isConverted ? { borderBottomWidth: 0 } : null]}>
+                <View style={styles.rowLeft}>
+                  <Ionicons name="person-circle-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                  <Text style={styles.rowKey}>Category</Text>
+                </View>
+                <View style={styles.customerCategoryPill}>
+                  <Text style={styles.customerCategoryText}>{safeDisplayString(quote.customerCategory)}</Text>
+                </View>
+              </View>
+            ) : null}
+
+            {isConverted ? (
+              <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
+                <View style={styles.rowLeft}>
+                  <Ionicons name="checkmark-done-outline" size={17} color={GREEN} style={styles.rowIcon} />
+                  <Text style={styles.rowKey}>Order Link</Text>
+                </View>
+                <Text style={[styles.rowValue, { color: GREEN }]}>Order #{quote.orderNo ?? ''}</Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+
+        {/* Section 2: SPECIFICATIONS */}
+        <View style={styles.sectionWrap}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={styles.sectionHeaderTitle}>SPECIFICATIONS</Text>
+              {isItar ? (
+                <View style={styles.itarBadge}>
+                  <Ionicons name="shield-checkmark" size={12} color="#DC2626" />
+                  <Text style={styles.itarBadgeText}>ITAR RESTRICTED</Text>
+                </View>
+              ) : null}
+            </View>
+
+            {specsList.length > 0 ? (
+              <TouchableOpacity
+                style={styles.viewAllHeaderBtn}
+                onPress={() => setSpecsModalVisible(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.viewAllHeaderBtnText}>View All</Text>
+                <Ionicons name="chevron-forward" size={14} color="#2563EB" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          <View style={styles.cardGroup}>
+            {specsList.length > 0 ? (
+              <>
+                {partNo !== 'N/A' ? (
+                  <View style={styles.specRowItem}>
+                    <Text style={styles.specRowKey}>Part Number</Text>
+                    <Text style={styles.specRowValueBold}>{partNo}</Text>
+                  </View>
+                ) : null}
+                {layerCount !== 'N/A' ? (
+                  <View style={[styles.specRowItem, { borderBottomWidth: 0 }]}>
+                    <Text style={styles.specRowKey}>Layers</Text>
+                    <Text style={styles.specRowValueBold}>{layerCount}</Text>
+                  </View>
+                ) : (
+                  specsList.slice(0, 2).map((s, idx) => (
+                    <View
+                      key={idx}
+                      style={[styles.specRowItem, idx === Math.min(specsList.length, 2) - 1 ? { borderBottomWidth: 0 } : null]}
+                    >
+                      <Text style={styles.specRowKey}>{s.label}</Text>
+                      <Text style={s.isBold ? styles.specRowValueBold : styles.specRowValue}>{s.value}</Text>
+                    </View>
+                  ))
+                )}
+              </>
+            ) : (
+              <View style={{ padding: 16, alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, fontFamily: Typography.body, color: SECONDARY }}>
+                  No specifications provided
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Section 3: QUOTE MESSAGE (Displayed Neatly) */}
+        <View style={styles.sectionWrap}>
+          <Text style={styles.sectionHeaderTitle}>QUOTE MESSAGE</Text>
+          <View style={styles.cardGroup}>
+            <View style={styles.messageBoxContainer}>
+              <View style={styles.messageBoxHeader}>
+                <Ionicons name="chatbubble-ellipses-outline" size={16} color="#0F172A" />
+                <Text style={styles.messageBoxHeaderTitle}>Message Note</Text>
+              </View>
+
+              {quote.quoteMessage ? (
+                <View style={styles.messageContentCard}>
+                  <Text style={styles.messageContentText}>
+                    {safeDisplayString(quote.quoteMessage)}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.emptyMessageWrap}>
+                  <Ionicons name="chatbox-outline" size={24} color="#CBD5E1" />
+                  <Text style={styles.emptyMessageText}>No message attached to this quote.</Text>
+                </View>
+              )}
             </View>
           </View>
-        ) : null}
+        </View>
       </ScrollView>
+
+      {/* Pop-up Modals */}
+      <ContactModal
+        visible={contactModalVisible}
+        onClose={() => setContactModalVisible(false)}
+        quoteNo={quoteNo}
+        contacts={quote.quoteContacts || []}
+      />
+
+      <AllSpecificationsModal
+        visible={specsModalVisible}
+        onClose={() => setSpecsModalVisible(false)}
+        quoteNo={quoteNo}
+        isItar={isItar}
+        specsList={specsList}
+      />
     </SafeAreaView>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─── Styles (matches order-details.tsx styles exactly) ─────────────────────────
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: PAGE_BG },
-
-  // Header
+  safeArea: {
+    flex: 1,
+    backgroundColor: PAGE_BG,
+  },
   header: {
-    height: 54,
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    backgroundColor: CARD_BG,
     borderBottomWidth: hairline,
     borderBottomColor: CARD_BORDER,
-    gap: 8,
+    backgroundColor: CARD_BG,
   },
-  backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: {
-    flex: 1,
-    fontSize: 19,
+  backButton: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitleLeft: {
+    fontSize: 18,
     fontFamily: Typography.titleSerif,
     fontWeight: '500',
     color: PRIMARY,
+    marginLeft: 4,
   },
-
-  // Loading / error
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  loadingText: { fontSize: 14, fontFamily: Typography.bodyMedium, color: SECONDARY },
-  errorTitle: { fontSize: 15, fontFamily: Typography.headingSemiBold, color: PRIMARY, textAlign: 'center' },
-  retryBtn: {
-    marginTop: 8,
-    backgroundColor: PRIMARY,
-    borderRadius: 10,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
+  scrollView: {
+    flex: 1,
   },
-  retryBtnText: { fontSize: 14, fontFamily: Typography.headingSemiBold, color: '#FFFFFF' },
-
-  // Scroll
-  scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 40, gap: 0 },
-
-  // Hero
-  hero: {
-    backgroundColor: DARK_CARD,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 28,
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 36,
+    gap: 18,
+  },
+  centeredWrap: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
+    gap: 12,
+    paddingHorizontal: 24,
   },
-  heroCompany: {
-    fontSize: 18,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    textAlign: 'center',
-  },
-  heroQuoteNo: {
+  loadingText: {
     fontSize: 14,
     fontFamily: Typography.bodyMedium,
-    color: 'rgba(255,255,255,0.65)',
+    color: SECONDARY,
   },
-  heroStatusRow: { flexDirection: 'row', marginTop: 4 },
-  heroOrderLink: {
-    fontSize: 13,
-    fontFamily: Typography.bodyMedium,
-    color: `${GREEN_BG}`,
-    marginTop: 2,
+  errorTitle: {
+    fontSize: 15,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
+    textAlign: 'center',
   },
 
-  // Status pills
-  statusPill: {
+  // Centered Hero section matching order-details.tsx
+  heroSectionCentered: {
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  heroCompanyNameCentered: {
+    fontSize: 14,
+    fontFamily: Typography.headingSemiBold,
+    color: '#475569',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  heroOrderNoCentered: {
+    fontSize: 30,
+    fontFamily: Typography.headingExtraBold,
+    color: '#0F172A',
+    letterSpacing: -0.5,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  heroStatusRowCentered: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    justifyContent: 'center',
   },
-  pillConverted: { backgroundColor: GREEN_BG },
-  pillPending: { backgroundColor: 'rgba(255,255,255,0.12)' },
-  statusText: { fontSize: 13, fontFamily: Typography.headingSemiBold, fontWeight: '600' },
-  statusTextGreen: { color: GREEN },
-  statusTextGrey: { color: 'rgba(255,255,255,0.8)' },
+  heroAmountTextCentered: {
+    fontSize: 15,
+    fontFamily: Typography.headingSemiBold,
+    color: '#475569',
+  },
+  heroDotTextCentered: {
+    fontSize: 15,
+    fontFamily: Typography.headingSemiBold,
+    color: '#94A3B8',
+  },
+  heroStatusTextCentered: {
+    fontSize: 15,
+    fontFamily: Typography.heading,
+  },
+  statusOpen: {
+    color: GREEN,
+  },
+  statusOther: {
+    color: '#3B82F6',
+  },
+  heroPartNoTextCentered: {
+    fontSize: 13.5,
+    fontFamily: Typography.bodyMedium,
+    color: '#64748B',
+    marginTop: 4,
+    textAlign: 'center',
+  },
 
-  // Section
-  sectionWrap: { paddingHorizontal: 16, paddingTop: 20 },
-  sectionTitle: {
-    fontSize: 11,
+  // Action Button
+  actionButtonsRowCentered: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 18,
+  },
+  actionItemCentered: {
+    alignItems: 'center',
+  },
+  actionCircleCentered: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  actionLabelCentered: {
+    fontSize: 12.5,
     fontFamily: Typography.headingSemiBold,
     fontWeight: '600',
+    color: '#334155',
+    marginTop: 6,
+  },
+
+  // Sections
+  sectionWrap: {
+    gap: 6,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingRight: 2,
+  },
+  sectionHeaderTitle: {
+    fontSize: 12,
+    fontFamily: Typography.headingSemiBold,
     color: SECONDARY,
     letterSpacing: 0.8,
-    marginBottom: 8,
+    marginLeft: 2,
+  },
+  viewAllHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+  },
+  viewAllHeaderBtnText: {
+    fontSize: 13,
+    fontFamily: Typography.headingSemiBold,
+    color: '#2563EB',
+    fontWeight: '600',
+  },
+  itarBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  itarBadgeText: {
+    fontSize: 10,
+    fontFamily: Typography.headingSemiBold,
+    color: '#DC2626',
+    letterSpacing: 0.5,
   },
   cardGroup: {
     backgroundColor: CARD_BG,
@@ -470,73 +862,266 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: CARD_BORDER,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 1,
   },
-
-  // Row item
   rowItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    borderBottomWidth: hairline,
-    borderBottomColor: CARD_BORDER,
-    gap: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-  rowLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  rowIcon: { marginRight: 10 },
-  rowKey: { fontSize: 14, fontFamily: Typography.bodyMedium, color: SECONDARY, flex: 1 },
-  rowValue: { fontSize: 14, fontFamily: Typography.headingSemiBold, fontWeight: '600', color: PRIMARY, textAlign: 'right', maxWidth: '55%' },
+  rowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  rowIcon: {
+    marginRight: 10,
+  },
+  rowKey: {
+    fontSize: 13.5,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+  },
+  rowValue: {
+    fontSize: 13.5,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
+    textAlign: 'right',
+    maxWidth: '60%',
+  },
+  customerCategoryPill: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  customerCategoryText: {
+    fontSize: 11,
+    fontFamily: Typography.headingSemiBold,
+    color: '#1D4ED8',
+  },
 
-  // Contact card
-  contactCard: {
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    borderBottomWidth: hairline,
-    borderBottomColor: CARD_BORDER,
-    gap: 8,
+  // Specs Rows
+  specRowItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-  contactHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  contactAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  specRowKey: {
+    flex: 1,
+    fontSize: 13.5,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+    paddingRight: 10,
+  },
+  specRowValue: {
+    flex: 1.3,
+    fontSize: 13.5,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
+    textAlign: 'right',
+  },
+  specRowValueBold: {
+    flex: 1.3,
+    fontSize: 13.5,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '700',
+    color: PRIMARY,
+    textAlign: 'right',
+  },
+
+  // Quote Message Box (Neat & Modern Layout)
+  messageBoxContainer: {
+    padding: 16,
+  },
+  messageBoxHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  messageBoxHeaderTitle: {
+    fontSize: 13,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
+    fontWeight: '600',
+  },
+  messageContentCard: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderLeftWidth: 3.5,
+    borderLeftColor: '#0F172A',
+    borderRadius: 8,
+    padding: 14,
+  },
+  messageContentText: {
+    fontSize: 13.5,
+    fontFamily: Typography.body,
+    color: '#1E293B',
+    lineHeight: 22,
+  },
+  emptyMessageWrap: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    gap: 6,
+  },
+  emptyMessageText: {
+    fontSize: 13,
+    fontFamily: Typography.body,
+    color: SECONDARY,
+  },
+
+  // Modals Styling (matches order-details.tsx)
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    width: '92%',
+    maxWidth: 420,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  modalIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  contactName: { fontSize: 14, fontFamily: Typography.headingSemiBold, fontWeight: '600', color: PRIMARY },
-  contactJob: { fontSize: 12, fontFamily: Typography.body, color: SECONDARY, marginTop: 1 },
-  primaryBadge: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+  modalTitle: {
+    fontSize: 16,
+    fontFamily: Typography.headingSemiBold,
+    color: '#0F172A',
   },
-  primaryBadgeText: { fontSize: 11, fontFamily: Typography.bodyMedium, color: '#1D4ED8' },
-  contactMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  contactMetaText: { fontSize: 13, fontFamily: Typography.body, color: PRIMARY },
-
-  // Spec rows
-  specRow: {
+  modalSubTitle: {
+    fontSize: 12,
+    fontFamily: Typography.bodyMedium,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+  modalBodyGrid: {
+    gap: 10,
+  },
+  modalGridRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderBottomWidth: hairline,
-    borderBottomColor: CARD_BORDER,
-    gap: 12,
+    paddingVertical: 4,
   },
-  specKey: { fontSize: 13, fontFamily: Typography.bodyMedium, color: SECONDARY, flex: 1 },
-  specValue: { fontSize: 13, fontFamily: Typography.headingSemiBold, fontWeight: '600', color: PRIMARY, textAlign: 'right', maxWidth: '55%' },
+  gridKey: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+  },
+  gridValue: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: PRIMARY,
+  },
+  gridValueBold: {
+    fontSize: 13.5,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '700',
+    color: PRIMARY,
+  },
+  primaryBadge: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  primaryBadgeText: {
+    fontSize: 10,
+    fontFamily: Typography.headingSemiBold,
+    color: '#1D4ED8',
+  },
+  primaryActionBtn: {
+    backgroundColor: '#0F172A',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  primaryActionBtnText: {
+    fontSize: 14,
+    fontFamily: Typography.headingSemiBold,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
 
-  // Message
-  messagePad: { padding: 16 },
-  messageText: { fontSize: 14, fontFamily: Typography.body, color: PRIMARY, lineHeight: 22 },
+  // Specs Modal
+  specsModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  specsModalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  specsModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  specsCloseBtn: {
+    padding: 4,
+  },
+  specsScrollView: {
+    flex: 1,
+  },
+  specsScrollContent: {
+    padding: 16,
+  },
+  specsModalFooter: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+  },
 });

@@ -112,7 +112,7 @@ const ContactModal = ({
                   </View>
                   <View>
                     <Text style={styles.modalTitle}>Contact Information</Text>
-                    <Text style={styles.modalSubTitle}>Quote #{quoteNo}</Text>
+                    <Text style={styles.modalSubTitle}>Quote {quoteNo}</Text>
                   </View>
                 </View>
                 <TouchableOpacity
@@ -236,7 +236,7 @@ const AllSpecificationsModal = ({
                     </View>
                   ) : null}
                 </View>
-                <Text style={styles.modalSubTitle}>Quote #{quoteNo}</Text>
+                <Text style={styles.modalSubTitle}>Quote {quoteNo}</Text>
               </View>
             </View>
             <TouchableOpacity
@@ -456,7 +456,7 @@ export default function QuoteDetailsScreen() {
             {quote.companyName || 'N/A'}
           </Text>
           <Text style={styles.heroOrderNoCentered} numberOfLines={1}>
-            Quote #{quoteNo}
+            {quoteNo}
           </Text>
           <View style={styles.heroStatusRowCentered}>
             <Text style={styles.heroAmountTextCentered}>
@@ -497,7 +497,7 @@ export default function QuoteDetailsScreen() {
                 <Ionicons name="document-text-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
                 <Text style={styles.rowKey}>Quote No</Text>
               </View>
-              <Text style={styles.rowValue}>#{quoteNo}</Text>
+              <Text style={styles.rowValue}>{quoteNo}</Text>
             </View>
 
             <View style={styles.rowItem}>

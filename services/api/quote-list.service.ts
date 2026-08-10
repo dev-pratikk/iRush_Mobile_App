@@ -57,7 +57,7 @@ const safeString = (val: any): string | null => {
 };
 
 const normalizeItem = (raw: any): QuoteListItem => ({
-  quoteId: Number(raw?.QUOTEID ?? raw?.quoteId ?? 0),
+  quoteId: Number(raw?.QUOTE_ID ?? raw?.quote_id ?? raw?.QUOTEID ?? raw?.quoteId ?? raw?.id ?? raw?.QUOTE_NO ?? raw?.quoteNo ?? 0),
   quoteNo: String(raw?.QUOTE_NO ?? raw?.quoteNo ?? raw?.QUOTENO ?? ''),
   quoteDate: safeString(raw?.QUOTE_DATE ?? raw?.quoteDate),
   companyName: safeString(raw?.companyName ?? raw?.COMPANY_NAME) ?? '',

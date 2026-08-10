@@ -129,14 +129,6 @@ export const OrderCard = React.memo(function OrderCard({
             Cost: <Text style={styles.pillValueBold}>{formatCurrencyWithCents(orderCost)}</Text>
           </Text>
         </View>
-
-        {/* Markup Percentage Pill */}
-        <View style={styles.costPill}>
-          <Ionicons name="trending-up-outline" size={12} color="#475569" />
-          <Text style={styles.pillText}>
-            Markup: <Text style={styles.pillValueBold}>{calculatedMarkupPct}%</Text>
-          </Text>
-        </View>
       </View>
     </TouchableOpacity>
   );

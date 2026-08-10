@@ -617,6 +617,20 @@ export default function OrderDetailsScreen() {
 
   const orderTotal = useMemo(() => extractOrderTotal(order), [order]);
 
+  const orderCost = Number.isFinite(order?.ORDER_COST)
+    ? order.ORDER_COST!
+    : (Number.isFinite(order?.orderCost) ? order.orderCost! : 0);
+
+  const markupAmount = Number.isFinite(order?.MARKUP)
+    ? order.MARKUP!
+    : (Number.isFinite(order?.markup) ? order.markup! : (orderTotal > 0 && orderCost > 0 ? orderTotal - orderCost : 0));
+
+  const markupPct = Number.isFinite(order?.MARKUP_PERCENTAGE)
+    ? Math.round(order.MARKUP_PERCENTAGE!)
+    : (Number.isFinite(order?.markupPercentage)
+    ? Math.round(order.markupPercentage!)
+    : (orderCost > 0 ? Math.round((markupAmount / orderCost) * 100) : (orderTotal > 0 ? 100 : 0)));
+
   const orderStatus = String(order?.ORDER_STATUS ?? order?.orderStatus ?? 'Open').trim();
 
   // Order info
@@ -854,13 +868,31 @@ export default function OrderDetailsScreen() {
               <Text style={styles.rowValue}>{salesperson}</Text>
             </View>
 
-            <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
+            <View style={styles.rowItem}>
               <View style={styles.rowLeft}>
                 <Ionicons name="cube-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
                 <Text style={styles.rowKey}>Quantity</Text>
               </View>
               <Text style={styles.rowValue}>
                 {lineQty} pcs · {formatCurrencyWithCents(unitPrice)}/pc
+              </Text>
+            </View>
+
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="wallet-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Order Cost</Text>
+              </View>
+              <Text style={styles.rowValue}>{formatCurrencyWithCents(orderCost)}</Text>
+            </View>
+
+            <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="trending-up-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Markup</Text>
+              </View>
+              <Text style={styles.rowValue}>
+                {formatCurrencyWithCents(markupAmount)} ({markupPct}%)
               </Text>
             </View>
           </View>

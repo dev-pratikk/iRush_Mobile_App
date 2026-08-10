@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { useAuthContext } from '../../context/AuthContext';
 import { router, useFocusEffect } from 'expo-router';
+import { NotificationHeaderButton } from '../../components/navigation/NotificationHeaderButton';
 import { OrderCard } from '../../components/dashboard/OrderCard';
 import { formatCurrencyWithCents, formatNumber, formatOrderDate } from '../../services/api/orders.service';
 import {
@@ -61,7 +62,9 @@ const Header = () => {
         <Text style={styles.headerTitleCenter}>Pending orders</Text>
       </View>
 
-      <View style={styles.headerRightWrap} />
+      <View style={styles.headerRightWrap}>
+        <NotificationHeaderButton iconColor={PRIMARY} size={20} />
+      </View>
     </View>
   );
 };

@@ -6,6 +6,7 @@ import { useThemeColors } from '../../context/ThemeContext';
 import { useAuthContext } from '../../context/AuthContext';
 import { Typography } from '../../constants/Typography';
 import { router, usePathname, useFocusEffect } from 'expo-router';
+import { NotificationHeaderButton } from '../../components/navigation/NotificationHeaderButton';
 import {
   OpenOrdersResponse,
   EMPTY_OPEN_ORDERS,
@@ -35,7 +36,9 @@ const Header = () => {
           Open orders
         </Text>
       </View>
-      <View style={styles.headerRight} />
+      <View style={styles.headerRight}>
+        <NotificationHeaderButton iconColor={colors.textPrimary} size={22} />
+      </View>
     </View>
   );
 };

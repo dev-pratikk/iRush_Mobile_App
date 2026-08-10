@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { router, usePathname } from 'expo-router';
+import { NotificationHeaderButton } from '../../components/navigation/NotificationHeaderButton';
 import { useAuthContext } from '../../context/AuthContext';
 import {
   QuotesDashboardResponse,
@@ -68,6 +69,7 @@ const Header = ({
           <Text style={styles.filterBtnText}>{getFilterLabel()}</Text>
           <Ionicons name="chevron-down" size={12} color={PRIMARY} />
         </TouchableOpacity>
+        <NotificationHeaderButton iconColor={PRIMARY} size={20} />
       </View>
     </View>
   );

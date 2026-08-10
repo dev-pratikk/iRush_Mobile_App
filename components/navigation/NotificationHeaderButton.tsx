@@ -9,8 +9,12 @@ interface Props {
   size?: number;
 }
 
-export const NotificationHeaderButton: React.FC<Props> = () => {
-  return null;
+export const NotificationHeaderButton: React.FC<Props> = ({ iconColor = '#0F172A', size = 22 }) => {
+  return (
+    <View style={styles.container}>
+      <Ionicons name="notifications-outline" size={size} color={iconColor} />
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({

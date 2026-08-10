@@ -7,6 +7,7 @@ import { Typography } from '../../constants/Typography';
 import { useNavigation } from '@react-navigation/native';
 import { DrawerActions } from '@react-navigation/native';
 import { router, usePathname } from 'expo-router';
+import { NotificationHeaderButton } from '../../components/navigation/NotificationHeaderButton';
 
 const Header = () => {
   const colors = useThemeColors();
@@ -29,7 +30,9 @@ const Header = () => {
           Reports
         </Text>
       </View>
-      <View style={styles.headerRight} />
+      <View style={styles.headerRight}>
+        <NotificationHeaderButton iconColor={colors.textPrimary} size={22} />
+      </View>
     </View>
   );
 };

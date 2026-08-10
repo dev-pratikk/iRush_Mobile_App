@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   BackHandler,
+  Switch,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +16,8 @@ import { Typography } from '../../constants/Typography';
 import { useAuthContext } from '../../context/AuthContext';
 import { router, usePathname } from 'expo-router';
 import { useThemeColors } from '../../context/ThemeContext';
+
+import { pingPongService, PingPongEndpointReport, PINGPONG_MONITORED_APIS } from '../../services/api/pingpong.service';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';
@@ -26,31 +29,6 @@ const GREEN_BG = '#DCFCE7';
 const GREEN_TEXT = '#15803D';
 const RED_BG = '#FEE2E2';
 const RED_TEXT = '#B91C1C';
-
-const BASE_URL = 'https://proboardv2.rushpcb.com/api/mobile/v1';
-
-export interface ApiEndpointReport {
-  id: string;
-  name: string;
-  endpoint: string;
-  path: string;
-  status: 'testing' | 'ok' | 'error';
-  statusCode: number | null;
-  latencyMs: number | null;
-  lastChecked: string | null;
-  errorMessage?: string;
-}
-
-const MONITORED_APIS: { id: string; name: string; path: string; query?: string }[] = [
-  { id: 'stats', name: 'Dashboard Stats API', path: '/dashboard/stats' },
-  { id: 'open-orders', name: 'Open Orders Summary API', path: '/dashboard/open-orders' },
-  { id: 'orders-list', name: 'Orders List API', path: '/dashboard/orders' },
-  { id: 'pending-orders', name: 'Pending Orders List API', path: '/dashboard/open-orders', query: '?filter=pending' },
-  { id: 'partial-orders', name: 'Partial Orders List API', path: '/dashboard/open-orders', query: '?filter=partial' },
-  { id: 'quotes-summary', name: 'Quotes Overview API', path: '/dashboard/quotes' },
-  { id: 'quotes-salesperson', name: 'Quotes by Salesperson API', path: '/dashboard/quotes/salesperson' },
-  { id: 'quotes-servicetype', name: 'Quotes by Service Type API', path: '/dashboard/quotes/service-type' },
-];
 
 // ─── Header ──────────────────────────────────────────────────────────────────
 
@@ -64,7 +42,7 @@ const Header = () => (
       <Ionicons name="arrow-back" size={20} color={PRIMARY} />
     </TouchableOpacity>
     <View style={styles.headerCenter}>
-      <Text style={styles.headerTitle}>Settings & API Status</Text>
+      <Text style={styles.headerTitle}>Settings & API Ping-Pong</Text>
     </View>
     <View style={styles.headerIconWrap}>
       <TouchableOpacity
@@ -138,110 +116,39 @@ export default function SettingsScreen() {
     return () => subscription.remove();
   }, []);
 
-  const [reports, setReports] = useState<ApiEndpointReport[]>(() =>
-    MONITORED_APIS.map((api) => ({
-      id: api.id,
-      name: api.name,
-      endpoint: `${BASE_URL}${api.path}${api.query || ''}`,
-      path: `${api.path}${api.query || ''}`,
-      status: 'testing',
-      statusCode: null,
-      latencyMs: null,
-      lastChecked: null,
-    }))
-  );
-
+  const [reports, setReports] = useState<PingPongEndpointReport[]>(() => pingPongService.getReports());
   const [isTestingAll, setIsTestingAll] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [autoPingEnabled, setAutoPingEnabled] = useState(true);
 
-  // Test an individual API endpoint live
-  const testEndpoint = useCallback(
-    async (item: (typeof MONITORED_APIS)[0]): Promise<ApiEndpointReport> => {
-      const fullUrl = `${BASE_URL}${item.path}${item.query || ''}`;
-      const startTime = Date.now();
+  // Subscribe to live Ping-Pong updates
+  useEffect(() => {
+    const unsubscribe = pingPongService.subscribe((liveData) => {
+      setReports(liveData);
+    });
+    return () => unsubscribe();
+  }, []);
 
-      try {
-        const headers: Record<string, string> = { Accept: 'application/json' };
-        if (token) {
-          headers.Authorization = `Bearer ${token}`;
-        }
+  // Start auto ping-pong heartbeat
+  useEffect(() => {
+    if (autoPingEnabled) {
+      pingPongService.startAutoPingPong(token, 15000);
+    } else {
+      pingPongService.stopAutoPingPong();
+    }
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+    return () => {
+      pingPongService.stopAutoPingPong();
+    };
+  }, [token, autoPingEnabled]);
 
-        const response = await fetch(fullUrl, {
-          method: 'GET',
-          headers,
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-        const latencyMs = Date.now() - startTime;
-        const nowStr = new Date().toLocaleTimeString('en-US', {
-          timeZone: 'America/Los_Angeles',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false,
-        });
-
-        return {
-          id: item.id,
-          name: item.name,
-          endpoint: fullUrl,
-          path: `${item.path}${item.query || ''}`,
-          status: response.ok ? 'ok' : 'error',
-          statusCode: response.status,
-          latencyMs,
-          lastChecked: nowStr,
-          errorMessage: response.ok ? undefined : `HTTP ${response.status} ${response.statusText}`,
-        };
-      } catch (err: any) {
-        const latencyMs = Date.now() - startTime;
-        const nowStr = new Date().toLocaleTimeString('en-US', {
-          timeZone: 'America/Los_Angeles',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false,
-        });
-
-        return {
-          id: item.id,
-          name: item.name,
-          endpoint: fullUrl,
-          path: `${item.path}${item.query || ''}`,
-          status: 'error',
-          statusCode: err?.name === 'AbortError' ? 408 : 500,
-          latencyMs,
-          lastChecked: nowStr,
-          errorMessage: err?.name === 'AbortError' ? 'Request Timeout (10s)' : err?.message || 'Network Error',
-        };
-      }
-    },
-    [token]
-  );
-
-  // Run health check on all endpoints
+  // Run ping-pong test on all endpoints
   const runHealthCheck = useCallback(async () => {
     setIsTestingAll(true);
-
-    // Set all to testing state
-    setReports((prev) =>
-      prev.map((r) => ({ ...r, status: 'testing', statusCode: null, latencyMs: null }))
-    );
-
-    const promises = MONITORED_APIS.map((api) => testEndpoint(api));
-    const results = await Promise.all(promises);
-
-    setReports(results);
+    await pingPongService.pingAll(token);
     setIsTestingAll(false);
     setRefreshing(false);
-  }, [testEndpoint]);
-
-  useEffect(() => {
-    runHealthCheck();
-  }, [runHealthCheck]);
+  }, [token]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -278,9 +185,9 @@ export default function SettingsScreen() {
           <View style={styles.summaryCard}>
             <View style={styles.summaryTopRow}>
               <View style={styles.summaryTitleCol}>
-                <Text style={styles.summaryCardTitle}>API Health Diagnostics</Text>
+                <Text style={styles.summaryCardTitle}>API Ping-Pong Monitor</Text>
                 <Text style={styles.summaryCardSubtitle}>
-                  Monitored: {totalCount} Endpoints · Avg Latency: {avgLatency} ms
+                  {totalCount} Endpoints · Avg Latency: {avgLatency} ms
                 </Text>
               </View>
 
@@ -302,14 +209,30 @@ export default function SettingsScreen() {
                     { color: isTestingAll ? '#FFFFFF' : isHealthy ? GREEN_TEXT : RED_TEXT },
                   ]}
                 >
-                  {isTestingAll ? 'Testing...' : isHealthy ? 'All Systems OK' : `${errorCount} Issues`}
+                  {isTestingAll ? 'Pinging...' : isHealthy ? 'PING-PONG OK' : `${errorCount} PING FAILS`}
                 </Text>
               </View>
             </View>
 
+            {/* Auto-Ping Heartbeat Controls */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 12, borderTopWidth: hairline, borderTopColor: 'rgba(255,255,255,0.15)' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="pulse" size={16} color={autoPingEnabled ? '#4ADE80' : SECONDARY} />
+                <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: Typography.bodyMedium }}>
+                  Auto Heartbeat (15s): <Text style={{ color: autoPingEnabled ? '#4ADE80' : SECONDARY, fontWeight: '600' }}>{autoPingEnabled ? 'ACTIVE' : 'PAUSED'}</Text>
+                </Text>
+              </View>
+              <Switch
+                value={autoPingEnabled}
+                onValueChange={setAutoPingEnabled}
+                trackColor={{ false: '#475569', true: '#16A34A' }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+
             <View style={styles.summaryBottomRow}>
               <Text style={styles.summaryMetricsText}>
-                {okCount}/{totalCount} Operational
+                {okCount}/{totalCount} Responding
               </Text>
               <TouchableOpacity
                 style={styles.retestBtn}
@@ -322,7 +245,7 @@ export default function SettingsScreen() {
                 ) : (
                   <Ionicons name="refresh-outline" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
                 )}
-                <Text style={styles.retestBtnText}>Run Health Check</Text>
+                <Text style={styles.retestBtnText}>Ping All APIs Now</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -57,45 +57,9 @@ const formatPhone = (raw: string | null | undefined): string => {
   return raw;
 };
 
-const formatSpecKey = (key: string): string => {
+// Formats raw API key to Title Case (first letter capital, rest lowercase per word)
+const formatRawKeyToTitleCase = (key: string): string => {
   if (!key) return '';
-  const lower = key.toLowerCase();
-  if (lower === 'pcbpartno' || lower === 'partno') return 'PCB Part No';
-  if (lower === 'rev' || lower === 'revision') return 'Revision';
-  if (lower === 'itar') return 'ITAR Restricted';
-  if (lower === 'ipcclass') return 'IPC Class';
-  if (lower === 'rohs') return 'RoHS Compliance';
-  if (lower === 'smdsided') return 'SMD Placement';
-  if (lower === 'smdpitch' || lower === 'txtsmdpitch') return 'SMD Pitch';
-  if (lower === 'noofsmdpads') return 'SMD Pads Count';
-  if (lower === 'approxholes' || lower === 'aproxholes' || lower === 'noofohles') return 'Hole Count';
-  if (lower === 'smallestholes' || lower === 'txtsmallesthole') return 'Smallest Hole Size';
-  if (lower === 'mintrace' || lower === 'txtmintrace') return 'Min Trace Width';
-  if (lower === 'minspace' || lower === 'mintracespace' || lower === 'txtminspace') return 'Min Trace Spacing';
-  if (lower === 'layer') return 'Layers';
-  if (lower === 'dimensionl') return 'Board Length (mils)';
-  if (lower === 'dimensionb') return 'Board Width (mils)';
-  if (lower === 'panelsizel') return 'Panel Length (mils)';
-  if (lower === 'panelsizeb') return 'Panel Width (mils)';
-  if (lower === 'boardperpanel') return 'Boards Per Panel';
-  if (lower === 'maskcolor') return 'Solder Mask Color';
-  if (lower === 'silkscreencolor') return 'Silkscreen Color';
-  if (lower === 'innercopper') return 'Inner Copper Weight';
-  if (lower === 'outercopper') return 'Outer Copper Weight';
-  if (lower === 'plating') return 'Plating Finish';
-  if (lower === 'material') return 'Base Material';
-  if (lower === 'thickness') return 'Board Thickness';
-  if (lower === 'typeoforder') return 'Order Type';
-  if (lower === 'testing') return 'Electrical Testing';
-  if (lower === 'routing') return 'Routing Method';
-  if (lower === 'contolleddelecric') return 'Controlled Dielectric';
-  if (lower === 'controlledimpedance') return 'Controlled Impedance';
-  if (lower === 'platededges') return 'Plated Edges';
-  if (lower === 'blindorburiedvias') return 'Blind / Buried Vias';
-  if (lower === 'masktented') return 'Solder Mask Tented';
-  if (lower === 'cutoutslots') return 'Cutout Slots';
-  if (lower === 'noofgoldfingers') return 'Gold Fingers Count';
-
   const spaced = key
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
     .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
@@ -108,7 +72,7 @@ const formatSpecKey = (key: string): string => {
     .join(' ');
 };
 
-// ─── Contact Info Modal Component (matches order-details ContactModal) ────────
+// ─── Contact Info Modal Component ─────────────────────────────────────────────
 
 const ContactModal = ({
   visible,
@@ -213,20 +177,20 @@ const ContactModal = ({
   );
 };
 
-// ─── Specifications Modal Component (matches order-details AllSpecificationsModal)
+// ─── All Specifications Modal Component (Exact Response Keys & Values) ─────────
 
 const AllSpecificationsModal = ({
   visible,
   onClose,
   quoteNo,
   isItar,
-  specsList,
+  rawEntries,
 }: {
   visible: boolean;
   onClose: () => void;
   quoteNo: string;
   isItar: boolean;
-  specsList: { label: string; value: string; isBold?: boolean }[];
+  rawEntries: { label: string; rawKey: string; value: string }[];
 }) => {
   const insets = useSafeAreaInsets();
 
@@ -271,35 +235,113 @@ const AllSpecificationsModal = ({
             </TouchableOpacity>
           </View>
 
-          {/* Scrollable Specs List */}
+          {/* Scrollable Raw Specs List */}
           <ScrollView
             style={styles.specsScrollView}
             contentContainerStyle={styles.specsScrollContent}
             showsVerticalScrollIndicator={true}
+            nestedScrollEnabled={true}
             bounces={true}
           >
-            <View style={styles.cardGroup}>
-              {specsList.map((item, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.specRowItem,
-                    index === specsList.length - 1 ? { borderBottomWidth: 0 } : null,
-                  ]}
-                >
-                  <Text style={styles.specRowKey}>{item.label}</Text>
-                  <Text style={item.isBold ? styles.specRowValueBold : styles.specRowValue}>
-                    {item.value}
-                  </Text>
-                </View>
-              ))}
-            </View>
+            {rawEntries.length === 0 ? (
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, color: SECONDARY, fontFamily: Typography.body }}>
+                  No specifications found in response
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.cardGroup}>
+                {rawEntries.map((item, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.specRowItem,
+                      index === rawEntries.length - 1 ? { borderBottomWidth: 0 } : null,
+                    ]}
+                  >
+                    <Text style={styles.specRowKey}>{item.label}</Text>
+                    <Text style={styles.specRowValueBold}>{item.value}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </ScrollView>
 
           {/* Footer Close Button */}
           <View style={styles.specsModalFooter}>
             <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
               <Text style={styles.primaryActionBtnText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+// ─── Quote Message Full Modal Component ────────────────────────────────────────
+
+const QuoteMessageModal = ({
+  visible,
+  onClose,
+  quoteNo,
+  message,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  quoteNo: string;
+  message: string;
+}) => {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View
+        style={[
+          styles.specsModalOverlay,
+          {
+            paddingTop: Math.max(insets.top + 16, 24),
+            paddingBottom: Math.max(insets.bottom + 16, 24),
+          },
+        ]}
+      >
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
+        <View style={[styles.specsModalCard, { width: '94%', maxWidth: 480, maxHeight: '82%' }]}>
+          {/* Header */}
+          <View style={styles.specsModalHeader}>
+            <View style={styles.modalHeaderLeft}>
+              <View style={styles.modalIconCircle}>
+                <Ionicons name="chatbubble-ellipses-outline" size={20} color="#0F172A" />
+              </View>
+              <View>
+                <Text style={styles.modalTitle}>Full Quote Message</Text>
+                <Text style={styles.modalSubTitle}>Quote {quoteNo}</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.specsCloseBtn}
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close" size={20} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Message Content */}
+          <ScrollView
+            style={styles.specsScrollView}
+            contentContainerStyle={styles.specsScrollContent}
+            showsVerticalScrollIndicator={true}
+          >
+            <View style={styles.messageContentCardFull}>
+              <Text style={styles.messageContentTextFull}>{message}</Text>
+            </View>
+          </ScrollView>
+
+          {/* Footer Close Button */}
+          <View style={styles.specsModalFooter}>
+            <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
+              <Text style={styles.primaryActionBtnText}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -318,8 +360,10 @@ export default function QuoteDetailsScreen() {
   const [quote, setQuote] = useState<QuoteDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [specsModalVisible, setSpecsModalVisible] = useState(false);
+  const [messageModalVisible, setMessageModalVisible] = useState(false);
 
   const handleBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -358,57 +402,17 @@ export default function QuoteDetailsScreen() {
   const isConverted = quote?.orderId != null && quote.orderId > 0;
   const quoteNo = stripQuotePrefix(quote?.quoteNo);
 
-  // Specifications processing (matches order-details dynamicSpecsList logic)
-  const specsList = useMemo(() => {
-    const list: { label: string; value: string; isBold?: boolean }[] = [];
-    const specsArray = quote?.quoteSpecifications;
+  // Extract raw entries directly from response for the specs modal
+  const rawSpecsEntries = useMemo(() => {
+    if (!quote?.quoteSpecifications || quote.quoteSpecifications.length === 0) return [];
+    const specObj = quote.quoteSpecifications[0];
+    if (!specObj || typeof specObj !== 'object') return [];
 
-    if (Array.isArray(specsArray) && specsArray.length > 0) {
-      const ignoredKeys = new Set([
-        'SPEC_ID', 'specId', 'ORDER_ID', 'orderId', 'QUOTE_ID', 'quoteId',
-        'CUSTOMERID', 'customerId', 'CREATED_BY', 'UPDATED_BY',
-        'CREATED_DATE', 'UPDATED_DATE', 'IS_ACTIVE', 'is_active', 'DELETED', 'deleted',
-        'cust_reference1', 'cust_reference2', 'tooling', 'electrictesting',
-        'stencil_charge', 'setup_charge', 'prog_charge', 'pdfdate',
-        'counterboreholes', 'countersinkholes', 'masksideName', 'silkscreenSideName'
-      ]);
-
-      const seenLabels = new Set<string>();
-
-      specsArray.forEach((specObj) => {
-        if (!specObj || typeof specObj !== 'object') return;
-        Object.entries(specObj).forEach(([k, v]) => {
-          if (ignoredKeys.has(k)) return;
-          if (v === null || v === undefined) return;
-
-          let valStr = safeDisplayString(v).trim();
-          if (!valStr || valStr === 'null' || valStr === 'undefined') return;
-
-          if (valStr === '0' && (k.startsWith('counter') || k.startsWith('txtcounter') || k === 'noofohles')) return;
-
-          const label = formatSpecKey(k);
-          if (seenLabels.has(label)) return;
-
-          if (v === true || valStr.toLowerCase() === 'true') valStr = 'Yes';
-          if (v === false || valStr.toLowerCase() === 'false') valStr = 'No';
-
-          seenLabels.add(label);
-
-          const isBoldKey =
-            k.toLowerCase().includes('part') ||
-            k.toLowerCase().includes('layer') ||
-            k.toLowerCase().includes('type');
-
-          list.push({
-            label,
-            value: valStr,
-            isBold: isBoldKey,
-          });
-        });
-      });
-    }
-
-    return list;
+    return Object.entries(specObj).map(([key, val]) => ({
+      label: formatRawKeyToTitleCase(key),
+      rawKey: key,
+      value: val === null || val === undefined ? 'null' : String(val),
+    }));
   }, [quote?.quoteSpecifications]);
 
   // Check ITAR restriction
@@ -419,16 +423,33 @@ export default function QuoteDetailsScreen() {
     return val === '1' || val === 'yes' || val === 'true';
   }, [quote?.quoteSpecifications]);
 
-  // Core spec summary for the inline card
-  const layerCount = useMemo(() => {
-    const item = specsList.find((s) => s.label.toLowerCase().includes('layer'));
-    return item ? item.value : 'N/A';
-  }, [specsList]);
+  // Compute inline core specs: ONLY Layers and Board Size
+  const inlineLayers = useMemo(() => {
+    if (!quote?.quoteSpecifications || quote.quoteSpecifications.length === 0) return 'N/A';
+    const spec = quote.quoteSpecifications[0] as any;
+    if (!spec) return 'N/A';
+    return String(spec.layer ?? spec.Layer ?? spec.layerCount ?? 'N/A');
+  }, [quote?.quoteSpecifications]);
 
-  const partNo = useMemo(() => {
-    const item = specsList.find((s) => s.label.toLowerCase().includes('part'));
-    return item ? item.value : 'N/A';
-  }, [specsList]);
+  const inlineBoardSize = useMemo(() => {
+    if (!quote?.quoteSpecifications || quote.quoteSpecifications.length === 0) return 'N/A';
+    const spec = quote.quoteSpecifications[0] as any;
+    if (!spec) return 'N/A';
+    if (spec.dimensionl != null && spec.dimensionb != null) {
+      return `${spec.dimensionl} × ${spec.dimensionb} mils`;
+    }
+    if (spec.BoardSize || spec.boardSize) {
+      return String(spec.BoardSize || spec.boardSize);
+    }
+    return 'N/A';
+  }, [quote?.quoteSpecifications]);
+
+  // Primary Contact Name for the table row
+  const primaryContactName = useMemo(() => {
+    if (!quote?.quoteContacts || quote.quoteContacts.length === 0) return 'N/A';
+    const primary = quote.quoteContacts.find((c) => c.isPrimary) || quote.quoteContacts[0];
+    return [primary.firstName, primary.lastName].filter(Boolean).map(safeDisplayString).join(' ') || 'N/A';
+  }, [quote?.quoteContacts]);
 
   if (loading) {
     return (
@@ -469,7 +490,7 @@ export default function QuoteDetailsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      {/* Header Bar — identical to order-details */}
+      {/* Header Bar */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -482,7 +503,7 @@ export default function QuoteDetailsScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Top Hero Section (Centered layout matching order-details) */}
+        {/* Top Hero Section */}
         <View style={styles.heroSectionCentered}>
           <Text style={styles.heroCompanyNameCentered} numberOfLines={1}>
             {quote.companyName || 'N/A'}
@@ -504,20 +525,6 @@ export default function QuoteDetailsScreen() {
               Order #{quote.orderNo}
             </Text>
           ) : null}
-
-          {/* Action Buttons Row: Contact button */}
-          <View style={styles.actionButtonsRowCentered}>
-            <TouchableOpacity
-              style={styles.actionItemCentered}
-              onPress={() => setContactModalVisible(true)}
-              activeOpacity={0.75}
-            >
-              <View style={styles.actionCircleCentered}>
-                <Ionicons name="call-outline" size={22} color="#0F172A" />
-              </View>
-              <Text style={styles.actionLabelCentered}>Contact</Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* Section 1: QUOTE OVERVIEW */}
@@ -567,7 +574,7 @@ export default function QuoteDetailsScreen() {
             </View>
 
             {quote.customerCategory ? (
-              <View style={[styles.rowItem, !isConverted ? { borderBottomWidth: 0 } : null]}>
+              <View style={styles.rowItem}>
                 <View style={styles.rowLeft}>
                   <Ionicons name="person-circle-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
                   <Text style={styles.rowKey}>Category</Text>
@@ -577,6 +584,22 @@ export default function QuoteDetailsScreen() {
                 </View>
               </View>
             ) : null}
+
+            {/* Contact Row directly below Category with arrow */}
+            <TouchableOpacity
+              style={[styles.rowItem, !isConverted ? { borderBottomWidth: 0 } : null]}
+              onPress={() => setContactModalVisible(true)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.rowLeft}>
+                <Ionicons name="call-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Contact</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.rowValue}>{primaryContactName}</Text>
+                <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+              </View>
+            </TouchableOpacity>
 
             {isConverted ? (
               <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
@@ -590,7 +613,7 @@ export default function QuoteDetailsScreen() {
           </View>
         </View>
 
-        {/* Section 2: SPECIFICATIONS */}
+        {/* Section 2: SPECIFICATIONS (Displays ONLY Layers and Board Size inline) */}
         <View style={styles.sectionWrap}>
           <View style={styles.sectionHeaderRow}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -603,55 +626,29 @@ export default function QuoteDetailsScreen() {
               ) : null}
             </View>
 
-            {specsList.length > 0 ? (
-              <TouchableOpacity
-                style={styles.viewAllHeaderBtn}
-                onPress={() => setSpecsModalVisible(true)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.viewAllHeaderBtnText}>View All</Text>
-                <Ionicons name="chevron-forward" size={14} color="#2563EB" />
-              </TouchableOpacity>
-            ) : null}
+            <TouchableOpacity
+              style={styles.viewAllHeaderBtn}
+              onPress={() => setSpecsModalVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.viewAllHeaderBtnText}>View All</Text>
+              <Ionicons name="chevron-forward" size={14} color="#2563EB" />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.cardGroup}>
-            {specsList.length > 0 ? (
-              <>
-                {partNo !== 'N/A' ? (
-                  <View style={styles.specRowItem}>
-                    <Text style={styles.specRowKey}>Part Number</Text>
-                    <Text style={styles.specRowValueBold}>{partNo}</Text>
-                  </View>
-                ) : null}
-                {layerCount !== 'N/A' ? (
-                  <View style={[styles.specRowItem, { borderBottomWidth: 0 }]}>
-                    <Text style={styles.specRowKey}>Layers</Text>
-                    <Text style={styles.specRowValueBold}>{layerCount}</Text>
-                  </View>
-                ) : (
-                  specsList.slice(0, 2).map((s, idx) => (
-                    <View
-                      key={idx}
-                      style={[styles.specRowItem, idx === Math.min(specsList.length, 2) - 1 ? { borderBottomWidth: 0 } : null]}
-                    >
-                      <Text style={styles.specRowKey}>{s.label}</Text>
-                      <Text style={s.isBold ? styles.specRowValueBold : styles.specRowValue}>{s.value}</Text>
-                    </View>
-                  ))
-                )}
-              </>
-            ) : (
-              <View style={{ padding: 16, alignItems: 'center' }}>
-                <Text style={{ fontSize: 13, fontFamily: Typography.body, color: SECONDARY }}>
-                  No specifications provided
-                </Text>
-              </View>
-            )}
+            <View style={styles.specRowItem}>
+              <Text style={styles.specRowKey}>Layers</Text>
+              <Text style={styles.specRowValueBold}>{inlineLayers}</Text>
+            </View>
+            <View style={[styles.specRowItem, { borderBottomWidth: 0 }]}>
+              <Text style={styles.specRowKey}>Board Size</Text>
+              <Text style={styles.specRowValueBold}>{inlineBoardSize}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Section 3: QUOTE MESSAGE (Displayed Neatly) */}
+        {/* Section 3: QUOTE MESSAGE (Shows Data Snippet + View Full Message Button) */}
         <View style={styles.sectionWrap}>
           <Text style={styles.sectionHeaderTitle}>QUOTE MESSAGE</Text>
           <View style={styles.cardGroup}>
@@ -663,9 +660,17 @@ export default function QuoteDetailsScreen() {
 
               {quote.quoteMessage ? (
                 <View style={styles.messageContentCard}>
-                  <Text style={styles.messageContentText}>
+                  <Text style={styles.messageContentText} numberOfLines={3} ellipsizeMode="tail">
                     {safeDisplayString(quote.quoteMessage)}
                   </Text>
+                  <TouchableOpacity
+                    style={styles.viewFullMessageBtn}
+                    onPress={() => setMessageModalVisible(true)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.viewFullMessageBtnText}>View Full Message</Text>
+                    <Ionicons name="chevron-forward" size={14} color="#2563EB" />
+                  </TouchableOpacity>
                 </View>
               ) : (
                 <View style={styles.emptyMessageWrap}>
@@ -691,7 +696,14 @@ export default function QuoteDetailsScreen() {
         onClose={() => setSpecsModalVisible(false)}
         quoteNo={quoteNo}
         isItar={isItar}
-        specsList={specsList}
+        rawEntries={rawSpecsEntries}
+      />
+
+      <QuoteMessageModal
+        visible={messageModalVisible}
+        onClose={() => setMessageModalVisible(false)}
+        quoteNo={quoteNo}
+        message={safeDisplayString(quote.quoteMessage)}
       />
     </SafeAreaView>
   );
@@ -754,7 +766,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Centered Hero section matching order-details.tsx
+  // Centered Hero section
   heroSectionCentered: {
     alignItems: 'center',
     paddingVertical: 14,
@@ -806,39 +818,6 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: 4,
     textAlign: 'center',
-  },
-
-  // Action Button
-  actionButtonsRowCentered: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 18,
-  },
-  actionItemCentered: {
-    alignItems: 'center',
-  },
-  actionCircleCentered: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  actionLabelCentered: {
-    fontSize: 12.5,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '600',
-    color: '#334155',
-    marginTop: 6,
   },
 
   // Sections
@@ -955,13 +934,6 @@ const styles = StyleSheet.create({
     color: SECONDARY,
     paddingRight: 10,
   },
-  specRowValue: {
-    flex: 1.3,
-    fontSize: 13.5,
-    fontFamily: Typography.headingSemiBold,
-    color: PRIMARY,
-    textAlign: 'right',
-  },
   specRowValueBold: {
     flex: 1.3,
     fontSize: 13.5,
@@ -971,7 +943,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 
-  // Quote Message Box (Neat & Modern Layout)
+  // Quote Message Container & View Full Message Button
   messageBoxContainer: {
     padding: 16,
   },
@@ -1002,6 +974,34 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     lineHeight: 22,
   },
+  viewFullMessageBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  viewFullMessageBtnText: {
+    fontSize: 13,
+    fontFamily: Typography.headingSemiBold,
+    color: '#2563EB',
+    fontWeight: '600',
+  },
+  messageContentCardFull: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 16,
+  },
+  messageContentTextFull: {
+    fontSize: 13.5,
+    fontFamily: Typography.body,
+    color: '#1E293B',
+    lineHeight: 22,
+  },
   emptyMessageWrap: {
     alignItems: 'center',
     paddingVertical: 16,
@@ -1013,7 +1013,7 @@ const styles = StyleSheet.create({
     color: SECONDARY,
   },
 
-  // Modals Styling (matches order-details.tsx)
+  // Modals Styling
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.5)',

@@ -555,7 +555,7 @@ const AllSpecificationsModal = ({
         ]}
       >
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
-        <View style={styles.specsModalCard}>
+        <View style={[styles.specsModalCard, { width: '96%', maxWidth: 480, maxHeight: '88%' }]}>
           {/* Header */}
           <View style={styles.specsModalHeader}>
             <View style={styles.modalHeaderLeft}>

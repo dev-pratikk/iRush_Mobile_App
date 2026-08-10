@@ -24,12 +24,31 @@ export const formatNumber = (value: number): string => {
 };
 
 export const formatOrderDate = (isoDate: string | null | undefined): string => {
-  if (!isoDate) return '';
+  if (!isoDate) return 'N/A';
 
   try {
-    const [year, month, day] = isoDate.split('-');
-    if (!year || !month || !day) return isoDate;
-    return `${month}-${day}-${year.slice(2)}`;
+    // If ISO date string like "2026-08-07T18:43:37.000Z" or "2026-08-07"
+    const parsedDate = new Date(isoDate);
+    if (!isNaN(parsedDate.getTime())) {
+      return parsedDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+
+    // Fallback parsing for YYYY-MM-DD
+    const cleanDateStr = isoDate.split('T')[0];
+    const parts = cleanDateStr.split('-');
+    if (parts.length === 3) {
+      const [year, month, day] = parts;
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthIdx = parseInt(month, 10) - 1;
+      const monthName = monthNames[monthIdx] || month;
+      return `${monthName} ${parseInt(day, 10)}, ${year}`;
+    }
+
+    return isoDate;
   } catch {
     return isoDate;
   }

@@ -24,7 +24,12 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ],
+      "package": "com.dev_pratik_dev.irushapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -39,6 +44,12 @@
           "faceIDPermission": "iRUSH uses Face ID to let you log in quickly and securely."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d26068cb-e709-4cbd-a0f2-ce62e612c66e"
+      }
+    }
   }
 }

@@ -106,14 +106,18 @@ const SummaryOverviewCard = ({
   totalRecords,
   totalAmount,
   loading,
+  selectedSalesperson,
+  selectedCategory,
 }: {
   activePreset: DateFilterPreset;
   customRange?: { startDate: string; endDate: string } | null;
   totalRecords: number;
   totalAmount: number;
   loading: boolean;
+  selectedSalesperson?: string | null;
+  selectedCategory?: 'NEW' | 'REPEAT' | null;
 }) => {
-  const periodLabel =
+  let periodLabel =
     activePreset === 'today'
       ? 'Today'
       : activePreset === 'week'
@@ -121,6 +125,20 @@ const SummaryOverviewCard = ({
       : activePreset === 'month'
       ? 'This month'
       : 'Custom range';
+
+  const qualifiers: string[] = [];
+  if (selectedSalesperson) {
+    qualifiers.push(selectedSalesperson);
+  }
+  if (selectedCategory === 'NEW') {
+    qualifiers.push('New Orders');
+  } else if (selectedCategory === 'REPEAT') {
+    qualifiers.push('Repeat Orders');
+  }
+
+  if (qualifiers.length > 0) {
+    periodLabel = `${periodLabel} (${qualifiers.join(' · ')})`;
+  }
 
   if (loading && totalRecords === 0) {
     return (
@@ -763,6 +781,8 @@ export default function AllOrdersScreen() {
           totalRecords={totalRecords}
           totalAmount={totalAmountCalculated}
           loading={isLoading}
+          selectedSalesperson={selectedSalesperson}
+          selectedCategory={selectedCategory}
         />
         <SearchBarSection
           inputText={inputText}
@@ -791,6 +811,7 @@ export default function AllOrdersScreen() {
       isLoading,
       inputText,
       selectedSalesperson,
+      selectedCategory,
       availableSalespersons,
       errorMessage,
       refetch,

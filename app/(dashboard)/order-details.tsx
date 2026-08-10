@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -14,7 +14,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/Typography';
 import { router, useLocalSearchParams } from 'expo-router';
-import { formatCurrencyWithCents, fetchOrderById } from '../../services/api/orders.service';
+import { formatCurrencyWithCents, formatOrderDate, fetchOrderById } from '../../services/api/orders.service';
 import { useAuthContext } from '../../context/AuthContext';
 
 const PRIMARY = '#0F172A';
@@ -735,11 +735,7 @@ export default function OrderDetailsScreen() {
 
   // Dates
   const formatDate = (d: string | null | undefined) => {
-    if (!d) return 'N/A';
-    const parts = d.split('T')[0]; // strip time
-    const [y, m, day] = parts.split('-');
-    if (!y || !m || !day) return d;
-    return `${m}/${day}/${y}`;
+    return formatOrderDate(d);
   };
   const orderDate = formatDate(order?.ORDER_DATE ?? order?.orderDate);
   const updatedDate = formatDate(order?.UPDATED_DATE ?? order?.updatedDate);
@@ -797,6 +793,34 @@ export default function OrderDetailsScreen() {
   const platedEdges = (spec?.PlatedEdges ?? order?.platedEdges ?? 'N/A').trim();
   const rohs = (spec?.Rohs ?? order?.rohs ?? 'N/A').trim();
   const blindBuriedVias = (spec?.BlindOrBuriedVias ?? order?.blindBuriedVias ?? 'N/A').trim();
+
+  const formatSpecKey = useCallback((key: string): string => {
+    if (!key) return '';
+    const lower = key.toLowerCase();
+    if (lower === 'pcbpartno' || lower === 'partno') return 'Pcb Part No';
+    if (lower === 'rev' || lower === 'revision') return 'Revision';
+    if (lower === 'itar') return 'ITAR';
+    if (lower === 'ipcclass') return 'IPC Class';
+    if (lower === 'rohs') return 'RoHS Compliance';
+    if (lower === 'smdsided') return 'SMD Placement';
+    if (lower === 'smdpitch') return 'SMD Pitch';
+    if (lower === 'noofsmdpads') return 'SMD Pads Count';
+    if (lower === 'approxholes') return 'Total Hole Count';
+    if (lower === 'smallestholes') return 'Smallest Hole Size';
+    if (lower === 'mintrace') return 'Min Trace Width';
+    if (lower === 'minspace') return 'Min Trace Spacing';
+
+    const spaced = key
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+      .replace(/_/g, ' ');
+
+    return spaced
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }, []);
 
   const allSpecsList = useMemo(
     () => [
@@ -860,6 +884,51 @@ export default function OrderDetailsScreen() {
       blindBuriedVias,
     ]
   );
+
+  const dynamicSpecsList = useMemo(() => {
+    const list: { label: string; value: string; isBold?: boolean }[] = [];
+    const rawSpec =
+      (order?.orderSpecifications && order.orderSpecifications.length > 0
+        ? order.orderSpecifications[0]
+        : null) ||
+      (order?.orderDetails && order.orderDetails.length > 0
+        ? order.orderDetails[0]
+        : null);
+
+    if (rawSpec && typeof rawSpec === 'object') {
+      const ignoredKeys = new Set([
+        'SPEC_ID', 'specId', 'ORDER_ID', 'orderId', 'CUSTOMERID', 'customerId',
+        'CREATED_BY', 'UPDATED_BY', 'CREATED_DATE', 'UPDATED_DATE', 'IS_ACTIVE',
+        'is_active', 'DELETED', 'deleted'
+      ]);
+
+      Object.entries(rawSpec).forEach(([k, v]) => {
+        if (ignoredKeys.has(k)) return;
+        if (v === null || v === undefined) return;
+        if (typeof v === 'object') return;
+
+        const label = formatSpecKey(k);
+        let valStr = String(v).trim();
+        if (!valStr || valStr === 'null' || valStr === 'undefined') valStr = 'N/A';
+
+        if (v === true || valStr.toLowerCase() === 'true') valStr = 'Yes';
+        if (v === false || valStr.toLowerCase() === 'false') valStr = 'No';
+
+        const isBoldKey =
+          k.toLowerCase().includes('part') ||
+          k.toLowerCase().includes('layer') ||
+          k.toLowerCase().includes('type');
+
+        list.push({
+          label,
+          value: valStr,
+          isBold: isBoldKey,
+        });
+      });
+    }
+
+    return list.length > 0 ? list : allSpecsList;
+  }, [order, allSpecsList, formatSpecKey]);
 
   // Vendor
   const vendorObj = order?.orderVendors && order.orderVendors.length > 0 ? order.orderVendors[0] : null;
@@ -1237,7 +1306,7 @@ export default function OrderDetailsScreen() {
         onClose={() => setSpecsModalVisible(false)}
         orderNo={orderNo}
         isItar={isItar}
-        specsList={allSpecsList}
+        specsList={dynamicSpecsList}
       />
     </SafeAreaView>
   );

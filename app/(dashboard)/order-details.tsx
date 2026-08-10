@@ -287,36 +287,60 @@ const TrackModal = ({
 const InvoiceModal = ({
   visible,
   onClose,
+  orderNo,
+  companyName,
+  orderTotal,
+  orderCost,
+  markupAmount,
+  markupPct,
+  totalInvoicedAmount,
+  totalInvoicedQty,
+  pendingAmount,
+  pendingQuantity,
+  paymentsReceived,
+  receivables,
+  netTerm,
   invNumber,
   invStatus,
   invAmount,
-  companyName,
-  orderNo,
+  invoices = [],
 }: {
   visible: boolean;
   onClose: () => void;
+  orderNo: string;
+  companyName: string;
+  orderTotal: number;
+  orderCost: number;
+  markupAmount: number;
+  markupPct: number;
+  totalInvoicedAmount: number;
+  totalInvoicedQty: number;
+  pendingAmount: number;
+  pendingQuantity: number;
+  paymentsReceived: number;
+  receivables: number;
+  netTerm: string;
   invNumber: string;
   invStatus: string;
   invAmount: number;
-  companyName: string;
-  orderNo: string;
+  invoices?: any[];
 }) => {
-  const isUnpaid = invStatus.toLowerCase().includes('unpaid');
+  const isUnpaid = invStatus.toLowerCase().includes('unpaid') || invStatus === 'Open' || invStatus === 'Pending' || invAmount === 0;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.modalOverlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.modalCard}>
+            <View style={[styles.modalCard, { maxWidth: 440, width: '92%' }]}>
               {/* Header */}
               <View style={styles.modalHeader}>
                 <View style={styles.modalHeaderLeft}>
                   <View style={styles.modalIconCircle}>
-                    <Ionicons name="document-text-outline" size={20} color="#0F172A" />
+                    <Ionicons name="receipt-outline" size={20} color="#0F172A" />
                   </View>
                   <View>
-                    <Text style={styles.modalTitle}>Invoice Summary</Text>
+                    <Text style={styles.modalTitle}>Invoice & Financial Breakdown</Text>
                     <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
                   </View>
                 </View>
@@ -329,37 +353,94 @@ const InvoiceModal = ({
                 </TouchableOpacity>
               </View>
 
-              {/* Invoice Hero Block */}
-              <View style={styles.invoiceHeroCard}>
-                <Text style={styles.invoiceHeroCompany}>{companyName}</Text>
-                <Text style={styles.invoiceHeroAmount}>{formatCurrencyWithCents(invAmount)}</Text>
-                <View style={isUnpaid ? styles.unpaidBadgePill : styles.paidBadgePill}>
-                  <Ionicons
-                    name={isUnpaid ? 'alert-circle' : 'checkmark-circle'}
-                    size={14}
-                    color={isUnpaid ? '#DC2626' : '#16A34A'}
-                  />
-                  <Text style={isUnpaid ? styles.unpaidBadgeText : styles.paidBadgeText}>{invStatus}</Text>
-                </View>
-              </View>
-
-              {/* Info Grid */}
-              <View style={styles.modalBodyGrid}>
-                <View style={styles.modalGridRow}>
-                  <Text style={styles.gridKey}>Invoice Number</Text>
-                  <Text style={styles.gridValueBold}>#{invNumber}</Text>
-                </View>
-
-                <View style={styles.modalGridRow}>
-                  <Text style={styles.gridKey}>Payment Term</Text>
-                  <Text style={styles.gridValue}>Net 30</Text>
+              <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
+                {/* Hero Summary Card */}
+                <View style={styles.invoiceHeroCard}>
+                  <Text style={styles.invoiceHeroCompany}>{companyName}</Text>
+                  <Text style={styles.invoiceHeroAmount}>{formatCurrencyWithCents(orderTotal)}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                    <View style={isUnpaid ? styles.unpaidBadgePill : styles.paidBadgePill}>
+                      <Ionicons
+                        name={isUnpaid ? 'alert-circle' : 'checkmark-circle'}
+                        size={13}
+                        color={isUnpaid ? '#DC2626' : '#16A34A'}
+                      />
+                      <Text style={isUnpaid ? styles.unpaidBadgeText : styles.paidBadgeText}>
+                        {isUnpaid ? 'UNPAID / OPEN' : 'INVOICED & PAID'}
+                      </Text>
+                    </View>
+                    <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
+                      <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '600' }}>{netTerm}</Text>
+                    </View>
+                  </View>
                 </View>
 
-                <View style={styles.modalGridRow}>
-                  <Text style={styles.gridKey}>Due Date</Text>
-                  <Text style={styles.gridValue}>Aug 10, 2026</Text>
+                {/* Calculation Breakdown Grid */}
+                <View style={styles.modalBodyGrid}>
+                  <View style={styles.modalGridRow}>
+                    <Text style={styles.gridKey}>Order Total Value</Text>
+                    <Text style={styles.gridValueBold}>{formatCurrencyWithCents(orderTotal)}</Text>
+                  </View>
+
+                  <View style={styles.modalGridRow}>
+                    <Text style={styles.gridKey}>Order Cost</Text>
+                    <Text style={styles.gridValue}>{formatCurrencyWithCents(orderCost)}</Text>
+                  </View>
+
+                  <View style={styles.modalGridRow}>
+                    <Text style={styles.gridKey}>Markup</Text>
+                    <Text style={[styles.gridValueBold, { color: '#0F172A' }]}>
+                      {formatCurrencyWithCents(markupAmount)} ({markupPct}%)
+                    </Text>
+                  </View>
+
+                  <View style={styles.modalGridRow}>
+                    <Text style={styles.gridKey}>Invoiced Amount ({totalInvoicedQty} pcs)</Text>
+                    <Text style={styles.gridValue}>{formatCurrencyWithCents(totalInvoicedAmount)}</Text>
+                  </View>
+
+                  <View style={styles.modalGridRow}>
+                    <Text style={styles.gridKey}>Pending to Invoice ({pendingQuantity} pcs)</Text>
+                    <Text style={styles.gridValue}>{formatCurrencyWithCents(pendingAmount)}</Text>
+                  </View>
+
+                  <View style={styles.modalGridRow}>
+                    <Text style={styles.gridKey}>Payments Received</Text>
+                    <Text style={styles.gridValue}>{formatCurrencyWithCents(paymentsReceived)}</Text>
+                  </View>
+
+                  <View style={[styles.modalGridRow, { backgroundColor: '#F8FAFC', marginHorizontal: -12, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginTop: 4 }]}>
+                    <Text style={[styles.gridKey, { fontWeight: '700', color: '#0F172A' }]}>Receivables Balance</Text>
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: receivables > 0 ? '#DC2626' : '#16A34A' }}>
+                      {formatCurrencyWithCents(receivables)}
+                    </Text>
+                  </View>
                 </View>
-              </View>
+
+                {/* Individual Invoices List (if present) */}
+                {invoices.length > 0 ? (
+                  <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 12 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', marginBottom: 8 }}>
+                      Issued Invoices ({invoices.length})
+                    </Text>
+                    {invoices.map((invItem: any, idx: number) => (
+                      <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, borderBottomWidth: idx < invoices.length - 1 ? 0.5 : 0, borderBottomColor: '#F1F5F9' }}>
+                        <View>
+                          <Text style={{ fontSize: 13, fontWeight: '600', color: '#0F172A' }}>
+                            Invoice #{invItem.INV_NUMBER || invItem.invoiceNumber || 'N/A'}
+                          </Text>
+                          <Text style={{ fontSize: 11, color: '#64748B' }}>
+                            {invItem.CREATED_DATE ? String(invItem.CREATED_DATE).slice(0, 10) : 'N/A'}
+                          </Text>
+                        </View>
+                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#0F172A' }}>
+                          {formatCurrencyWithCents(invItem.INVOICE_AMOUNT || invItem.invoiceAmount || 0)}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+              </ScrollView>
 
               {/* Action Buttons */}
               <View style={styles.modalFooterRow}>
@@ -371,12 +452,12 @@ const InvoiceModal = ({
                   style={styles.primaryActionBtnFlex}
                   onPress={() => {
                     onClose();
-                    Alert.alert('Invoice', `Viewing invoice #${invNumber}`);
+                    Alert.alert('Invoice', `Viewing Invoice Breakdown for Order #${orderNo}`);
                   }}
                   activeOpacity={0.85}
                 >
-                  <Ionicons name="document-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.primaryActionBtnText}>View Invoice</Text>
+                  <Ionicons name="document-text-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.primaryActionBtnText}>View Breakdown</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -770,6 +851,15 @@ export default function OrderDetailsScreen() {
   const invStatus = inv?.invoiceStatus ?? order?.invoiceStatus ?? 'N/A';
   const invAmount = inv?.INVOICE_AMOUNT ?? order?.invoiceAmount ?? 0;
 
+  const totalInvoicedQty = Number(order?.totalInvoicedQty ?? details?.INVOICED_QTY ?? 0);
+  const totalInvoicedAmount = Number(order?.totalInvoicedAmount ?? 0);
+  const pendingQuantity = Number(order?.pendingQuantity ?? (lineQty > totalInvoicedQty ? lineQty - totalInvoicedQty : 0));
+  const pendingAmount = Number(order?.pendingAmount ?? (orderTotal > totalInvoicedAmount ? orderTotal - totalInvoicedAmount : 0));
+  const paymentsReceived = Number(order?.paymentsReceived ?? 0);
+  const receivables = orderTotal - paymentsReceived;
+  const netTerm = String(order?.netTerm ?? order?.shippingAddress?.netTerm ?? 'NET 30').trim();
+  const invoicesList = Array.isArray(order?.invoices) ? order.invoices : [];
+
   const pack = order?.orderPackingSlips && order.orderPackingSlips.length > 0 ? order.orderPackingSlips[0] : null;
   const trackingNo = pack?.TRACK_NUMBER ?? order?.trackingNumber ?? 'N/A';
 
@@ -814,7 +904,7 @@ export default function OrderDetailsScreen() {
             Part #: {partNo}
           </Text>
 
-          {/* Action Buttons Row: Contact & Track (Location and Invoice removed) */}
+          {/* Action Buttons Row: Contact, Track & Invoice */}
           <View style={styles.actionButtonsRowCentered}>
             <TouchableOpacity
               style={styles.actionItemCentered}
@@ -836,6 +926,17 @@ export default function OrderDetailsScreen() {
                 <Ionicons name="bus-outline" size={22} color="#0F172A" />
               </View>
               <Text style={styles.actionLabelCentered}>Track</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionItemCentered}
+              onPress={() => setInvoiceModalVisible(true)}
+              activeOpacity={0.75}
+            >
+              <View style={styles.actionCircleCentered}>
+                <Ionicons name="receipt-outline" size={22} color="#0F172A" />
+              </View>
+              <Text style={styles.actionLabelCentered}>Invoice</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1013,6 +1114,18 @@ export default function OrderDetailsScreen() {
         invAmount={invAmount}
         companyName={companyName}
         orderNo={orderNo}
+        orderTotal={orderTotal}
+        orderCost={orderCost}
+        markupAmount={markupAmount}
+        markupPct={markupPct}
+        totalInvoicedAmount={totalInvoicedAmount}
+        totalInvoicedQty={totalInvoicedQty}
+        pendingAmount={pendingAmount}
+        pendingQuantity={pendingQuantity}
+        paymentsReceived={paymentsReceived}
+        receivables={receivables}
+        netTerm={netTerm}
+        invoices={invoicesList}
       />
 
       <AllSpecificationsModal

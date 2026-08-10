@@ -510,10 +510,10 @@ const InvoiceModal = ({
             ) : null}
           </View>
 
-          {/* Single Full-Width Close Button */}
+          {/* Bottom Close Button */}
           <View style={{ marginTop: 16 }}>
             <TouchableOpacity
-              style={[styles.primaryActionBtnFlex, { width: '100%', justifyContent: 'center' }]}
+              style={styles.primaryActionBtn}
               onPress={onClose}
               activeOpacity={0.85}
             >

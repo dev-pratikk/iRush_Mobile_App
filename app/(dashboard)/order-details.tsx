@@ -1197,32 +1197,6 @@ export default function OrderDetailsScreen() {
               </Text>
             </View>
 
-            {vendorFulfillment ? (
-              <View style={styles.rowItem}>
-                <View style={styles.rowLeft}>
-                  <Ionicons name="git-branch-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                  <Text style={styles.rowKey}>Sourcing</Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text
-                    style={[
-                      styles.rowValue,
-                      vendorFulfillment === 'NO_VENDOR' ? { color: '#DC2626' } :
-                      vendorFulfillment === 'FULLY_SOURCED' ? { color: '#16A34A' } :
-                      { color: '#D97706' },
-                    ]}
-                  >
-                    {vendorFulfillmentLabel}
-                  </Text>
-                  {expectedVendorCount > 0 ? (
-                    <Text style={styles.rowSubValue}>
-                      {assignedVendorCount}/{expectedVendorCount} vendors
-                    </Text>
-                  ) : null}
-                </View>
-              </View>
-            ) : null}
-
             <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
               <View style={styles.rowLeft}>
                 <Ionicons name="location-outline" size={17} color={SECONDARY} style={styles.rowIcon} />

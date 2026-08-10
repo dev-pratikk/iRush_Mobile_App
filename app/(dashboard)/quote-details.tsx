@@ -196,17 +196,21 @@ const AllSpecificationsModal = ({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View
-        style={[
-          styles.specsModalOverlay,
-          {
-            paddingTop: Math.max(insets.top + 16, 24),
-            paddingBottom: Math.max(insets.bottom + 16, 24),
-          },
-        ]}
-      >
+      <View style={styles.specsModalOverlay}>
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
-        <View style={[styles.specsModalCard, { width: '96%', maxWidth: 480, maxHeight: '88%' }]}>
+        {/* Card: flex column so ScrollView fills available height */}
+        <View
+          style={[
+            styles.specsModalCard,
+            {
+              width: '96%',
+              maxWidth: 480,
+              maxHeight: '88%',
+              marginTop: Math.max(insets.top + 16, 24),
+              marginBottom: Math.max(insets.bottom + 16, 24),
+            },
+          ]}
+        >
           {/* Header */}
           <View style={styles.specsModalHeader}>
             <View style={styles.modalHeaderLeft}>
@@ -235,13 +239,13 @@ const AllSpecificationsModal = ({
             </TouchableOpacity>
           </View>
 
-          {/* Scrollable Raw Specs List */}
+          {/* Scrollable Raw Specs List — flex:1 ensures it fills remaining card height */}
           <ScrollView
             style={styles.specsScrollView}
             contentContainerStyle={styles.specsScrollContent}
             showsVerticalScrollIndicator={true}
             nestedScrollEnabled={true}
-            bounces={true}
+            bounces={false}
           >
             {rawEntries.length === 0 ? (
               <View style={{ padding: 20, alignItems: 'center' }}>
@@ -595,8 +599,8 @@ export default function QuoteDetailsScreen() {
                 <Ionicons name="call-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
                 <Text style={styles.rowKey}>Contact</Text>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={styles.rowValue}>{primaryContactName}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 }}>
+                <Text style={[styles.rowValue, { flexShrink: 1 }]} numberOfLines={1}>{primaryContactName}</Text>
                 <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
               </View>
             </TouchableOpacity>
@@ -637,13 +641,9 @@ export default function QuoteDetailsScreen() {
           </View>
 
           <View style={styles.cardGroup}>
-            <View style={styles.specRowItem}>
+            <View style={[styles.specRowItem, { borderBottomWidth: 0 }]}>
               <Text style={styles.specRowKey}>Layers</Text>
               <Text style={styles.specRowValueBold}>{inlineLayers}</Text>
-            </View>
-            <View style={[styles.specRowItem, { borderBottomWidth: 0 }]}>
-              <Text style={styles.specRowKey}>Board Size</Text>
-              <Text style={styles.specRowValueBold}>{inlineBoardSize}</Text>
             </View>
           </View>
         </View>
@@ -1130,6 +1130,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     overflow: 'hidden',
+    // flex column so the inner ScrollView can fill remaining height properly
+    flexDirection: 'column',
   },
   specsModalHeader: {
     flexDirection: 'row',

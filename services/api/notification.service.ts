@@ -12,6 +12,7 @@ export interface AppNotification {
   statusCode?: number | null;
   errorMessage?: string;
   isRead: boolean;
+  count: number;
 }
 
 type NotificationListener = (notifications: AppNotification[]) => void;
@@ -34,7 +35,10 @@ class NotificationService {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          this.notifications = parsed;
+          this.notifications = parsed.map((item) => ({
+            ...item,
+            count: typeof item.count === 'number' && item.count > 0 ? item.count : 1,
+          }));
         }
       }
     } catch (e) {
@@ -73,7 +77,7 @@ class NotificationService {
   }
 
   public addNotification(
-    item: Omit<AppNotification, 'id' | 'createdAtMs' | 'isRead' | 'timestamp'>
+    item: Omit<AppNotification, 'id' | 'createdAtMs' | 'isRead' | 'timestamp' | 'count'> & { count?: number }
   ): AppNotification | null {
     const now = new Date();
     const createdAtMs = now.getTime();
@@ -84,23 +88,35 @@ class NotificationService {
       hour12: true,
     });
 
-    // Deduplicate identical error notifications created within the last 30 seconds
+    // Check if a notification for this exact API endpoint or title already exists
     const existingIndex = this.notifications.findIndex(
       (n) =>
-        n.type === item.type &&
-        n.title === item.title &&
-        n.endpoint === item.endpoint &&
-        createdAtMs - n.createdAtMs < 30000
+        (item.endpoint && n.endpoint === item.endpoint) ||
+        (n.type === item.type && n.title === item.title)
     );
 
     if (existingIndex !== -1) {
-      // Refresh timestamp of duplicate notification without creating spam
-      this.notifications[existingIndex].createdAtMs = createdAtMs;
-      this.notifications[existingIndex].timestamp = timeStr;
-      this.notifications[existingIndex].isRead = false;
+      // Nest repeat occurrences into the existing single notification card
+      const existing = this.notifications[existingIndex];
+      const newCount = (existing.count || 1) + (item.count || 1);
+
+      const updatedNotif: AppNotification = {
+        ...existing,
+        ...item,
+        id: existing.id,
+        count: newCount,
+        createdAtMs,
+        timestamp: timeStr,
+        isRead: false,
+      };
+
+      // Move updated single notification card to the top
+      this.notifications.splice(existingIndex, 1);
+      this.notifications.unshift(updatedNotif);
+
       this.saveToStorage();
       this.notify();
-      return this.notifications[existingIndex];
+      return updatedNotif;
     }
 
     const newNotif: AppNotification = {
@@ -109,6 +125,7 @@ class NotificationService {
       createdAtMs,
       timestamp: timeStr,
       isRead: false,
+      count: item.count || 1,
     };
 
     this.notifications.unshift(newNotif);

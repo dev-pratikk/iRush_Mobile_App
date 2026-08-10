@@ -70,11 +70,12 @@ export default function NotificationsScreen() {
 
   const handleItemPress = (notif: AppNotification) => {
     markAsRead(notif.id);
+    const countStr = notif.count > 1 ? `\nOccurrences: ${notif.count} times (Nested)` : '';
     Alert.alert(
       notif.title,
-      `${notif.message}\n\nEndpoint: ${notif.endpoint || 'N/A'}\nStatus: ${
+      `${notif.message}${countStr}\n\nEndpoint: ${notif.endpoint || 'N/A'}\nStatus: ${
         notif.statusCode ? `HTTP ${notif.statusCode}` : 'Failed'
-      }\nTime: ${notif.timestamp}`,
+      }\nLast Check: ${notif.timestamp}`,
       [
         { text: 'Close', style: 'cancel' },
         { text: 'Delete', style: 'destructive', onPress: () => deleteNotification(notif.id) },
@@ -233,9 +234,16 @@ export default function NotificationsScreen() {
                         />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.notifTitle} numberOfLines={1}>
-                          {notif.title}
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={styles.notifTitle} numberOfLines={1}>
+                            {notif.title}
+                          </Text>
+                          {notif.count > 1 ? (
+                            <View style={styles.repeatBadge}>
+                              <Text style={styles.repeatBadgeText}>{notif.count}x</Text>
+                            </View>
+                          ) : null}
+                        </View>
                         <Text style={styles.notifTime}>{notif.timestamp}</Text>
                       </View>
                     </View>
@@ -511,6 +519,19 @@ const styles = StyleSheet.create({
     fontFamily: Typography.bodyMedium,
     color: SECONDARY,
     marginTop: 1,
+  },
+  repeatBadge: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 8,
+  },
+  repeatBadgeText: {
+    fontSize: 10.5,
+    fontFamily: Typography.headingSemiBold,
+    color: '#DC2626',
   },
   unreadDot: {
     width: 8,

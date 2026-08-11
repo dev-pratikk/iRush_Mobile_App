@@ -514,28 +514,39 @@ const InvoiceModal = ({
               </View>
             </View>
 
-            {/* Items Table */}
+            {/* Items Table (Horizontally Scrollable to Prevent Collision) */}
             <View style={styles.invTableWrap}>
-              <View style={styles.invTableHeader}>
-                <Text style={[styles.invTableCellHeader, { flex: 0.8 }]}>QTY REQ</Text>
-                <Text style={[styles.invTableCellHeader, { flex: 0.8 }]}>QTY SHP</Text>
-                <Text style={[styles.invTableCellHeader, { flex: 2.2 }]}>ITEM / PART #</Text>
-                <Text style={[styles.invTableCellHeader, { flex: 1.2, textAlign: 'right' }]}>UNIT PRICE</Text>
-                <Text style={[styles.invTableCellHeader, { flex: 1.3, textAlign: 'right' }]}>AMOUNT</Text>
+              <View style={styles.invTableTopBar}>
+                <Text style={styles.invTableTopTitle}>LINE ITEM DETAILS</Text>
+                <Text style={styles.invTableTopSub}>Scroll →</Text>
               </View>
-              <View style={styles.invTableRow}>
-                <Text style={[styles.invTableCell, { flex: 0.8 }]}>{lineQty || 50}</Text>
-                <Text style={[styles.invTableCell, { flex: 0.8 }]}>{lineQty || 50}</Text>
-                <Text style={[styles.invTableCellBold, { flex: 2.2 }]} numberOfLines={2}>
-                  {partNo !== 'N/A' ? partNo : 'PCB Parts Test Board'}
-                </Text>
-                <Text style={[styles.invTableCell, { flex: 1.2, textAlign: 'right' }]}>
-                  {unitPrice > 0 ? formatCurrencyWithCents(unitPrice) : '$731.20'}
-                </Text>
-                <Text style={[styles.invTableCellBold, { flex: 1.3, textAlign: 'right' }]}>
-                  {formatCurrencyWithCents(subtotal)}
-                </Text>
-              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false}>
+                <View style={{ minWidth: 560 }}>
+                  <View style={styles.invTableHeader}>
+                    <Text style={[styles.invTableCellHeader, { width: 65 }]}>QTY REQ</Text>
+                    <Text style={[styles.invTableCellHeader, { width: 65 }]}>QTY SHP</Text>
+
+<Text style={[styles.invTableCellHeader, { width: 85 }]}>TYPE</Text>
+                    <Text style={[styles.invTableCellHeader, { width: 165 }]}>ITEM / PART #</Text>
+                    <Text style={[styles.invTableCellHeader, { width: 90, textAlign: 'right' }]}>UNIT PRICE</Text>
+                    <Text style={[styles.invTableCellHeader, { width: 90, textAlign: 'right' }]}>AMOUNT</Text>
+                  </View>
+                  <View style={styles.invTableRow}>
+                    <Text style={[styles.invTableCell, { width: 65 }]}>{lineQty || 50}</Text>
+                    <Text style={[styles.invTableCell, { width: 65 }]}>{lineQty || 50}</Text>
+                    <Text style={[styles.invTableCell, { width: 85 }]}>PCB Parts</Text>
+                    <Text style={[styles.invTableCellBold, { width: 165 }]} numberOfLines={2}>
+                      {partNo !== 'N/A' ? partNo : 'PCB Parts Test Board'}
+                    </Text>
+                    <Text style={[styles.invTableCell, { width: 90, textAlign: 'right' }]}>
+                      {unitPrice > 0 ? formatCurrencyWithCents(unitPrice) : '$731.20'}
+                    </Text>
+                    <Text style={[styles.invTableCellBold, { width: 90, textAlign: 'right' }]}>
+                      {formatCurrencyWithCents(subtotal)}
+                    </Text>
+                  </View>
+                </View>
+              </ScrollView>
             </View>
 
             {/* Totals Summary */}
@@ -1124,34 +1135,6 @@ export default function OrderDetailsScreen() {
               </View>
               <Text style={styles.rowValue}>{lineQty}</Text>
             </View>
-
-            <View style={styles.rowItem}>
-              <View style={styles.rowLeft}>
-                <Ionicons name="calendar-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                <Text style={styles.rowKey}>Order Date</Text>
-              </View>
-              <Text style={styles.rowValue}>{orderDate}</Text>
-            </View>
-
-            {promisedDate !== 'N/A' ? (
-              <View style={styles.rowItem}>
-                <View style={styles.rowLeft}>
-                  <Ionicons name="checkmark-circle-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                  <Text style={styles.rowKey}>Promised Date</Text>
-                </View>
-                <Text style={styles.rowValue}>{promisedDate}</Text>
-              </View>
-            ) : null}
-
-            {finishDate !== 'N/A' ? (
-              <View style={styles.rowItem}>
-                <View style={styles.rowLeft}>
-                  <Ionicons name="flag-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                  <Text style={styles.rowKey}>Finish Date</Text>
-                </View>
-                <Text style={styles.rowValue}>{finishDate}</Text>
-              </View>
-            ) : null}
 
             {netTerm ? (
               <View style={styles.rowItem}>
@@ -2153,6 +2136,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     overflow: 'hidden',
+  },
+  invTableTopBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: '#F8FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  invTableTopTitle: {
+    fontSize: 10,
+    fontFamily: Typography.headingSemiBold,
+    color: '#475569',
+    letterSpacing: 0.5,
+  },
+  invTableTopSub: {
+    fontSize: 10,
+    fontFamily: Typography.bodyMedium,
+    color: '#94A3B8',
   },
   invTableHeader: {
     flexDirection: 'row',

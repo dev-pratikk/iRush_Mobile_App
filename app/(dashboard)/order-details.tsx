@@ -514,39 +514,48 @@ const InvoiceModal = ({
               </View>
             </View>
 
-            {/* Items Table (Horizontally Scrollable to Prevent Collision) */}
-            <View style={styles.invTableWrap}>
-              <View style={styles.invTableTopBar}>
-                <Text style={styles.invTableTopTitle}>LINE ITEM DETAILS</Text>
-                <Text style={styles.invTableTopSub}>Scroll →</Text>
-              </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false}>
-                <View style={{ minWidth: 560 }}>
-                  <View style={styles.invTableHeader}>
-                    <Text style={[styles.invTableCellHeader, { width: 65 }]}>QTY REQ</Text>
-                    <Text style={[styles.invTableCellHeader, { width: 65 }]}>QTY SHP</Text>
-
-<Text style={[styles.invTableCellHeader, { width: 85 }]}>TYPE</Text>
-                    <Text style={[styles.invTableCellHeader, { width: 165 }]}>ITEM / PART #</Text>
-                    <Text style={[styles.invTableCellHeader, { width: 90, textAlign: 'right' }]}>UNIT PRICE</Text>
-                    <Text style={[styles.invTableCellHeader, { width: 90, textAlign: 'right' }]}>AMOUNT</Text>
-                  </View>
-                  <View style={styles.invTableRow}>
-                    <Text style={[styles.invTableCell, { width: 65 }]}>{lineQty || 50}</Text>
-                    <Text style={[styles.invTableCell, { width: 65 }]}>{lineQty || 50}</Text>
-                    <Text style={[styles.invTableCell, { width: 85 }]}>PCB Parts</Text>
-                    <Text style={[styles.invTableCellBold, { width: 165 }]} numberOfLines={2}>
-                      {partNo !== 'N/A' ? partNo : 'PCB Parts Test Board'}
-                    </Text>
-                    <Text style={[styles.invTableCell, { width: 90, textAlign: 'right' }]}>
-                      {unitPrice > 0 ? formatCurrencyWithCents(unitPrice) : '$731.20'}
-                    </Text>
-                    <Text style={[styles.invTableCellBold, { width: 90, textAlign: 'right' }]}>
-                      {formatCurrencyWithCents(subtotal)}
-                    </Text>
+            {/* Line Item Breakdown Card (Responsive, 100% Width, No Horizontal Scroll) */}
+            <View style={styles.invLineItemCard}>
+              <View style={styles.invLineItemHeaderRow}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={styles.invLineItemPartNo}>
+                    {partNo !== 'N/A' ? partNo : 'BRAMBLE TEST BOARD REV A'}
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                    <View style={styles.productTypePill}>
+                      <Text style={styles.productTypeText}>PCB Parts</Text>
+                    </View>
                   </View>
                 </View>
-              </ScrollView>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={styles.invLineItemTotalLabel}>AMOUNT</Text>
+                  <Text style={styles.invLineItemTotalVal}>
+                    {formatCurrencyWithCents(subtotal)}
+                  </Text>
+                </View>
+              </View>
+
+              {/* 4 Metrics Grid below Part # */}
+              <View style={styles.invMetricsGrid}>
+                <View style={styles.invMetricCol}>
+                  <Text style={styles.invMetricLabel}>QTY REQ</Text>
+                  <Text style={styles.invMetricVal}>{lineQty || 50}</Text>
+                </View>
+                <View style={styles.invMetricCol}>
+                  <Text style={styles.invMetricLabel}>QTY SHP</Text>
+                  <Text style={styles.invMetricVal}>{lineQty || 50}</Text>
+                </View>
+                <View style={styles.invMetricCol}>
+                  <Text style={styles.invMetricLabel}>BACK ORDER</Text>
+                  <Text style={styles.invMetricVal}>0</Text>
+                </View>
+                <View style={[styles.invMetricCol, { alignItems: 'flex-end' }]}>
+                  <Text style={styles.invMetricLabel}>UNIT PRICE</Text>
+                  <Text style={styles.invMetricVal}>
+                    {unitPrice > 0 ? formatCurrencyWithCents(unitPrice) : '$731.20'}
+                  </Text>
+                </View>
+              </View>
             </View>
 
             {/* Totals Summary */}
@@ -2130,60 +2139,72 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontWeight: '600',
   },
-  invTableWrap: {
+  // Responsive Line Item Card (No Horizontal Scroll)
+  invLineItemCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    overflow: 'hidden',
+    padding: 12,
+    gap: 12,
   },
-  invTableTopBar: {
+  invLineItemHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    paddingBottom: 10,
+  },
+  invLineItemPartNo: {
+    fontSize: 13,
+    fontFamily: Typography.headingSemiBold,
+    color: '#0F172A',
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  productTypePill: {
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  productTypeText: {
+    fontSize: 10,
+    fontFamily: Typography.headingSemiBold,
+    color: '#475569',
+  },
+  invLineItemTotalLabel: {
+    fontSize: 9,
+    fontFamily: Typography.headingSemiBold,
+    color: '#64748B',
+    letterSpacing: 0.5,
+  },
+  invLineItemTotalVal: {
+    fontSize: 14,
+    fontFamily: Typography.headingSemiBold,
+    color: '#0F172A',
+    fontWeight: '800',
+    marginTop: 1,
+  },
+  invMetricsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    backgroundColor: '#F8FAFC',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
   },
-  invTableTopTitle: {
-    fontSize: 10,
+  invMetricCol: {
+    flex: 1,
+    gap: 2,
+  },
+  invMetricLabel: {
+    fontSize: 9,
     fontFamily: Typography.headingSemiBold,
-    color: '#475569',
-    letterSpacing: 0.5,
-  },
-  invTableTopSub: {
-    fontSize: 10,
-    fontFamily: Typography.bodyMedium,
-    color: '#94A3B8',
-  },
-  invTableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  invTableCellHeader: {
-    fontSize: 10,
-    fontFamily: Typography.headingSemiBold,
-    color: '#475569',
+    color: '#64748B',
     letterSpacing: 0.4,
   },
-  invTableRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-  },
-  invTableCell: {
-    fontSize: 12,
-    fontFamily: Typography.body,
-    color: '#334155',
-  },
-  invTableCellBold: {
+  invMetricVal: {
     fontSize: 12,
     fontFamily: Typography.headingSemiBold,
     color: '#0F172A',

@@ -21,6 +21,7 @@ import { SkeletonSummaryCard, SkeletonKpiCard } from '../../components/ui/Skelet
 import { router, usePathname, useFocusEffect } from 'expo-router';
 import {
   fetchQuotesList,
+  fetchQuoteById,
   type QuoteListItem,
 } from '../../services/api/quote-list.service';
 import { DateFilterPreset, getDateRangeForFilter, formatCustomRangeLabel } from '../../lib/date';
@@ -128,6 +129,20 @@ const SearchOverlayModal = ({
     const timer = setTimeout(async () => {
       try {
         const isNumeric = /^\d+$/.test(q);
+
+        if (isNumeric) {
+          try {
+            const detail = await fetchQuoteById(q, { token });
+            if (detail && active) {
+              setResults([detail]);
+              setSearching(false);
+              return;
+            }
+          } catch {
+            // Fallback to normal search list
+          }
+        }
+
         const res = await fetchQuotesList({
           token,
           quoteNo: isNumeric ? q : undefined,
@@ -252,11 +267,6 @@ const SummaryCard = ({
             <Ionicons name="checkmark-circle" size={14} color={GREEN} />
             <Text style={styles.conversionPillText}>{convertedCount} converted</Text>
           </View>
-          {count > 0 ? (
-            <Text style={styles.conversionRateText}>
-              {Math.round((convertedCount / count) * 100)}% rate
-            </Text>
-          ) : null}
         </View>
       </View>
     </View>

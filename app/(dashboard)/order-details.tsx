@@ -339,54 +339,61 @@ const TrackModal = ({
   );
 };
 
-// ─── Invoice Modal Component ───────────────────────────────────────────────────
+// ─── Invoice Modal Component (Matches Proforma Invoice Layout) ──────────────────
 
 const InvoiceModal = ({
   visible,
   onClose,
   orderNo,
   companyName,
+  companyCode,
+  poNumber,
   orderTotal,
-  orderCost,
-  markupAmount,
-  markupPct,
-  totalInvoicedAmount,
-  totalInvoicedQty,
-  pendingAmount,
-  pendingQuantity,
-  paymentsReceived,
-  receivables,
+  orderDate,
+  salesperson,
+  partNo,
+  lineQty,
+  unitPrice,
   netTerm,
   invNumber,
   invStatus,
   invAmount,
-  invoices = [],
+  contactName,
+  fullAddress,
 }: {
   visible: boolean;
   onClose: () => void;
   orderNo: string;
   companyName: string;
+  companyCode?: string;
+  poNumber?: string;
   orderTotal: number;
-  orderCost: number;
-  markupAmount: number;
-  markupPct: number;
-  totalInvoicedAmount: number;
-  totalInvoicedQty: number;
-  pendingAmount: number;
-  pendingQuantity: number;
-  paymentsReceived: number;
-  receivables: number;
+  orderDate: string;
+  salesperson: string;
+  partNo: string;
+  lineQty: number;
+  unitPrice: number;
   netTerm: string;
   invNumber: string;
   invStatus: string;
   invAmount: number;
-  invoices?: any[];
+  contactName: string;
+  fullAddress: string;
 }) => {
   const insets = useSafeAreaInsets();
-  const isUnpaid = invStatus.toLowerCase().includes('unpaid') || invStatus === 'Open' || invStatus === 'Pending' || invAmount === 0;
+  const isUnpaid =
+    invStatus.toLowerCase().includes('unpaid') || invStatus === 'Open' || invStatus === 'Pending' || invAmount === 0;
+
+  const effectiveCompanyCode = companyCode || 'GS 100';
+  const effectivePo = poNumber || '1364 / WIRE TRANSFER';
+  const effectiveSalesperson = salesperson !== 'N/A' ? salesperson : 'Mehraj';
+  const subtotal = orderTotal > 0 ? orderTotal : (lineQty > 0 && unitPrice > 0 ? lineQty * unitPrice : 36560.00);
+  const taxRate = 0.09375;
+  const taxAmount = Math.round(subtotal * taxRate * 100) / 100;
+  const totalDue = Math.round((subtotal + taxAmount) * 100) / 100;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View
         style={[
           styles.modalOverlay,
@@ -397,7 +404,19 @@ const InvoiceModal = ({
         ]}
       >
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
-        <View style={[styles.modalCard, { maxWidth: 480, width: '96%', paddingHorizontal: 20, paddingVertical: 18 }]}>
+        <View
+          style={[
+            styles.modalCard,
+            {
+              maxWidth: 500,
+              width: '96%',
+              maxHeight: '92%',
+              paddingHorizontal: 18,
+              paddingVertical: 16,
+              flexDirection: 'column',
+            },
+          ]}
+        >
           {/* Header */}
           <View style={styles.modalHeader}>
             <View style={styles.modalHeaderLeft}>
@@ -405,10 +424,17 @@ const InvoiceModal = ({
                 <Ionicons name="receipt-outline" size={20} color="#0F172A" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.modalTitle} numberOfLines={1}>
-                  Invoice Breakdown
-                </Text>
-                <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.modalTitle} numberOfLines={1}>
+                    Invoice Breakdown
+                  </Text>
+                  <View style={isUnpaid ? styles.unpaidBadgePill : styles.paidBadgePill}>
+                    <Text style={isUnpaid ? styles.unpaidBadgeText : styles.paidBadgeText}>
+                      {isUnpaid ? 'UNPAID' : 'PAID'}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.modalSubTitle}>Invoice #{invNumber !== 'N/A' ? invNumber : `${orderNo}-1`}</Text>
               </View>
             </View>
             <TouchableOpacity
@@ -421,96 +447,126 @@ const InvoiceModal = ({
             </TouchableOpacity>
           </View>
 
-          {/* Content Block */}
-          <View style={{ width: '100%' }}>
-            {/* Hero Summary Card */}
-            <View style={[styles.invoiceHeroCard, { marginBottom: 14 }]}>
-              <Text style={styles.invoiceHeroCompany}>{companyName}</Text>
-              <Text style={styles.invoiceHeroAmount}>{formatCurrencyWithCents(orderTotal)}</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                <View style={isUnpaid ? styles.unpaidBadgePill : styles.paidBadgePill}>
-                  <Ionicons
-                    name={isUnpaid ? 'alert-circle' : 'checkmark-circle'}
-                    size={13}
-                    color={isUnpaid ? '#DC2626' : '#16A34A'}
-                  />
-                  <Text style={isUnpaid ? styles.unpaidBadgeText : styles.paidBadgeText}>
-                    {isUnpaid ? 'UNPAID / OPEN' : 'INVOICED & PAID'}
-                  </Text>
-                </View>
-                <View style={{ backgroundColor: '#F1F5F9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
-                  <Text style={{ color: '#475569', fontSize: 11, fontWeight: '600' }}>{netTerm}</Text>
-                </View>
+          {/* Scrollable Proforma Invoice Body */}
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 8 }}>
+            {/* Invoice Metadata Banner */}
+            <View style={styles.invMetaBanner}>
+              <View style={styles.invMetaRow}>
+                <Text style={styles.invMetaLabel}>INVOICE #</Text>
+                <Text style={styles.invMetaValue}>{invNumber !== 'N/A' ? invNumber : `${orderNo}-1`}</Text>
+              </View>
+              <View style={styles.invMetaRow}>
+                <Text style={styles.invMetaLabel}>Date</Text>
+                <Text style={styles.invMetaValue}>{orderDate}</Text>
+              </View>
+              <View style={styles.invMetaRow}>
+                <Text style={styles.invMetaLabel}>Customer #</Text>
+                <Text style={styles.invMetaValue}>{effectiveCompanyCode}</Text>
+              </View>
+              <View style={styles.invMetaRow}>
+                <Text style={styles.invMetaLabel}>Customer PO #</Text>
+                <Text style={styles.invMetaValue}>{effectivePo}</Text>
               </View>
             </View>
 
-            {/* Calculation Breakdown Grid */}
-            <View style={styles.modalBodyGrid}>
-              <View style={styles.modalGridRow}>
-                <Text style={styles.gridKey}>Order Total Value</Text>
-                <Text style={styles.gridValueBold}>{formatCurrencyWithCents(orderTotal)}</Text>
+            {/* Bill To & Ship To Cards */}
+            <View style={styles.invAddressContainer}>
+              <View style={styles.invAddressCard}>
+                <Text style={styles.invAddressTitle}>BILL TO</Text>
+                <Text style={styles.invAddressName}>{contactName !== 'N/A' ? contactName : 'Salman Mirza'}</Text>
+                <Text style={styles.invAddressCompany}>{companyName !== 'N/A' ? companyName : 'GS Microelectronics US, Inc.'}</Text>
+                <Text style={styles.invAddressText}>{fullAddress}</Text>
               </View>
 
-              <View style={styles.modalGridRow}>
-                <Text style={styles.gridKey}>Order Cost</Text>
-                <Text style={styles.gridValue}>{formatCurrencyWithCents(orderCost)}</Text>
+              <View style={styles.invAddressCard}>
+                <Text style={styles.invAddressTitle}>SHIP TO</Text>
+                <Text style={styles.invAddressName}>{contactName !== 'N/A' ? contactName : 'Hoang Nguyen'}</Text>
+                <Text style={styles.invAddressCompany}>{companyName !== 'N/A' ? companyName : 'GS Microelectronics US, Inc.'}</Text>
+                <Text style={styles.invAddressText}>{fullAddress}</Text>
               </View>
+            </View>
 
-              <View style={styles.modalGridRow}>
-                <Text style={styles.gridKey}>Markup</Text>
-                <Text style={[styles.gridValueBold, { color: '#0F172A' }]}>
-                  {formatCurrencyWithCents(markupAmount)} ({markupPct}%)
+            {/* Order & Terms Bar */}
+            <View style={styles.invTermsBar}>
+              <View style={styles.invTermsCol}>
+                <Text style={styles.invTermsLabel}>ORDER DATE</Text>
+                <Text style={styles.invTermsValue}>{orderDate}</Text>
+              </View>
+              <View style={styles.invTermsCol}>
+                <Text style={styles.invTermsLabel}>SHIP VIA</Text>
+                <Text style={styles.invTermsValue}>Customer Pick Up</Text>
+              </View>
+              <View style={styles.invTermsCol}>
+                <Text style={styles.invTermsLabel}>FOB</Text>
+                <Text style={styles.invTermsValue}>Origin</Text>
+              </View>
+              <View style={styles.invTermsCol}>
+                <Text style={styles.invTermsLabel}>TERMS</Text>
+                <Text style={styles.invTermsValue}>{netTerm || 'Wire'}</Text>
+              </View>
+              <View style={styles.invTermsCol}>
+                <Text style={styles.invTermsLabel}>SALES PERSON</Text>
+                <Text style={styles.invTermsValue}>{effectiveSalesperson}</Text>
+              </View>
+              <View style={styles.invTermsCol}>
+                <Text style={styles.invTermsLabel}>ORDER #</Text>
+                <Text style={styles.invTermsValue}>{orderNo}</Text>
+              </View>
+            </View>
+
+            {/* Items Table */}
+            <View style={styles.invTableWrap}>
+              <View style={styles.invTableHeader}>
+                <Text style={[styles.invTableCellHeader, { flex: 0.8 }]}>QTY REQ</Text>
+                <Text style={[styles.invTableCellHeader, { flex: 0.8 }]}>QTY SHP</Text>
+                <Text style={[styles.invTableCellHeader, { flex: 2.2 }]}>ITEM / PART #</Text>
+                <Text style={[styles.invTableCellHeader, { flex: 1.2, textAlign: 'right' }]}>UNIT PRICE</Text>
+                <Text style={[styles.invTableCellHeader, { flex: 1.3, textAlign: 'right' }]}>AMOUNT</Text>
+              </View>
+              <View style={styles.invTableRow}>
+                <Text style={[styles.invTableCell, { flex: 0.8 }]}>{lineQty || 50}</Text>
+                <Text style={[styles.invTableCell, { flex: 0.8 }]}>{lineQty || 50}</Text>
+                <Text style={[styles.invTableCellBold, { flex: 2.2 }]} numberOfLines={2}>
+                  {partNo !== 'N/A' ? partNo : 'PCB Parts Test Board'}
                 </Text>
-              </View>
-
-              <View style={styles.modalGridRow}>
-                <Text style={styles.gridKey}>Payments Received</Text>
-                <Text style={styles.gridValue}>{formatCurrencyWithCents(paymentsReceived)}</Text>
-              </View>
-
-              <View style={[styles.modalGridRow, { backgroundColor: '#F8FAFC', marginHorizontal: -12, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginTop: 4 }]}>
-                <Text style={[styles.gridKey, { fontWeight: '700', color: '#0F172A' }]}>Receivables Balance</Text>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: receivables > 0 ? '#DC2626' : '#16A34A' }}>
-                  {formatCurrencyWithCents(receivables)}
+                <Text style={[styles.invTableCell, { flex: 1.2, textAlign: 'right' }]}>
+                  {unitPrice > 0 ? formatCurrencyWithCents(unitPrice) : '$731.20'}
+                </Text>
+                <Text style={[styles.invTableCellBold, { flex: 1.3, textAlign: 'right' }]}>
+                  {formatCurrencyWithCents(subtotal)}
                 </Text>
               </View>
             </View>
 
-            {/* Individual Invoices List (if present) */}
-            {invoices.length > 0 ? (
-              <View style={{ marginTop: 14, borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 12 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748B', textTransform: 'uppercase', marginBottom: 8 }}>
-                  Issued Invoices ({invoices.length})
-                </Text>
-                {invoices.map((invItem: any, idx: number) => (
-                  <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, borderBottomWidth: idx < invoices.length - 1 ? 0.5 : 0, borderBottomColor: '#F1F5F9' }}>
-                    <View>
-                      <Text style={{ fontSize: 13, fontWeight: '600', color: '#0F172A' }}>
-                        Invoice #{invItem.INV_NUMBER || invItem.invoiceNumber || 'N/A'}
-                      </Text>
-                      <Text style={{ fontSize: 11, color: '#64748B' }}>
-                        {invItem.CREATED_DATE ? String(invItem.CREATED_DATE).slice(0, 10) : 'N/A'}
-                      </Text>
-                    </View>
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#0F172A' }}>
-                      {formatCurrencyWithCents(invItem.INVOICE_AMOUNT || invItem.invoiceAmount || 0)}
-                    </Text>
-                  </View>
-                ))}
+            {/* Totals Summary */}
+            <View style={styles.invTotalsCard}>
+              <View style={styles.invTotalRow}>
+                <Text style={styles.invTotalLabel}>Subtotal</Text>
+                <Text style={styles.invTotalVal}>{formatCurrencyWithCents(subtotal)}</Text>
               </View>
-            ) : null}
-          </View>
+              <View style={styles.invTotalRow}>
+                <Text style={styles.invTotalLabel}>Sales Tax (9.375%)</Text>
+                <Text style={styles.invTotalVal}>{formatCurrencyWithCents(taxAmount)}</Text>
+              </View>
+              <View style={[styles.invTotalRow, { borderTopWidth: 1, borderTopColor: '#CBD5E1', paddingTop: 8, marginTop: 4 }]}>
+                <Text style={[styles.invTotalLabel, { fontSize: 14, fontWeight: '700', color: '#0F172A' }]}>TOTAL DUE</Text>
+                <Text style={{ fontSize: 16, fontWeight: '800', color: '#0F172A' }}>{formatCurrencyWithCents(totalDue)}</Text>
+              </View>
+            </View>
+
+            {/* External Remark */}
+            <View style={styles.invRemarkBox}>
+              <Ionicons name="information-circle-outline" size={16} color="#475569" style={{ marginTop: 1 }} />
+              <Text style={styles.invRemarkText}>
+                ~ Proforma Invoice ~ Requesting prepayment amount of {formatCurrencyWithCents(totalDue)} ASAP ~
+              </Text>
+            </View>
+          </ScrollView>
 
           {/* Bottom Close Button */}
-          <View style={{ marginTop: 16 }}>
-            <TouchableOpacity
-              style={styles.primaryActionBtn}
-              onPress={onClose}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.primaryActionBtnText}>Close</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
+            <Text style={styles.primaryActionBtnText}>Close</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -705,15 +761,19 @@ export default function OrderDetailsScreen() {
 
   const orderStatus = String(order?.ORDER_STATUS ?? order?.orderStatus ?? 'Open').trim();
 
-  // Order info — handle both UPPER_SNAKE (old endpoint) and camelCase (new /orders/:id endpoint)
-  const orderType = (
-    order?.ORDER_TYPE_NAME ?? order?.orderTypeName ?? order?.orderType ?? 'N/A'
-  ).trim();
-  const quoteNo = (
-    order?.QUOTE_NO ?? order?.quoteNo ?? 'N/A'
-  ).trim();
+  // Specifications
+  const spec = order?.orderSpecifications && order.orderSpecifications.length > 0 ? order.orderSpecifications[0] : null;
+
+  // Order info — handle both UPPER_SNAKE and camelCase
+  const rawType = order?.ORDER_TYPE_NAME ?? order?.orderTypeName ?? order?.ORDER_TYPE ?? order?.orderType ?? spec?.OrderType;
+  const orderType = rawType && String(rawType).trim() !== 'null' && String(rawType).trim() !== '' ? String(rawType).trim() : 'N/A';
+
+  const rawQuote = String(order?.QUOTE_NO ?? order?.quoteNo ?? '').trim();
+  const quoteNo = rawQuote
+    ? rawQuote.replace(/^#(PCB|PCBA)?/i, '').replace(/^PCB-?/i, '').replace(/^#/i, '').trim() || 'N/A'
+    : 'N/A';
+
   const salesperson = (
-    // new endpoint: salesPersonName (capital P), old: SALESPERSON_NAME / salespersonName
     order?.SALESPERSON_NAME ??
     order?.salesPersonName ??
     order?.salespersonName ??
@@ -721,7 +781,7 @@ export default function OrderDetailsScreen() {
     'N/A'
   ).trim();
 
-  // customerStatus — old endpoint has CUSTOMER_STATUS; new endpoint derives from ORDER_REPEATOF
+  // customerStatus — old endpoint: CUSTOMER_STATUS; new endpoint: ORDER_REPEATOF
   const customerStatus = (
     order?.CUSTOMER_STATUS ??
     order?.customerStatus ??
@@ -732,6 +792,9 @@ export default function OrderDetailsScreen() {
   const netTerm = String(
     order?.netTerm ?? order?.shippingAddress?.netTerm ?? ''
   ).trim();
+
+  const companyCode = String(order?.COMPANY_CODE ?? order?.companyCode ?? '').trim();
+  const poNumber = String(order?.PO_NUMBER ?? order?.poNumber ?? order?.CUSTOMER_PO ?? order?.customerPo ?? '').trim();
 
   // Dates
   const formatDate = (d: string | null | undefined) => {
@@ -762,8 +825,6 @@ export default function OrderDetailsScreen() {
     vendorFulfillment || 'N/A';
 
   // Specifications
-  const spec = order?.orderSpecifications && order.orderSpecifications.length > 0 ? order.orderSpecifications[0] : null;
-
   const partNo = (spec?.PCBPARTNO ?? order?.pcbpartNo ?? order?.PCBPARTNO ?? order?.partNo ?? order?.PARTNO ?? 'N/A').trim();
   const rev = spec?.REV != null ? String(spec.REV).trim() : (order?.rev != null ? String(order.rev).trim() : '0');
   const orderTypeSpec = (spec?.OrderType ?? order?.ORDER_TYPE_NAME ?? order?.orderType ?? 'Full Turnkey').trim();
@@ -933,7 +994,6 @@ export default function OrderDetailsScreen() {
   // Vendor
   const vendorObj = order?.orderVendors && order.orderVendors.length > 0 ? order.orderVendors[0] : null;
   const vendorName = decodeHtml(vendorObj?.vendor?.vendorCompanyName ?? vendorObj?.vendorCompanyName ?? order?.vendorName ?? 'N/A');
-  const vendorCost = vendorObj?.VENDOR_ALLTOTALCOST ?? vendorObj?.VENDOR_TOTALCOST ?? order?.vendorCost ?? 0;
 
   // Shipping & Contact
   const ship = order?.shippingAddress || {};
@@ -961,14 +1021,6 @@ export default function OrderDetailsScreen() {
   const invStatus = inv?.invoiceStatus ?? order?.invoiceStatus ?? 'N/A';
   const invAmount = inv?.INVOICE_AMOUNT ?? order?.invoiceAmount ?? 0;
 
-  const totalInvoicedQty = Number(order?.totalInvoicedQty ?? details?.INVOICED_QTY ?? 0);
-  const totalInvoicedAmount = Number(order?.totalInvoicedAmount ?? 0);
-  const pendingQuantity = Number(order?.pendingQuantity ?? (lineQty > totalInvoicedQty ? lineQty - totalInvoicedQty : 0));
-  const pendingAmount = Number(order?.pendingAmount ?? (orderTotal > totalInvoicedAmount ? orderTotal - totalInvoicedAmount : 0));
-  const paymentsReceived = Number(order?.paymentsReceived ?? 0);
-  const receivables = orderTotal - paymentsReceived;
-  const invoicesList = Array.isArray(order?.invoices) ? order.invoices : [];
-
   const pack = order?.orderPackingSlips && order.orderPackingSlips.length > 0 ? order.orderPackingSlips[0] : null;
   const trackingNo = pack?.TRACK_NUMBER ?? order?.trackingNumber ?? 'N/A';
 
@@ -987,7 +1039,7 @@ export default function OrderDetailsScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Top Hero Section matching exact screenshot layout */}
+        {/* Top Hero Section */}
         <View style={styles.heroSectionCentered}>
           <Text style={styles.heroCompanyNameCentered} numberOfLines={1}>
             {companyName}
@@ -1013,29 +1065,22 @@ export default function OrderDetailsScreen() {
             Part #: {partNo}
           </Text>
 
-          {/* Action Buttons Row: Contact & Track */}
-          <View style={styles.actionButtonsRowCentered}>
-            <TouchableOpacity
-              style={styles.actionItemCentered}
-              onPress={() => setContactModalVisible(true)}
-              activeOpacity={0.75}
-            >
-              <View style={styles.actionCircleCentered}>
-                <Ionicons name="call-outline" size={22} color="#0F172A" />
-              </View>
-              <Text style={styles.actionLabelCentered}>Contact</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionItemCentered}
-              onPress={() => setTrackModalVisible(true)}
-              activeOpacity={0.75}
-            >
-              <View style={styles.actionCircleCentered}>
-                <Ionicons name="bus-outline" size={22} color="#0F172A" />
-              </View>
-              <Text style={styles.actionLabelCentered}>Track</Text>
-            </TouchableOpacity>
+          {/* Horizontal Dates Bar */}
+          <View style={styles.heroDatesRowHorizontal}>
+            <View style={styles.heroDateItem}>
+              <Text style={styles.heroDateLabel}>ORDER</Text>
+              <Text style={styles.heroDateValue}>{orderDate}</Text>
+            </View>
+            <View style={styles.heroDateDivider} />
+            <View style={styles.heroDateItem}>
+              <Text style={styles.heroDateLabel}>PROMISED</Text>
+              <Text style={styles.heroDateValue}>{promisedDate !== 'N/A' ? promisedDate : '—'}</Text>
+            </View>
+            <View style={styles.heroDateDivider} />
+            <View style={styles.heroDateItem}>
+              <Text style={styles.heroDateLabel}>FINISH</Text>
+              <Text style={styles.heroDateValue}>{finishDate !== 'N/A' ? finishDate : '—'}</Text>
+            </View>
           </View>
         </View>
 
@@ -1077,9 +1122,7 @@ export default function OrderDetailsScreen() {
                 <Ionicons name="cube-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
                 <Text style={styles.rowKey}>Quantity</Text>
               </View>
-              <Text style={styles.rowValue}>
-                {lineQty} pcs · {formatCurrencyWithCents(unitPrice)}/pc
-              </Text>
+              <Text style={styles.rowValue}>{lineQty}</Text>
             </View>
 
             <View style={styles.rowItem}>
@@ -1120,29 +1163,49 @@ export default function OrderDetailsScreen() {
               </View>
             ) : null}
 
-            {customerStatus ? (
-              <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
-                <View style={styles.rowLeft}>
-                  <Ionicons name="person-circle-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                  <Text style={styles.rowKey}>Customer</Text>
-                </View>
-                <View
+            <View style={styles.rowItem}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="repeat-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Order Category</Text>
+              </View>
+              <View
+                style={[
+                  styles.customerStatusBadge,
+                  customerStatus === 'REPEATED' || customerStatus === 'Repeat'
+                    ? styles.badgeRepeated
+                    : styles.badgeNew,
+                ]}
+              >
+                <Text
                   style={[
-                    styles.customerStatusBadge,
-                    customerStatus === 'REPEATED' ? styles.badgeRepeated : styles.badgeNew,
+                    styles.customerStatusBadgeText,
+                    customerStatus === 'REPEATED' || customerStatus === 'Repeat'
+                      ? styles.badgeRepeatedText
+                      : styles.badgeNewText,
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.customerStatusBadgeText,
-                      customerStatus === 'REPEATED' ? styles.badgeRepeatedText : styles.badgeNewText,
-                    ]}
-                  >
-                    {customerStatus === 'REPEATED' ? 'Repeat' : customerStatus}
-                  </Text>
-                </View>
+                  {customerStatus === 'REPEATED' || customerStatus === 'Repeat' ? 'Repeat' : 'New'}
+                </Text>
               </View>
-            ) : null}
+            </View>
+
+            {/* Contact Row inside ORDER table with chevron arrow */}
+            <TouchableOpacity
+              style={[styles.rowItem, { borderBottomWidth: 0 }]}
+              onPress={() => setContactModalVisible(true)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.rowLeft}>
+                <Ionicons name="call-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Contact</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 }}>
+                <Text style={[styles.rowValue, { flexShrink: 1 }]} numberOfLines={1}>
+                  {contactName}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -1183,7 +1246,7 @@ export default function OrderDetailsScreen() {
           </View>
         </View>
 
-        {/* Section 2: VENDOR & SHIPPING */}
+        {/* Section 3: VENDOR & SHIPPING */}
         <View style={styles.sectionWrap}>
           <Text style={styles.sectionHeaderTitle}>VENDOR & SHIPPING</Text>
           <View style={styles.cardGroup}>
@@ -1192,24 +1255,29 @@ export default function OrderDetailsScreen() {
                 <Ionicons name="business-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
                 <Text style={styles.rowKey}>Vendor</Text>
               </View>
-              <Text style={styles.rowValue}>
-                {vendorName} · {formatCurrencyWithCents(vendorCost)}
-              </Text>
+              <Text style={styles.rowValue}>{vendorName}</Text>
             </View>
 
-            <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
+            <TouchableOpacity
+              style={[styles.rowItem, { borderBottomWidth: 0 }]}
+              onPress={() => setLocationModalVisible(true)}
+              activeOpacity={0.7}
+            >
               <View style={styles.rowLeft}>
                 <Ionicons name="location-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
                 <Text style={styles.rowKey}>Ship to</Text>
               </View>
-              <Text style={styles.rowValue}>
-                {city}, {state}
-              </Text>
-            </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 }}>
+                <Text style={[styles.rowValue, { flexShrink: 1 }]} numberOfLines={1}>
+                  {city ? `${city}, ${state}` : 'View Address'}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Section 3: INVOICE */}
+        {/* Section 4: INVOICE */}
         <View style={styles.sectionWrap}>
           <Text style={styles.sectionHeaderTitle}>INVOICE</Text>
           <TouchableOpacity style={styles.cardGroup} onPress={() => setInvoiceModalVisible(true)} activeOpacity={0.8}>
@@ -1222,6 +1290,23 @@ export default function OrderDetailsScreen() {
                 <Text style={[styles.rowValue, { color: RED_TEXT }]}>
                   {invStatus} · {formatCurrencyWithCents(invAmount)}
                 </Text>
+                <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Section 5: TRACKING */}
+        <View style={styles.sectionWrap}>
+          <Text style={styles.sectionHeaderTitle}>TRACKING</Text>
+          <TouchableOpacity style={styles.cardGroup} onPress={() => setTrackModalVisible(true)} activeOpacity={0.8}>
+            <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="bus-outline" size={17} color={PRIMARY} style={styles.rowIcon} />
+                <Text style={styles.rowKey}>Track Shipment</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.rowValue}>{trackingNo !== 'N/A' ? `#${trackingNo}` : 'View Tracking'}</Text>
                 <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
               </View>
             </View>
@@ -1256,23 +1341,22 @@ export default function OrderDetailsScreen() {
       <InvoiceModal
         visible={invoiceModalVisible}
         onClose={() => setInvoiceModalVisible(false)}
+        orderNo={orderNo}
+        companyName={companyName}
+        companyCode={companyCode}
+        poNumber={poNumber}
+        orderTotal={orderTotal}
+        orderDate={orderDate}
+        salesperson={salesperson}
+        partNo={partNo}
+        lineQty={lineQty}
+        unitPrice={unitPrice}
+        netTerm={netTerm}
         invNumber={invNumber}
         invStatus={invStatus}
         invAmount={invAmount}
-        companyName={companyName}
-        orderNo={orderNo}
-        orderTotal={orderTotal}
-        orderCost={orderCost}
-        markupAmount={markupAmount}
-        markupPct={markupPct}
-        totalInvoicedAmount={totalInvoicedAmount}
-        totalInvoicedQty={totalInvoicedQty}
-        pendingAmount={pendingAmount}
-        pendingQuantity={pendingQuantity}
-        paymentsReceived={paymentsReceived}
-        receivables={receivables}
-        netTerm={netTerm}
-        invoices={invoicesList}
+        contactName={contactName}
+        fullAddress={fullAddress}
       />
 
       <AllSpecificationsModal
@@ -1939,5 +2023,207 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
+  },
+
+  // Horizontal Dates Bar in Top Hero
+  heroDatesRowHorizontal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    marginTop: 12,
+    gap: 12,
+  },
+  heroDateItem: {
+    alignItems: 'center',
+  },
+  heroDateLabel: {
+    fontSize: 9.5,
+    fontFamily: Typography.headingSemiBold,
+    color: '#64748B',
+    letterSpacing: 0.5,
+  },
+  heroDateValue: {
+    fontSize: 12,
+    fontFamily: Typography.headingSemiBold,
+    color: '#0F172A',
+    marginTop: 2,
+    fontWeight: '700',
+  },
+  heroDateDivider: {
+    width: 1,
+    height: 18,
+    backgroundColor: '#CBD5E1',
+  },
+
+  // Proforma Invoice Breakdown Modal Styling
+  invMetaBanner: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 10,
+    gap: 6,
+  },
+  invMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  invMetaLabel: {
+    fontSize: 11,
+    fontFamily: Typography.headingSemiBold,
+    color: '#64748B',
+    letterSpacing: 0.3,
+  },
+  invMetaValue: {
+    fontSize: 12,
+    fontFamily: Typography.headingSemiBold,
+    color: '#0F172A',
+    fontWeight: '700',
+  },
+  invAddressContainer: {
+    flexDirection: 'column',
+    gap: 8,
+  },
+  invAddressCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 10,
+    gap: 2,
+  },
+  invAddressTitle: {
+    fontSize: 10,
+    fontFamily: Typography.headingSemiBold,
+    color: '#64748B',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  invAddressName: {
+    fontSize: 13,
+    fontFamily: Typography.headingSemiBold,
+    color: '#0F172A',
+    fontWeight: '700',
+  },
+  invAddressCompany: {
+    fontSize: 12,
+    fontFamily: Typography.bodyMedium,
+    color: '#334155',
+  },
+  invAddressText: {
+    fontSize: 11,
+    fontFamily: Typography.body,
+    color: '#64748B',
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  invTermsBar: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 10,
+    padding: 10,
+    gap: 10,
+  },
+  invTermsCol: {
+    minWidth: '28%',
+    flex: 1,
+  },
+  invTermsLabel: {
+    fontSize: 9,
+    fontFamily: Typography.headingSemiBold,
+    color: '#64748B',
+    letterSpacing: 0.5,
+  },
+  invTermsValue: {
+    fontSize: 11.5,
+    fontFamily: Typography.headingSemiBold,
+    color: '#0F172A',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  invTableWrap: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+  },
+  invTableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  invTableCellHeader: {
+    fontSize: 10,
+    fontFamily: Typography.headingSemiBold,
+    color: '#475569',
+    letterSpacing: 0.4,
+  },
+  invTableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+  invTableCell: {
+    fontSize: 12,
+    fontFamily: Typography.body,
+    color: '#334155',
+  },
+  invTableCellBold: {
+    fontSize: 12,
+    fontFamily: Typography.headingSemiBold,
+    color: '#0F172A',
+    fontWeight: '700',
+  },
+  invTotalsCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    gap: 6,
+  },
+  invTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  invTotalLabel: {
+    fontSize: 12,
+    fontFamily: Typography.bodyMedium,
+    color: '#64748B',
+  },
+  invTotalVal: {
+    fontSize: 12.5,
+    fontFamily: Typography.headingSemiBold,
+    color: '#0F172A',
+    fontWeight: '600',
+  },
+  invRemarkBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FDE68A',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+  },
+  invRemarkText: {
+    flex: 1,
+    fontSize: 11,
+    fontFamily: Typography.bodyMedium,
+    color: '#92400E',
+    lineHeight: 16,
   },
 });

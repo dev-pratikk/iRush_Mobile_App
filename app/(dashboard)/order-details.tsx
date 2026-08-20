@@ -495,70 +495,67 @@ const InvoiceModal = ({
                   </View>
                 </View>
 
-                <View style={styles.invTermsBar}>
-                  <View style={styles.invTermsCol}>
-                    <Text style={styles.invTermsLabel}>ORDER DATE</Text>
-                    <Text style={styles.invTermsValue}>{orderDate}</Text>
-                  </View>
-                  <View style={styles.invTermsCol}>
-                    <Text style={styles.invTermsLabel}>SHIP VIA</Text>
-                    <Text style={styles.invTermsValue}>{effectiveShippingVia}</Text>
-                  </View>
-                  <View style={styles.invTermsCol}>
-                    <Text style={styles.invTermsLabel}>TERMS</Text>
-                    <Text style={styles.invTermsValue}>{netTerm || 'N/A'}</Text>
-                  </View>
-                  <View style={styles.invTermsCol}>
-                    <Text style={styles.invTermsLabel}>SALES PERSON</Text>
-                    <Text style={styles.invTermsValue}>{effectiveSalesperson}</Text>
-                  </View>
-                  <View style={styles.invTermsCol}>
-                    <Text style={styles.invTermsLabel}>OUR ORDER #</Text>
-                    <Text style={styles.invTermsValue}>{orderNo}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.invLineItemCard}>
-                  <View style={styles.invLineItemHeaderRow}>
-                    <View style={{ flex: 1, paddingRight: 8 }}>
-                      <Text style={styles.invLineItemPartNo}>
-                        {partNo !== 'N/A' ? partNo : 'N/A'}
-                      </Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                        <View style={styles.productTypePill}>
-                          <Text style={styles.productTypeText}>{effectiveOrderType}</Text>
-                        </View>
-                      </View>
-                    </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={styles.invLineItemTotalLabel}>AMOUNT</Text>
-                      <Text style={styles.invLineItemTotalVal}>
-                        {formatCurrencyWithCents(subtotal)}
-                      </Text>
-                    </View>
+                {/* Order & Line Item Details List */}
+                <View style={styles.invoiceDetailsListCard}>
+                  <Text style={styles.invoiceListCardHeaderTitle}>ORDER & LINE ITEM DETAILS</Text>
+                  
+                  <View style={styles.invoiceListRow}>
+                    <Text style={styles.invoiceListLabel}>Order Date</Text>
+                    <Text style={styles.invoiceListValue}>{orderDate}</Text>
                   </View>
 
-                  <View style={styles.invMetricsGrid}>
-                    <View style={styles.invMetricCol}>
-                      <Text style={styles.invMetricLabel}>QTY REQUIRED</Text>
-                      <Text style={styles.invMetricVal}>{effectiveQtyReq || 0}</Text>
-                    </View>
-                    <View style={styles.invMetricCol}>
-                      <Text style={styles.invMetricLabel}>QTY SHIPPED</Text>
-                      <Text style={styles.invMetricVal}>{effectiveQtyShp || 0}</Text>
-                    </View>
-                    <View style={styles.invMetricCol}>
-                      <Text style={styles.invMetricLabel}>ITEM/PART #</Text>
-                      <Text style={[styles.invMetricVal, { fontSize: 10 }]} numberOfLines={1}>
-                        {partNo !== 'N/A' ? partNo : 'N/A'}
-                      </Text>
-                    </View>
-                    <View style={[styles.invMetricCol, { alignItems: 'flex-end' }]}>
-                      <Text style={styles.invMetricLabel}>UNIT PRICE</Text>
-                      <Text style={styles.invMetricVal}>
-                        {effectiveUnitPrice > 0 ? formatCurrencyWithCents(effectiveUnitPrice) : '$0.00'}
-                      </Text>
-                    </View>
+                  <View style={styles.invoiceListRow}>
+                    <Text style={styles.invoiceListLabel}>Ship Via</Text>
+                    <Text style={styles.invoiceListValue}>{effectiveShippingVia}</Text>
+                  </View>
+
+                  <View style={styles.invoiceListRow}>
+                    <Text style={styles.invoiceListLabel}>Terms</Text>
+                    <Text style={styles.invoiceListValue}>{netTerm || 'N/A'}</Text>
+                  </View>
+
+                  <View style={styles.invoiceListRow}>
+                    <Text style={styles.invoiceListLabel}>Sales Person</Text>
+                    <Text style={styles.invoiceListValue}>{effectiveSalesperson}</Text>
+                  </View>
+
+                  <View style={styles.invoiceListRow}>
+                    <Text style={styles.invoiceListLabel}>Our Order #</Text>
+                    <Text style={styles.invoiceListValue}>{orderNo}</Text>
+                  </View>
+
+                  <View style={styles.invoiceListRow}>
+                    <Text style={styles.invoiceListLabel}>Product Type</Text>
+                    <Text style={styles.invoiceListValue}>{effectiveOrderType}</Text>
+                  </View>
+
+                  <View style={styles.invoiceListRow}>
+                    <Text style={styles.invoiceListLabel}>Item / Part #</Text>
+                    <Text style={styles.invoiceListValue}>{partNo !== 'N/A' ? partNo : 'N/A'}</Text>
+                  </View>
+
+                  <View style={styles.invoiceListRow}>
+                    <Text style={styles.invoiceListLabel}>Qty Required</Text>
+                    <Text style={styles.invoiceListValue}>{effectiveQtyReq || 0}</Text>
+                  </View>
+
+                  <View style={styles.invoiceListRow}>
+                    <Text style={styles.invoiceListLabel}>Qty Shipped</Text>
+                    <Text style={styles.invoiceListValue}>{effectiveQtyShp || 0}</Text>
+                  </View>
+
+                  <View style={styles.invoiceListRow}>
+                    <Text style={styles.invoiceListLabel}>Unit Price</Text>
+                    <Text style={styles.invoiceListValue}>
+                      {effectiveUnitPrice > 0 ? formatCurrencyWithCents(effectiveUnitPrice) : '$0.00'}
+                    </Text>
+                  </View>
+
+                  <View style={[styles.invoiceListRow, { borderBottomWidth: 0 }]}>
+                    <Text style={[styles.invoiceListLabel, { fontWeight: '700', color: '#0F172A' }]}>Line Subtotal</Text>
+                    <Text style={[styles.invoiceListValue, { fontWeight: '700', color: '#0F172A' }]}>
+                      {formatCurrencyWithCents(subtotal)}
+                    </Text>
                   </View>
                 </View>
 
@@ -595,7 +592,7 @@ const InvoiceModal = ({
   );
 };
 
-// â”€â”€â”€ Full Specifications Modal Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Full Specifications Modal Component ──────────────────────────────────────
 
 const AllSpecificationsModal = ({
   visible,
@@ -610,16 +607,26 @@ const AllSpecificationsModal = ({
   isItar: boolean;
   specsList: { label: string; value: string; isBold?: boolean }[];
 }) => {
+  const insets = useSafeAreaInsets();
+  const screenHeight = Dimensions.get('window').height;
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.specsModalOverlay}>
-        {/* Backdrop: separate touchable behind card */}
         <TouchableWithoutFeedback onPress={onClose}>
           <View style={StyleSheet.absoluteFill} />
         </TouchableWithoutFeedback>
 
-        {/* Card: NOT wrapped in Touchable */}
-        <View style={styles.specsModalContainer} pointerEvents="box-none">
+        <View
+          style={[
+            styles.specsModalCard,
+            {
+              maxHeight: screenHeight * 0.85,
+              marginTop: Math.max(insets.top + 16, 24),
+              marginBottom: Math.max(insets.bottom + 16, 24),
+            },
+          ]}
+        >
           {/* Header */}
           <View style={styles.specsModalHeader}>
             <View style={styles.modalHeaderLeft}>
@@ -651,27 +658,37 @@ const AllSpecificationsModal = ({
           {/* Scrollable Specs List */}
           <ScrollView
             style={styles.specsScrollView}
-            contentContainerStyle={styles.specsScrollContentSimple}
+            contentContainerStyle={styles.specsScrollContent}
             showsVerticalScrollIndicator={true}
             scrollEventThrottle={16}
             nestedScrollEnabled={true}
+            bounces={false}
           >
-            <View style={styles.cardGroup}>
-              {specsList.map((item, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.specRowItem,
-                    index === specsList.length - 1 ? { borderBottomWidth: 0 } : null,
-                  ]}
-                >
-                  <Text style={styles.specRowKey}>{item.label}</Text>
-                  <Text style={item.isBold ? styles.specRowValueBold : styles.specRowValue}>
-                    {item.value}
-                  </Text>
-                </View>
-              ))}
-            </View>
+            {specsList.length === 0 ? (
+              <View style={{ alignItems: 'center', paddingVertical: 40, gap: 10 }}>
+                <Ionicons name="document-outline" size={40} color="#CBD5E1" />
+                <Text style={{ fontSize: 13, color: '#94A3B8', fontFamily: Typography.bodyMedium, textAlign: 'center' }}>
+                  No specification data available for this order.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.cardGroup}>
+                {specsList.map((item, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.specRowItem,
+                      index === specsList.length - 1 ? { borderBottomWidth: 0 } : null,
+                    ]}
+                  >
+                    <Text style={styles.specRowKey}>{item.label}</Text>
+                    <Text style={item.isBold ? styles.specRowValueBold : styles.specRowValue}>
+                      {item.value}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </ScrollView>
 
           {/* Footer Close Button */}
@@ -1213,7 +1230,7 @@ export default function OrderDetailsScreen() {
       const ignoredKeys = new Set([
         'SPEC_ID', 'specId', 'ORDER_ID', 'orderId', 'CUSTOMERID', 'customerId',
         'CREATED_BY', 'UPDATED_BY', 'CREATED_DATE', 'UPDATED_DATE', 'IS_ACTIVE',
-        'is_active', 'DELETED', 'deleted'
+        'is_active', 'DELETED', 'deleted', 'ORDER_SPECID', 'ORDERCONTACTID', 'ORDERFOLLOWUP',
       ]);
 
       Object.entries(rawSpec).forEach(([k, v]) => {
@@ -1223,7 +1240,7 @@ export default function OrderDetailsScreen() {
 
         const label = formatSpecKey(k);
         let valStr = String(v).trim();
-        if (!valStr || valStr === 'null' || valStr === 'undefined') valStr = 'N/A';
+        if (!valStr || valStr === 'null' || valStr === 'undefined' || valStr === '0') return; // skip empty/zero
 
         if (v === true || valStr.toLowerCase() === 'true') valStr = 'Yes';
         if (v === false || valStr.toLowerCase() === 'false') valStr = 'No';
@@ -1241,7 +1258,13 @@ export default function OrderDetailsScreen() {
       });
     }
 
-    return list.length > 0 ? list : allSpecsList;
+    if (list.length > 0) return list;
+
+    // Fallback to allSpecsList — filter out N/A and empty values
+    return allSpecsList.filter(item => {
+      const v = (item.value ?? '').trim();
+      return v && v !== 'N/A' && v !== 'null' && v !== 'undefined' && v !== '0';
+    });
   }, [order, allSpecsList, formatSpecKey]);
 
   // Vendor
@@ -2576,6 +2599,45 @@ const styles = StyleSheet.create({
     fontFamily: Typography.bodyMedium,
     color: '#92400E',
     lineHeight: 16,
+  },
+  // Invoice Details List Card
+  invoiceDetailsListCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  invoiceListCardHeaderTitle: {
+    fontSize: 11,
+    fontFamily: Typography.headingSemiBold,
+    color: '#64748B',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+  invoiceListRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  invoiceListLabel: {
+    fontSize: 12.5,
+    fontFamily: Typography.bodyMedium,
+    color: '#64748B',
+  },
+  invoiceListValue: {
+    fontSize: 13,
+    fontFamily: Typography.headingSemiBold,
+    color: '#0F172A',
+    fontWeight: '600',
   },
 });
 

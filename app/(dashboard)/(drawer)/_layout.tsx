@@ -132,6 +132,7 @@ export default function DrawerLayout() {
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={() => ({
         headerShown: false,
+        swipeEnabled: false,
         drawerStyle: {
           backgroundColor: colors.card,
           width: 280,

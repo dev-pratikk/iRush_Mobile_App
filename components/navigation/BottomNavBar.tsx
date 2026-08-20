@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, usePathname } from 'expo-router';
@@ -57,7 +57,8 @@ export function BottomNavBar({
   const selectedColor = activeColor ?? colors.primary;
   const mutedColor = inactiveColor ?? colors.textSecondary ?? '#64748B';
 
-  const bottomPadding = Math.max(insets.bottom, 12);
+  // Use a stable fixed bottom padding — never let safe area changes shift the bar
+  const bottomPadding = useMemo(() => Math.max(insets.bottom, 8), [insets.bottom]);
 
   return (
     <View
@@ -67,6 +68,8 @@ export function BottomNavBar({
           backgroundColor: backgroundColor ?? colors.card,
           borderTopColor: borderTopColor ?? colors.border ?? '#E2E8F0',
           paddingBottom: bottomPadding,
+          // Enforce a stable minimum height so bar never resizes
+          minHeight: 56 + bottomPadding,
         },
       ]}
     >
@@ -140,3 +143,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
 });
+

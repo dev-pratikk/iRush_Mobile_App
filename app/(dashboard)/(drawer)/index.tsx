@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Text, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { KpiCard } from '../../../components/dashboard/KpiCard';
 import { SkeletonSummaryCard, SkeletonKpiCard } from '../../../components/ui/SkeletonLoader';
 import { DASHBOARD_KPIS } from '@mocks/dashboard';
@@ -11,8 +11,9 @@ import { useThemeColors } from '../../../context/ThemeContext';
 import { Typography } from '../../../constants/Typography';
 import { useNavigation } from '@react-navigation/native';
 import { DrawerActions } from '@react-navigation/native';
-import { router, usePathname, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { NotificationHeaderButton } from '../../../components/navigation/NotificationHeaderButton';
+import { BottomNavBar } from '../../../components/navigation/BottomNavBar';
 import {
   getDashboardStats,
   DashboardStatsResponse,
@@ -121,51 +122,7 @@ const getKpiOnPress = (label: string, period: DatePeriod): (() => void) | undefi
   }
 };
 
-const BottomNav = () => {
-  const colors = useThemeColors();
-  const pathname = usePathname();
-  const insets = useSafeAreaInsets();
-  const tabs = [
-    { icon: 'home', label: 'Dashboard', route: '/' },
-    { icon: 'document-text', label: 'Orders', route: '/orders' },
-    { icon: 'chatbox', label: 'Quotes', route: '/all-quotes' },
-    { icon: 'receipt', label: 'AR', route: '/ar' },
-  ];
 
-  return (
-    <View
-      style={[
-        styles.bottomNav,
-        {
-          backgroundColor: colors.card,
-          borderTopColor: colors.border,
-          paddingBottom: Math.max(insets.bottom, 4),
-          height: 56 + Math.max(insets.bottom, 4),
-        },
-      ]}
-    >
-      {tabs.map((tab, index) => {
-        const isActive = pathname === tab.route;
-        return (
-          <TouchableOpacity
-            key={index}
-            style={styles.navTab}
-            onPress={() => router.push(tab.route as any)}
-          >
-            <Ionicons
-              name={isActive ? (tab.icon as any) : (`${tab.icon}-outline` as any)}
-              size={24}
-              color={isActive ? colors.primary : colors.inactive}
-            />
-            <Text style={[styles.navLabel, { color: isActive ? colors.primary : colors.inactive }]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
-};
 
 export default function DashboardScreen() {
   const colors = useThemeColors();
@@ -302,7 +259,7 @@ export default function DashboardScreen() {
             </View>
           </View>
         </ScrollView>
-        <BottomNav />
+        <BottomNavBar />
       </View>
     </SafeAreaView>
   );
@@ -470,25 +427,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 12,
-  },
-  loadingText: {
-    fontSize: 12,
-    fontFamily: Typography.body,
-  },
-  bottomNav: {
-    height: 58,
-    flexDirection: 'row',
-    borderTopWidth: StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5,
-  },
-  navTab: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  navLabel: {
-    fontSize: 10,
-    fontFamily: Typography.body,
-    marginTop: 3,
   },
 });
 

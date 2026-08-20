@@ -308,24 +308,24 @@ const SummaryCard = ({
   }
 
   const content = (
-    <View style={[styles.heroCard, { backgroundColor: `${colors.primary}0D`, borderColor: `${colors.primary}25` }]}>
+    <View style={[styles.heroCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.heroHeaderRow}>
         <View style={[styles.heroIconBadge, { backgroundColor: colors.primary }]}>
           <Ionicons name="document-text" size={16} color="#FFFFFF" />
         </View>
-        <Text style={[styles.heroTitle, { color: colors.textSecondary }]}>TOTAL ORDERS OVERVIEW</Text>
+        <Text style={[styles.heroTitle, { color: colors.textSecondary }]}>ORDERS OVERVIEW</Text>
         {onPress && <Ionicons name="arrow-forward" size={16} color={colors.primary} style={{ marginLeft: 'auto' }} />}
       </View>
 
       <View style={styles.heroBodyRow}>
         <View style={styles.heroCountCol}>
           <Text style={[styles.heroCountText, { color: colors.textPrimary }]}>{formatNumber(count)}</Text>
-          <Text style={[styles.heroCountLabel, { color: colors.textSecondary }]}>Total Orders</Text>
+          <Text style={[styles.heroCountLabel, { color: colors.textSecondary }]}>Orders</Text>
         </View>
 
         <View style={styles.heroAmountCol}>
-          <Text style={[styles.heroAmountText, { color: colors.primary }]}>{formatCurrencyWithCents(totalAmount)}</Text>
-          <Text style={[styles.heroAmountLabel, { color: colors.textSecondary }]}>Total Volume</Text>
+          <Text style={[styles.heroAmountText, { color: colors.textPrimary }]}>{formatCurrencyWithCents(totalAmount)}</Text>
+          <Text style={[styles.heroAmountLabel, { color: colors.textSecondary }]}>Value</Text>
         </View>
       </View>
     </View>
@@ -383,10 +383,10 @@ const OrdersKpiGrid = ({
           activeOpacity={0.8}
         >
           <View style={styles.kpiCardHeader}>
-            <View style={[styles.kpiTag, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}>
-              <Text style={[styles.kpiTagText, { color: '#1D4ED8' }]}>NEW</Text>
+            <View style={[styles.kpiTag, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <Text style={[styles.kpiTagText, { color: colors.textPrimary }]}>NEW</Text>
             </View>
-            <Ionicons name="sparkles" size={14} color="#2563EB" />
+            <Ionicons name="sparkles" size={14} color={colors.textSecondary} />
           </View>
 
           <Text style={[styles.kpiCountValue, { color: colors.textPrimary }]}>{formatNumber(newCount)}</Text>
@@ -399,10 +399,10 @@ const OrdersKpiGrid = ({
           activeOpacity={0.8}
         >
           <View style={styles.kpiCardHeader}>
-            <View style={[styles.kpiTag, { backgroundColor: '#F5F3FF', borderColor: '#DDD6FE' }]}>
-              <Text style={[styles.kpiTagText, { color: '#6D28D9' }]}>REPEAT</Text>
+            <View style={[styles.kpiTag, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <Text style={[styles.kpiTagText, { color: colors.textPrimary }]}>REPEAT</Text>
             </View>
-            <Ionicons name="repeat-outline" size={14} color="#7C3AED" />
+            <Ionicons name="repeat-outline" size={14} color={colors.textSecondary} />
           </View>
 
           <Text style={[styles.kpiCountValue, { color: colors.textPrimary }]}>{formatNumber(repeatCount)}</Text>
@@ -435,8 +435,8 @@ const PendingAndPartialKpiGrid = ({ data }: { data: OpenOrdersResponse }) => {
         activeOpacity={0.8}
       >
         <View style={styles.openOrdersHeader}>
-          <View style={[styles.openIconWrap, { backgroundColor: '#DCFCE7' }]}>
-            <Ionicons name="cube" size={15} color="#16A34A" />
+          <View style={[styles.openIconWrap, { backgroundColor: colors.background }]}>
+            <Ionicons name="cube" size={15} color={colors.textPrimary} />
           </View>
           <Text style={[styles.openOrdersTitle, { color: colors.textPrimary }]}>ALL OPEN ORDERS</Text>
           <Ionicons name="chevron-forward" size={16} color={colors.textMuted} style={{ marginLeft: 'auto' }} />
@@ -449,7 +449,7 @@ const PendingAndPartialKpiGrid = ({ data }: { data: OpenOrdersResponse }) => {
           </View>
 
           <View style={{ alignItems: 'flex-end' }}>
-            <Text style={[styles.openOrdersAmount, { color: '#16A34A' }]}>{formatCurrencyWithCents(openAmount)}</Text>
+            <Text style={[styles.openOrdersAmount, { color: colors.textPrimary }]}>{formatCurrencyWithCents(openAmount)}</Text>
             <Text style={[styles.openOrdersSub, { color: colors.textSecondary }]}>Value</Text>
           </View>
         </View>
@@ -463,9 +463,9 @@ const PendingAndPartialKpiGrid = ({ data }: { data: OpenOrdersResponse }) => {
           activeOpacity={0.8}
         >
           <View style={styles.splitHeader}>
-            <View style={[styles.dotPill, { backgroundColor: '#FEF3C7' }]}>
-              <View style={[styles.dot, { backgroundColor: '#D97706' }]} />
-              <Text style={{ fontSize: 10, fontFamily: Typography.headingSemiBold, color: '#D97706' }}>PENDING</Text>
+            <View style={[styles.dotPill, { backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1 }]}>
+              <View style={[styles.dot, { backgroundColor: colors.textSecondary }]} />
+              <Text style={{ fontSize: 10, fontFamily: Typography.headingSemiBold, color: colors.textPrimary }}>PENDING</Text>
             </View>
           </View>
           <Text style={[styles.splitCount, { color: colors.textPrimary }]}>{formatNumber(pendingCount)}</Text>
@@ -478,9 +478,9 @@ const PendingAndPartialKpiGrid = ({ data }: { data: OpenOrdersResponse }) => {
           activeOpacity={0.8}
         >
           <View style={styles.splitHeader}>
-            <View style={[styles.dotPill, { backgroundColor: '#CCFBF1' }]}>
-              <View style={[styles.dot, { backgroundColor: '#0D9488' }]} />
-              <Text style={{ fontSize: 10, fontFamily: Typography.headingSemiBold, color: '#0D9488' }}>PARTIAL</Text>
+            <View style={[styles.dotPill, { backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1 }]}>
+              <View style={[styles.dot, { backgroundColor: colors.textSecondary }]} />
+              <Text style={{ fontSize: 10, fontFamily: Typography.headingSemiBold, color: colors.textPrimary }}>PARTIAL</Text>
             </View>
           </View>
           <Text style={[styles.splitCount, { color: colors.textPrimary }]}>{formatNumber(partialCount)}</Text>
@@ -736,14 +736,6 @@ export default function OrdersScreen() {
           <PendingAndPartialKpiGrid data={openOrdersData} />
 
           <View style={{ gap: 14, marginTop: 12 }}>
-            <FixedSummaryTable
-              title="All Open Orders Breakdown"
-              count={openOrdersData.totalOpenOrders ?? (openOrdersData.pendingOrdersCount ?? 0) + (openOrdersData.partialOrdersCount ?? 0)}
-              amount={openOrdersData.totalOpenOrdersAmount ?? (openOrdersData.pendingOrdersAmount ?? 0) + (openOrdersData.partialOrdersAmount ?? 0)}
-              summary={(openOrdersData as any).openOrdersSummary}
-              onPress={() => router.push('/open-orders' as any)}
-            />
-
             <FixedSummaryTable
               title="Pending Orders Breakdown"
               count={openOrdersData.pendingOrdersCount ?? 0}

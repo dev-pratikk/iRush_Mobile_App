@@ -24,7 +24,7 @@ export default function DashboardStackLayout() {
       }}
     >
       {/* ── Drawer group (menu-level screens) ── */}
-      <Stack.Screen name="(drawer)" options={{ headerShown: false, animation: 'fade' }} />
+      <Stack.Screen name="(drawer)" options={{ headerShown: false, animation: 'none' }} />
 
       {/* ── Child / detail screens ── */}
       <Stack.Screen name="all-quotes"              options={{ headerShown: false }} />

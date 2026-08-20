@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../../constants/Typography';
 import { useThemeColors } from '../../../context/ThemeContext';
 import { useAuthContext } from '../../../context/AuthContext';
@@ -20,7 +20,8 @@ import {
   SkeletonSummaryCard,
   SkeletonKpiCard,
 } from '../../../components/ui/SkeletonLoader';
-import { router, usePathname } from 'expo-router';
+import { router } from 'expo-router';
+import { BottomNavBar } from '../../../components/navigation/BottomNavBar';
 import {
   formatCurrencyWithCents,
   formatNumber,
@@ -396,51 +397,6 @@ const ARKpiGrid = ({
 
 
 
-// Bottom Nav Component
-const BottomNav = () => {
-  const colors = useThemeColors();
-  const pathname = usePathname();
-  const insets = useSafeAreaInsets();
-  const tabs = [
-    { icon: 'home', label: 'Dashboard', route: '/' },
-    { icon: 'document-text', label: 'Orders', route: '/orders' },
-    { icon: 'chatbox', label: 'Quotes', route: '/all-quotes' },
-    { icon: 'receipt', label: 'AR', route: '/ar' },
-  ];
-  return (
-    <View
-      style={[
-        styles.bottomNav,
-        {
-          backgroundColor: colors.card,
-          borderTopColor: colors.border,
-          paddingBottom: Math.max(insets.bottom, 4),
-          height: 56 + Math.max(insets.bottom, 4),
-        },
-      ]}
-    >
-      {tabs.map((tab, index) => {
-        const isActive = pathname === tab.route;
-        return (
-          <TouchableOpacity
-            key={index}
-            style={styles.navTab}
-            onPress={() => router.push(tab.route as any)}
-          >
-            <Ionicons
-              name={isActive ? (tab.icon as any) : (`${tab.icon}-outline` as any)}
-              size={24}
-              color={isActive ? colors.primary : colors.inactive}
-            />
-            <Text style={[styles.navLabel, { color: isActive ? colors.primary : colors.inactive }]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
-};
 
 // Main Screen Component
 export default function ARScreen() {
@@ -594,7 +550,7 @@ export default function ARScreen() {
         activeStatus={activeStatus}
       />
 
-      <BottomNav />
+      <BottomNavBar />
     </SafeAreaView>
   );
 }
@@ -851,19 +807,4 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
-  bottomNav: {
-    height: 58,
-    flexDirection: 'row',
-    borderTopWidth: hairline,
-  },
-  navTab: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  navLabel: {
-    fontSize: 10,
-    fontFamily: Typography.body,
-    marginTop: 3,
-  },
 });

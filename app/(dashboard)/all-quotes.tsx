@@ -28,6 +28,7 @@ import { DateFilterModal } from '../../components/ui/DateFilterModal';
 import { formatOrderDate } from '../../lib/formatters';
 import { SkeletonRowItem, SkeletonKpiCard } from '../../components/ui/SkeletonLoader';
 import { PaginationFooter } from '../../components/ui/PaginationFooter';
+import { BottomNavBar as BottomNav } from '../../components/navigation/BottomNavBar';
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ const GREEN_BG  = '#DCFCE7';
 
 const hairline = StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5;
 
-const PAGE_LIMIT = 25;
+const PAGE_LIMIT = 10;
 
 type QuoteStatusFilter = null | 'converted' | 'notconverted';
 
@@ -409,6 +410,7 @@ export default function AllQuotesScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
+  const [apiTotalPages, setApiTotalPages] = useState(1);
   const [convertedCount, setConvertedCount] = useState(0);
   const [notConvertedCount, setNotConvertedCount] = useState(0);
 
@@ -455,19 +457,22 @@ export default function AllQuotesScreen() {
         }
 
         const total = res.totalRecords || res.count;
+        const totalPagesFromApi = typeof res.totalPages === 'number' ? res.totalPages : Math.max(1, Math.ceil(total / PAGE_LIMIT));
         setTotalRecords(total);
-        setHasMore(res.data.length >= PAGE_LIMIT);
+        setApiTotalPages(totalPagesFromApi);
+        setHasMore(pageArg < totalPagesFromApi);
 
-        // Derived counts from loaded data (if no status filter, count locally)
-        if (statusFilter === null && pageArg === 1) {
-          const cv = res.data.filter((it) => it.orderId != null && it.orderId > 0).length;
-          const nv = res.data.filter((it) => !(it.orderId != null && it.orderId > 0)).length;
-          setConvertedCount(cv);
-          setNotConvertedCount(nv);
-        } else if (statusFilter === 'converted' && pageArg === 1) {
-          setConvertedCount(total);
-        } else if (statusFilter === 'notconverted' && pageArg === 1) {
-          setNotConvertedCount(total);
+        if (pageArg === 1) {
+          if (statusFilter === null) {
+            setConvertedCount(Number.isFinite(res.convertedCount) ? res.convertedCount : 0);
+            setNotConvertedCount(Number.isFinite(res.notConvertedCount) ? res.notConvertedCount : 0);
+          } else if (statusFilter === 'converted') {
+            setConvertedCount(res.convertedCount || total);
+            setNotConvertedCount(0);
+          } else {
+            setConvertedCount(0);
+            setNotConvertedCount(res.notConvertedCount || total);
+          }
         }
       } catch (err: any) {
         setError(err?.message ?? 'Failed to load quotes');
@@ -512,13 +517,19 @@ export default function AllQuotesScreen() {
     setCurrentPage(1);
   }, []);
 
-  const totalPages = totalRecords > 0
-    ? Math.ceil(totalRecords / PAGE_LIMIT)
-    : Math.max(1, Math.ceil(allItems.length / PAGE_LIMIT));
+  const filteredItems = useMemo(() => {
+    if (statusFilter === null) return allItems;
+    return allItems.filter((item) => {
+      const isConverted = item.orderId != null && item.orderId > 0;
+      return statusFilter === 'converted' ? isConverted : !isConverted;
+    });
+  }, [allItems, statusFilter]);
+
+  const totalPages = Math.max(1, apiTotalPages);
 
   const displayItems = useMemo(
-    () => allItems.slice((currentPage - 1) * PAGE_LIMIT, currentPage * PAGE_LIMIT),
-    [allItems, currentPage]
+    () => filteredItems.slice((currentPage - 1) * PAGE_LIMIT, currentPage * PAGE_LIMIT),
+    [filteredItems, currentPage]
   );
 
   const handlePrev = useCallback(() => setCurrentPage((p) => Math.max(1, p - 1)), []);
@@ -576,74 +587,78 @@ export default function AllQuotesScreen() {
   ]);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <Header
-        activePreset={activePreset}
-        customRange={customRange}
-        onOpenFilter={() => setFilterModalVisible(true)}
-      />
-
-      <View style={styles.mainContainer}>
-        <FlatList
-          data={displayItems}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          ListHeaderComponent={ListHeader}
-          ListEmptyComponent={
-            loading ? (
-              <View style={{ paddingTop: 4 }}>
-                <SkeletonRowItem />
-                <SkeletonRowItem />
-                <SkeletonRowItem />
-                <SkeletonRowItem />
-              </View>
-            ) : inputText.trim() || selectedSalesperson || statusFilter ? (
-              <SearchEmptyState query={inputText.trim() || selectedSalesperson || ''} onClear={handleClear} />
-            ) : (
-              <DefaultEmptyState />
-            )
-          }
-          ItemSeparatorComponent={ItemSeparator}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.flatlistContent}
-          initialNumToRender={10}
-          maxToRenderPerBatch={10}
-          windowSize={5}
-          removeClippedSubviews
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={PRIMARY}
-              colors={[PRIMARY]}
-            />
-          }
-          keyboardShouldPersistTaps="handled"
+    <View style={{ flex: 1, backgroundColor: PAGE_BG }}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <Header
+          activePreset={activePreset}
+          customRange={customRange}
+          onOpenFilter={() => setFilterModalVisible(true)}
         />
 
-        <PaginationFooter
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalRecords={totalRecords || allItems.length}
-          isFetchingNextPage={false}
-          onPrev={handlePrev}
-          onNext={handleNext}
-        />
-      </View>
+        <View style={styles.mainContainer}>
+          <FlatList
+            data={displayItems}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            ListHeaderComponent={ListHeader}
+            ListEmptyComponent={
+              loading ? (
+                <View style={{ paddingTop: 4 }}>
+                  <SkeletonRowItem />
+                  <SkeletonRowItem />
+                  <SkeletonRowItem />
+                  <SkeletonRowItem />
+                </View>
+              ) : inputText.trim() || selectedSalesperson || statusFilter ? (
+                <SearchEmptyState query={inputText.trim() || selectedSalesperson || ''} onClear={handleClear} />
+              ) : (
+                <DefaultEmptyState />
+              )
+            }
+            ItemSeparatorComponent={ItemSeparator}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.flatlistContent}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            removeClippedSubviews
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={PRIMARY}
+                colors={[PRIMARY]}
+              />
+            }
+            keyboardShouldPersistTaps="handled"
+          />
 
-      <DateFilterModal
-        visible={filterModalVisible}
-        onClose={() => setFilterModalVisible(false)}
-        activePreset={activePreset}
-        customRange={customRange}
-        onApply={(preset, range) => {
-          setActivePreset(preset);
-          setCustomRange(range);
-          setCurrentPage(1);
-          setAllItems([]);
-        }}
-      />
-    </SafeAreaView>
+          <PaginationFooter
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalRecords={totalRecords || filteredItems.length}
+            limit={PAGE_LIMIT}
+            isFetchingNextPage={false}
+            onPrev={handlePrev}
+            onNext={handleNext}
+          />
+        </View>
+
+        <DateFilterModal
+          visible={filterModalVisible}
+          onClose={() => setFilterModalVisible(false)}
+          activePreset={activePreset}
+          customRange={customRange}
+          onApply={(preset, range) => {
+            setActivePreset(preset);
+            setCustomRange(range);
+            setCurrentPage(1);
+            setAllItems([]);
+          }}
+        />
+      </SafeAreaView>
+      <BottomNav />
+    </View>
   );
 }
 

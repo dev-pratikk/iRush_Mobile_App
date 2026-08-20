@@ -8,6 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import { DrawerActions } from '@react-navigation/native';
 import { router, usePathname } from 'expo-router';
 import { NotificationHeaderButton } from '../../components/navigation/NotificationHeaderButton';
+import { BottomNavBar as BottomNav } from '../../components/navigation/BottomNavBar';
 
 const Header = () => {
   const colors = useThemeColors();
@@ -37,43 +38,7 @@ const Header = () => {
   );
 };
 
-const BottomNav = () => {
-  const colors = useThemeColors();
-  const pathname = usePathname();
-  const tabs = [
-    { icon: 'home', label: 'Dashboard', route: '/' },
-    { icon: 'document-text', label: 'Orders', route: '/orders' },
-    { icon: 'cube', label: 'Open orders', route: '/open-orders' },
-    { icon: 'chatbox', label: 'Quotes', route: '/quotes' },
-  ];
 
-  return (
-    <View style={[styles.bottomNav, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-      {tabs.map((tab, index) => {
-        const isActive = pathname === tab.route;
-        return (
-          <TouchableOpacity key={index} style={styles.navTab} onPress={() => router.push(tab.route as any)}>
-            <Ionicons
-              name={isActive ? `${tab.icon}` : `${tab.icon}-outline` as any}
-              size={24}
-              color={isActive ? colors.primary : colors.inactive}
-            />
-            <Text
-              style={[
-                styles.navLabel,
-                {
-                  color: isActive ? colors.primary : colors.inactive,
-                },
-              ]}
-            >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
-};
 
 export default function ReportsScreen() {
   const colors = useThemeColors();
@@ -176,3 +141,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+

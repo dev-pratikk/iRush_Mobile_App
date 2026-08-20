@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+﻿import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Text, RefreshControl, BackHandler } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import { NotificationHeaderButton } from '../../components/navigation/NotificationHeaderButton';
 import { DateFilterPreset, formatCustomRangeLabel } from '../../lib/date';
 import { DateFilterModal } from '../../components/ui/DateFilterModal';
+import { useBackHandler } from '../../hooks/useBackHandler';
 
 const PRIMARY = '#0F172A';
 const SECONDARY = '#64748B';
@@ -56,7 +57,7 @@ const Header = ({
         <Ionicons name="arrow-back" size={20} color={PRIMARY} />
       </TouchableOpacity>
 
-      <Text style={styles.headerTitleLeft}>Quotes → orders</Text>
+      <Text style={styles.headerTitleLeft}>Quotes â†’ orders</Text>
 
       <View style={styles.headerRightWrap}>
         <TouchableOpacity
@@ -143,18 +144,7 @@ export default function QuotesToOrdersScreen() {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const onBackPress = () => {
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/quotes');
-      }
-      return true;
-    };
-    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-    return () => subscription.remove();
-  }, []);
+  
 
   const salesReps: SalesBreakdown[] = [
     {
@@ -473,3 +463,4 @@ const styles = StyleSheet.create({
     color: SECONDARY,
   },
 });
+

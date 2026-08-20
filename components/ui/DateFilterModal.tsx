@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   modalScrollView: {
-    flexShrink: 1,
+    flex: 1,
   },
   modalHeader: {
     flexDirection: 'row',

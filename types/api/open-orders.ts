@@ -10,7 +10,9 @@ export interface OpenOrderDetail {
   WEB_PRICE: number | null;
   PRICE_INCREASE: number | null;
   FINISH_DATE: string;
-  PROMISED_DATE: string;
+  finishDate?: string;
+  PROMISED_DATE?: string;
+  promisedDate?: string;
   DAY: number;
   INVOICED_QTY: number;
   LINE_TOTAL: number;
@@ -60,6 +62,8 @@ export interface OpenOrderItem {
   ORDER_NO: string;
   PO_NO: string;
   ORDER_DATE: string;
+  PROMISED_DATE?: string;
+  promisedDate?: string;
   ORDER_TOTALCOST_AF_DISCCHRG: number;
   orderType: string;
   orderedQuantity: number;
@@ -150,6 +154,26 @@ export interface PartialOrdersSummary {
   [key: string]: any;
 }
 
+export interface OpenOrdersSummary {
+  totalOrders?: number;
+  totalOrderedQty?: number;
+  totalOrderedAmount?: number;
+  totalPendingQty?: number;
+  totalPendingAmount?: number;
+  totalVendorCost?: number;
+  ordersWithVendorCount?: number;
+  ordersWithoutVendorCount?: number;
+  ordersWithVendorAmount?: number;
+  ordersWithoutVendorAmount?: number;
+  vendorOrderAmount?: number;
+  totalShippedAmount?: number;
+  totalInvoicedQty?: number;
+  totalInvoicedAmount?: number;
+  totalPaymentsReceived?: number;
+  advancePaymentReceived?: number;
+  [key: string]: any;
+}
+
 export interface OpenOrdersPageResponse {
   page: number;
   limit: number;
@@ -157,4 +181,5 @@ export interface OpenOrdersPageResponse {
   data: OpenOrderItem[];
   pendingOrdersSummary?: PendingOrdersSummary;
   partialOrdersSummary?: PartialOrdersSummary;
+  openOrdersSummary?: OpenOrdersSummary;
 }

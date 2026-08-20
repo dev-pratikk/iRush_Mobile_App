@@ -37,6 +37,7 @@ export interface QuotesToOrdersByServiceType {
 export interface QuotesDashboardResponse {
   quoteCount: number;
   convertedCount: number;
+  notConvertedCount?: number;
   quotesByNewCustomer: number;
   quotesByExistingCustomer: number;
   totalConvertedQuotesCount: number;

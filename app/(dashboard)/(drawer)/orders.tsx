@@ -14,15 +14,16 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Typography } from '../../constants/Typography';
-import { useThemeColors } from '../../context/ThemeContext';
-import { useAuthContext } from '../../context/AuthContext';
-import { NotificationHeaderButton } from '../../components/navigation/NotificationHeaderButton';
+import { Typography } from '../../../constants/Typography';
+import { useThemeColors } from '../../../context/ThemeContext';
+import { useAuthContext } from '../../../context/AuthContext';
+import { NotificationHeaderButton } from '../../../components/navigation/NotificationHeaderButton';
 import {
   SkeletonSummaryCard,
   SkeletonKpiCard,
-} from '../../components/ui/SkeletonLoader';
+} from '../../../components/ui/SkeletonLoader';
 import { router, usePathname, useFocusEffect } from 'expo-router';
+import { BottomNavBar as BottomNav } from '../../../components/navigation/BottomNavBar';
 import {
   formatCurrencyWithCents,
   formatNumber,
@@ -32,9 +33,17 @@ import {
   SAMPLE_ORDERS,
   type OrderItem,
   type OrdersSearchType,
-} from '../../services/api/orders.service';
-import { DateFilterPreset, getDateRangeForFilter, formatCustomRangeLabel } from '../../lib/date';
-import { DateFilterModal } from '../../components/ui/DateFilterModal';
+} from '../../../services/api/orders.service';
+import {
+  OpenOrdersResponse,
+  EMPTY_OPEN_ORDERS,
+  SAMPLE_OPEN_ORDERS,
+  getOpenOrders,
+} from '../../../services/api/open-orders.service';
+import { DateFilterPreset, getDateRangeForFilter, formatCustomRangeLabel } from '../../../lib/date';
+import { DateFilterModal } from '../../../components/ui/DateFilterModal';
+import { formatOrderDate } from '../../../lib/formatters';
+import { useBackHandler } from '../../../hooks/useBackHandler';
 
 const PRIMARY = '#0F172A';
 const SECONDARY = '#64748B';
@@ -50,7 +59,7 @@ const decodeHtml = (str: string | null | undefined): string => {
     .trim();
 };
 
-// ─── Header Component ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Header Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const Header = ({
   activePreset,
@@ -103,7 +112,7 @@ const Header = ({
   );
 };
 
-// ─── Main Dashboard Search Bar Button ─────────────────────────────────────────
+// â”€â”€â”€ Main Dashboard Search Bar Button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const OrderSearchBar = ({ onPress }: { onPress: () => void }) => {
   return (
@@ -113,12 +122,12 @@ const OrderSearchBar = ({ onPress }: { onPress: () => void }) => {
       activeOpacity={0.9}
     >
       <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
-      <Text style={styles.searchPlaceholderText}>Search by order no or company name…</Text>
+      <Text style={styles.searchPlaceholderText}>Search by order no or part number</Text>
     </TouchableOpacity>
   );
 };
 
-// ─── Dedicated Search Overlay Modal ────────────────────────────────────────────
+// â”€â”€â”€ Dedicated Search Overlay Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const SearchOverlayModal = ({
   visible,
@@ -138,12 +147,6 @@ const SearchOverlayModal = ({
   const inputRef = useRef<TextInput>(null);
   const [fetchedOrders, setFetchedOrders] = useState<OrderItem[]>([]);
   const [searching, setSearching] = useState(false);
-
-  useEffect(() => {
-    if (visible) {
-      setTimeout(() => inputRef.current?.focus(), 120);
-    }
-  }, [visible]);
 
   useEffect(() => {
     let active = true;
@@ -221,7 +224,7 @@ const SearchOverlayModal = ({
           const idx = companyStr.indexOf(q);
           score = 1000 - idx * 10;
         } else {
-          // Backend returned this order for active search query → keep it!
+          // Backend returned this order for active search query â†’ keep it!
           score = 500;
         }
 
@@ -238,7 +241,13 @@ const SearchOverlayModal = ({
   }, [query, fetchedOrders]);
 
   return (
-    <Modal visible={visible} animationType="fade" transparent={false} onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent={false}
+      onRequestClose={onClose}
+      onShow={() => inputRef.current?.focus()}
+    >
       <SafeAreaView style={styles.searchOverlaySafeArea} edges={['top', 'bottom']}>
         {/* Top Search Input Bar */}
         <View style={styles.searchOverlayHeader}>
@@ -249,7 +258,7 @@ const SearchOverlayModal = ({
               style={styles.searchOverlayInput}
               value={query}
               onChangeText={setQuery}
-              placeholder="Search by order #, company, or part #…"
+              placeholder="Search by order #, or part #"
               placeholderTextColor="#94A3B8"
               autoCapitalize="none"
               autoCorrect={false}
@@ -272,7 +281,7 @@ const SearchOverlayModal = ({
             {searching ? (
               <View style={{ paddingVertical: 24, alignItems: 'center' }}>
                 <ActivityIndicator size="small" color={PRIMARY} />
-                <Text style={{ fontSize: 13, color: SECONDARY, marginTop: 8 }}>Searching live orders…</Text>
+                <Text style={{ fontSize: 13, color: SECONDARY, marginTop: 8 }}>Searching live ordersâ€¦</Text>
               </View>
             ) : searchResults.length > 0 ? (
               searchResults.map((item: any, idx: number) => {
@@ -338,37 +347,51 @@ const SearchOverlayModal = ({
   );
 };
 
-// ─── Top Grey Summary Card ────────────────────────────────────────────────────
+// â”€â”€â”€ Top Grey Summary Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const SummaryCard = ({
   count,
   totalAmount,
   loading,
+  onPress,
 }: {
   count: number;
   totalAmount: number;
   loading: boolean;
+  onPress?: () => void;
 }) => {
   if (loading && count === 0 && totalAmount === 0) {
     return <SkeletonSummaryCard />;
   }
 
+  const content = (
+    <View style={styles.summaryRow}>
+      <View style={styles.summaryColLeft}>
+        <Text style={styles.summaryCountLabel}>Orders</Text>
+        <Text style={styles.summaryCount}>{formatNumber(count)}</Text>
+      </View>
+      <View style={styles.summaryColRight}>
+        <Text style={styles.summaryValue}>{formatCurrencyWithCents(totalAmount)}</Text>
+      </View>
+    </View>
+  );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity style={styles.summaryCard} onPress={onPress} activeOpacity={0.8}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
   return (
     <View style={styles.summaryCard}>
-      <View style={styles.summaryRow}>
-        <View style={styles.summaryColLeft}>
-          <Text style={styles.summaryCountLabel}>Orders</Text>
-          <Text style={styles.summaryCount}>{formatNumber(count)}</Text>
-        </View>
-        <View style={styles.summaryColRight}>
-          <Text style={styles.summaryValue}>{formatCurrencyWithCents(totalAmount)}</Text>
-        </View>
-      </View>
+      {content}
     </View>
   );
 };
 
-// ─── NEW & REPEAT KPI Cards Grid ──────────────────────────────────────────
+// â”€â”€â”€ NEW & REPEAT KPI Cards Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const OrdersKpiGrid = ({
   newCount = 0,
@@ -433,54 +456,116 @@ const OrdersKpiGrid = ({
   );
 };
 
-// ─── Bottom Navigation ────────────────────────────────────────────────────────
+// â”€â”€â”€ Bottom Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-const BottomNav = () => {
-  const colors = useThemeColors();
-  const pathname = usePathname();
-  const insets = useSafeAreaInsets();
-  const tabs = [
-    { icon: 'home', label: 'Dashboard', route: '/' },
-    { icon: 'document-text', label: 'Orders', route: '/orders' },
-    { icon: 'cube', label: 'Open orders', route: '/open-orders' },
-    { icon: 'chatbox', label: 'Quotes', route: '/quotes' },
-  ];
+
+// ━━━━ Pending, Partial & Open KPI Grid ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const PendingAndPartialKpiGrid = ({ data }: { data: OpenOrdersResponse }) => {
+  const pendingCount = data.pendingOrdersCount ?? data.pendingOrdersSummary?.totalOrders ?? 0;
+  const pendingAmount = data.pendingOrdersAmount ?? data.pendingOrdersSummary?.totalOrderedAmount ?? 0;
+
+  const partialCount = data.partialOrdersCount ?? data.partialOrdersSummary?.totalOrders ?? 0;
+  const partialAmount = data.partialOrdersAmount ?? data.partialOrdersSummary?.totalOrderedAmount ?? 0;
+
+  const openCount = data.totalOpenOrders ?? pendingCount + partialCount;
+  const openAmount = data.totalOpenOrdersAmount ?? pendingAmount + partialAmount;
+
   return (
-    <View
-      style={[
-        styles.bottomNav,
-        {
-          backgroundColor: colors.card,
-          borderTopColor: colors.border,
-          paddingBottom: Math.max(insets.bottom, 4),
-          height: 56 + Math.max(insets.bottom, 4),
-        },
-      ]}
-    >
-      {tabs.map((tab, index) => {
-        const isActive = pathname === tab.route;
-        return (
-          <TouchableOpacity
-            key={index}
-            style={styles.navTab}
-            onPress={() => router.push(tab.route as any)}
-          >
-            <Ionicons
-              name={isActive ? (tab.icon as any) : (`${tab.icon}-outline` as any)}
-              size={24}
-              color={isActive ? colors.primary : colors.inactive}
-            />
-            <Text style={[styles.navLabel, { color: isActive ? colors.primary : colors.inactive }]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+    <View style={{ gap: 10 }}>
+      <View style={styles.kpiRow}>
+        <TouchableOpacity
+          style={styles.whiteKpiCard}
+          onPress={() => router.push('/open-orders' as any)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.kpiHeaderLabel}>ALL OPEN ORDERS</Text>
+          <Text style={styles.kpiCountText}>{formatNumber(openCount)}</Text>
+          <Text style={styles.kpiAmountText}>{formatCurrencyWithCents(openAmount)}</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.kpiRow}>
+        <TouchableOpacity
+          style={styles.whiteKpiCard}
+          onPress={() => router.push('/pending-orders' as any)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.kpiHeaderLabel}>PENDING ORDERS</Text>
+          <Text style={styles.kpiCountText}>{formatNumber(pendingCount)}</Text>
+          <Text style={styles.kpiAmountText}>{formatCurrencyWithCents(pendingAmount)}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.whiteKpiCard}
+          onPress={() => router.push('/partial-orders' as any)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.kpiHeaderLabel}>PARTIAL ORDERS</Text>
+          <Text style={styles.kpiCountText}>{formatNumber(partialCount)}</Text>
+          <Text style={styles.kpiAmountText}>{formatCurrencyWithCents(partialAmount)}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
 
-// ─── Main Screen Component ────────────────────────────────────────────────────
+// ━━━━ Fixed Summary Table ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const FixedSummaryTable = ({
+  title,
+  count,
+  amount,
+  summary,
+  onPress,
+}: {
+  title: string;
+  count: number;
+  amount: number;
+  summary?: any;
+  onPress: () => void;
+}) => {
+  const statRows = [
+    { label: 'No of Orders', value: formatNumber(count) },
+    { label: 'Total Ordered Value', value: formatCurrencyWithCents(amount) },
+    { label: 'Orders Assigned To Vendors', value: formatNumber(summary?.ordersWithVendorCount ?? 0) },
+    {
+      label: 'Assigned Vendor Order Value',
+      value: formatCurrencyWithCents(summary?.ordersWithVendorAmount ?? summary?.vendorOrderAmount ?? 0),
+    },
+    { label: 'Orders Without Vendor Assignment', value: formatNumber(summary?.ordersWithoutVendorCount ?? 0) },
+    { label: 'Shipped Order Quantity Value', value: formatCurrencyWithCents(summary?.totalShippedAmount ?? 0) },
+    { label: 'Pending Order Quantity Value', value: formatCurrencyWithCents(summary?.totalPendingAmount ?? amount) },
+    { label: 'Invoiced Order Quantity Value', value: formatCurrencyWithCents(summary?.totalInvoicedAmount ?? 0) },
+    { label: 'Payment Received', value: formatCurrencyWithCents(summary?.totalPaymentsReceived ?? 0) },
+    { label: 'Advance Payment Received', value: formatCurrencyWithCents(summary?.advancePaymentReceived ?? 0) },
+  ];
+
+  return (
+    <TouchableOpacity style={styles.breakdownCard} onPress={onPress} activeOpacity={0.85}>
+      <View style={styles.breakdownHeaderFixed}>
+        <View style={styles.breakdownTitleRow}>
+          <Text style={styles.breakdownTitle}>{title}</Text>
+          <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+        </View>
+      </View>
+      <View style={styles.breakdownContent}>
+        {statRows.map((row, index) => (
+          <View
+            key={index}
+            style={[styles.breakdownRow, index < statRows.length - 1 && styles.breakdownRowBorder]}
+          >
+            <Text style={styles.breakdownRowLabel}>{row.label}</Text>
+            <Text style={styles.breakdownRowValue}>{row.value}</Text>
+          </View>
+        ))}
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+
+
+// â”€â”€â”€ Main Screen Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function OrdersScreen() {
   const { user } = useAuthContext();
@@ -500,6 +585,7 @@ export default function OrdersScreen() {
   const [newOrdersAmount, setNewOrdersAmount] = useState(0);
   const [repeatedOrdersCount, setRepeatedOrdersCount] = useState(0);
   const [repeatedOrdersAmount, setRepeatedOrdersAmount] = useState(0);
+  const [openOrdersData, setOpenOrdersData] = useState<OpenOrdersResponse>(EMPTY_OPEN_ORDERS);
 
   const fetchOrdersForPreset = useCallback(
     async (preset: DateFilterPreset, range: { startDate: string; endDate: string } | null, silent = false) => {
@@ -541,36 +627,41 @@ export default function OrdersScreen() {
     [token]
   );
 
-  // Update data when activePreset or customRange is changed by user on screen
+  // Date-preset / custom range changes → ONLY re-fetch Orders (grey KPI + NEW/REPEAT KPIs)
+  // Does NOT affect open orders data below
   useEffect(() => {
     fetchOrdersForPreset(activePreset, customRange);
   }, [activePreset, customRange, fetchOrdersForPreset]);
 
+  // Open orders data → load once on token change / initial mount.
+  // Date range intentionally does NOT re-trigger this.
   useEffect(() => {
-    const onBackPress = () => {
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/');
+    (async () => {
+      try {
+        if (!token) {
+          setOpenOrdersData(SAMPLE_OPEN_ORDERS);
+          return;
+        }
+        const res = await getOpenOrders({ token, timeoutMs: 20000 });
+        setOpenOrdersData(res);
+      } catch (e: any) {
+        if (__DEV__) console.log('[OrdersScreen] getOpenOrders error:', e?.message || e);
+        setOpenOrdersData(SAMPLE_OPEN_ORDERS);
       }
-      return true;
-    };
-    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-    return () => subscription.remove();
-  }, []);
+    })();
+  }, [token]);
 
-  // Reset to default 'today' state ONLY when screen gains focus (re-entering page)
-  useFocusEffect(
-    useCallback(() => {
-      setActivePreset('today');
-      setCustomRange(null);
-      setQuery('');
+  useBackHandler({
+    modalVisible: filterModalVisible || searchModalVisible,
+    onDismissModal: () => {
       setFilterModalVisible(false);
       setSearchModalVisible(false);
-      fetchOrdersForPreset('today', null);
-    }, [fetchOrdersForPreset])
-  );
+      setQuery('');
+    },
+  });
 
+  // Pull-to-refresh → only re-fetch the date-filtered Orders KPIs.
+  // Open orders below are intentionally untouched by date changes.
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchOrdersForPreset(activePreset, customRange, true);
@@ -658,17 +749,26 @@ export default function OrdersScreen() {
             onPressRepeat={() => navigateToAllOrders('REPEAT')}
           />
 
-          {/* 3. View All Orders List Button */}
-          <View style={styles.viewAllRowContainer}>
-            <TouchableOpacity
-              style={styles.viewAllButton}
-              onPress={() => navigateToAllOrders()}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.viewAllButtonText}>View All Orders List</Text>
-              <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
+          {/* 3. ALL OPEN ORDERS / PENDING / PARTIAL KPI 3-card block */}
+          <PendingAndPartialKpiGrid data={openOrdersData} />
+
+          {/* 4. Pending Orders Summary Table */}
+          <FixedSummaryTable
+            title="Pending"
+            count={openOrdersData.pendingOrdersCount ?? openOrdersData.pendingOrdersSummary?.totalOrders ?? 0}
+            amount={openOrdersData.pendingOrdersAmount ?? openOrdersData.pendingOrdersSummary?.totalOrderedAmount ?? 0}
+            summary={openOrdersData.pendingOrdersSummary}
+            onPress={() => router.push('/pending-orders' as any)}
+          />
+
+          {/* 5. Partial Orders Summary Table */}
+          <FixedSummaryTable
+            title="Partial"
+            count={openOrdersData.partialOrdersCount ?? openOrdersData.partialOrdersSummary?.totalOrders ?? 0}
+            amount={openOrdersData.partialOrdersAmount ?? openOrdersData.partialOrdersSummary?.totalOrderedAmount ?? 0}
+            summary={openOrdersData.partialOrdersSummary}
+            onPress={() => router.push('/partial-orders' as any)}
+          />
         </View>
       </ScrollView>
 
@@ -698,7 +798,7 @@ export default function OrdersScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const hairline = StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5;
 
@@ -782,7 +882,7 @@ const styles = StyleSheet.create({
   },
   clearBtn: { padding: 4 },
 
-  // ─── Search Overlay Modal Styles ──────────────────────────────────────────────
+  // â”€â”€â”€ Search Overlay Modal Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   searchOverlaySafeArea: {
     flex: 1,
     backgroundColor: '#F8FAFC',
@@ -946,6 +1046,28 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 4,
   },
+  whiteKpiCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 14,
+    gap: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  kpiCountText: {
+    fontSize: 22,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '700',
+    color: PRIMARY,
+  },
+  kpiAmountText: {
+    fontSize: 12,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+  },
   kpiHeaderLabel: {
     fontSize: 11.5,
     fontFamily: Typography.headingSemiBold,
@@ -964,20 +1086,52 @@ const styles = StyleSheet.create({
     color: SECONDARY,
   },
 
-  viewAllRowContainer: { marginTop: 4 },
-  viewAllButton: {
-    height: 46,
-    backgroundColor: PRIMARY,
+  breakdownCard: {
+    backgroundColor: '#3A4151',
     borderRadius: 14,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
+    overflow: 'hidden',
   },
-  viewAllButtonText: {
-    fontSize: 14,
+  breakdownHeaderFixed: {
+    backgroundColor: '#3A4151',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  breakdownTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  breakdownTitle: {
+    fontSize: 15,
     fontFamily: Typography.headingSemiBold,
+    fontWeight: '700',
     color: '#FFFFFF',
+  },
+  breakdownContent: {
+    backgroundColor: '#FFFFFF',
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  breakdownRowBorder: {
+    borderBottomWidth: hairline,
+    borderBottomColor: '#E2E8F0',
+  },
+  breakdownRowLabel: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+    flex: 1,
+  },
+  breakdownRowValue: {
+    fontSize: 13,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
+    fontWeight: '600',
   },
 
   // Bottom Nav
@@ -997,3 +1151,5 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
 });
+
+

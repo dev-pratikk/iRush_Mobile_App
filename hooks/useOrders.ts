@@ -24,7 +24,29 @@ export interface OrdersRowItem extends OrderItem {
 
 const mapOrderItem = (raw: OrderItem): OrdersRowItem => {
   const detail = raw.orderDetails && raw.orderDetails.length > 0 ? raw.orderDetails[0] : null;
-  const daysLeft = detail && typeof detail.DAY === 'number' ? detail.DAY : 0;
+
+  const promisedDate =
+    detail?.PROMISED_DATE || detail?.promisedDate || detail?.FINISH_DATE || detail?.finishDate ||
+    (raw as any)?.PROMISED_DATE || (raw as any)?.promisedDate ||
+    (raw as any)?.FINISH_DATE || (raw as any)?.finishDate ||
+    null;
+  const orderDate = raw.ORDER_DATE || raw.orderDate || (raw as any)?.ORDERDATE || null;
+
+  let daysLeft = 0;
+  if (promisedDate && orderDate) {
+    const start = new Date(orderDate);
+    const end = new Date(promisedDate);
+    if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+      const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      if (Number.isFinite(diffDays)) {
+        daysLeft = diffDays;
+      }
+    }
+  }
+
+  if (daysLeft === 0 && detail && typeof detail.DAY === 'number' && detail.DAY > 0) {
+    daysLeft = detail.DAY;
+  }
 
   const assignedVendors = typeof raw.assignedVendorCount === 'number'
     ? raw.assignedVendorCount

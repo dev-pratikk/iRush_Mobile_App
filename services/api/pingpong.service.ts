@@ -13,17 +13,30 @@ export interface PingPongEndpointReport {
 }
 
 export const PINGPONG_MONITORED_APIS: { id: string; name: string; path: string; query?: string }[] = [
-  { id: 'stats', name: 'Dashboard Stats API', path: '/dashboard/stats' },
-  { id: 'open-orders', name: 'Open Orders Summary API', path: '/dashboard/open-orders' },
-  { id: 'orders-list', name: 'Orders List API', path: '/dashboard/orders' },
-  { id: 'orders-new', name: 'New Orders Category API', path: '/dashboard/orders', query: '?orderCategory=new' },
-  { id: 'orders-repeat', name: 'Repeated Orders Category API', path: '/dashboard/orders', query: '?orderCategory=repeated' },
-  { id: 'orders-search', name: 'Fast Search API', path: '/dashboard/orders/search/test' },
-  { id: 'pending-orders', name: 'Pending Orders List API', path: '/dashboard/open-orders', query: '?filter=pending' },
-  { id: 'partial-orders', name: 'Partial Orders List API', path: '/dashboard/open-orders', query: '?filter=partial' },
-  { id: 'quotes-summary', name: 'Quotes Overview API', path: '/dashboard/quotes' },
-  { id: 'quotes-salesperson', name: 'Quotes by Salesperson API', path: '/dashboard/quotes/salesperson' },
-  { id: 'quotes-servicetype', name: 'Quotes by Service Type API', path: '/dashboard/quotes/service-type' },
+  // ── Dashboard ──────────────────────────────────────────────────────────
+  { id: 'stats',               name: 'Dashboard Stats',               path: '/dashboard/stats' },
+
+  // ── Orders ─────────────────────────────────────────────────────────────
+  { id: 'orders-list',         name: 'Orders List',                   path: '/dashboard/orders' },
+  { id: 'orders-new',          name: 'Orders — New Category',         path: '/dashboard/orders', query: '?orderCategory=new' },
+  { id: 'orders-repeat',       name: 'Orders — Repeated Category',    path: '/dashboard/orders', query: '?orderCategory=repeated' },
+  { id: 'orders-search',       name: 'Orders Search',                 path: '/dashboard/orders/search/test' },
+
+  // ── Open Orders ────────────────────────────────────────────────────────
+  { id: 'open-orders',         name: 'Open Orders Summary',           path: '/dashboard/open-orders' },
+  { id: 'open-pending',        name: 'Open Orders — Pending Filter',  path: '/dashboard/open-orders', query: '?filter=pending' },
+  { id: 'open-partial',        name: 'Open Orders — Partial Filter',  path: '/dashboard/open-orders', query: '?filter=partial' },
+
+  // ── Quotes ─────────────────────────────────────────────────────────────
+  { id: 'quotes-dashboard',    name: 'Quotes Dashboard',              path: '/dashboard/quotes' },
+  { id: 'quotes-list',         name: 'Quotes List (paginated)',       path: '/dashboard/quotes', query: '?page=1&limit=30' },
+
+  // ── AR (Accounts Receivable) ───────────────────────────────────────────
+  { id: 'ar-all',              name: 'AR Invoices List',              path: '/dashboard/ar' },
+  { id: 'ar-search',           name: 'AR Invoice Search',             path: '/dashboard/ar-search', query: '?search=test' },
+
+  // ── Salespersons ────────────────────────────────────────────────────────
+  { id: 'salespersons',        name: 'Salespersons List',             path: '/dashboard/salespersons' },
 ];
 
 type PingPongListener = (reports: PingPongEndpointReport[]) => void;

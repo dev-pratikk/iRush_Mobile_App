@@ -2,24 +2,24 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Text, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { KpiCard } from '../../components/dashboard/KpiCard';
-import { SkeletonSummaryCard, SkeletonKpiCard } from '../../components/ui/SkeletonLoader';
+import { KpiCard } from '../../../components/dashboard/KpiCard';
+import { SkeletonSummaryCard, SkeletonKpiCard } from '../../../components/ui/SkeletonLoader';
 import { DASHBOARD_KPIS } from '@mocks/dashboard';
-import type { DatePeriod } from '../../types/dashboard';
-import { useAuthContext } from '../../context/AuthContext';
-import { useThemeColors } from '../../context/ThemeContext';
-import { Typography } from '../../constants/Typography';
+import type { DatePeriod } from '../../../types/dashboard';
+import { useAuthContext } from '../../../context/AuthContext';
+import { useThemeColors } from '../../../context/ThemeContext';
+import { Typography } from '../../../constants/Typography';
 import { useNavigation } from '@react-navigation/native';
 import { DrawerActions } from '@react-navigation/native';
 import { router, usePathname, useFocusEffect } from 'expo-router';
-import { NotificationHeaderButton } from '../../components/navigation/NotificationHeaderButton';
+import { NotificationHeaderButton } from '../../../components/navigation/NotificationHeaderButton';
 import {
   getDashboardStats,
   DashboardStatsResponse,
   formatCurrency,
   formatNumber,
   SAMPLE_STATS,
-} from '../../services/api/dashboard.service';
+} from '../../../services/api/dashboard.service';
 
 const Header = () => {
   const colors = useThemeColors();
@@ -128,8 +128,8 @@ const BottomNav = () => {
   const tabs = [
     { icon: 'home', label: 'Dashboard', route: '/' },
     { icon: 'document-text', label: 'Orders', route: '/orders' },
-    { icon: 'cube', label: 'Open orders', route: '/open-orders' },
-    { icon: 'chatbox', label: 'Quotes', route: '/quotes' },
+    { icon: 'chatbox', label: 'Quotes', route: '/all-quotes' },
+    { icon: 'receipt', label: 'AR', route: '/ar' },
   ];
 
   return (
@@ -204,7 +204,7 @@ export default function DashboardScreen() {
         if (!cancelled) {
           setLoading((prev) => {
             if (prev) {
-              setError('Loading is taking longer than expected — pull down to retry');
+              setError('Loading is taking longer than expected â€” pull down to retry');
               return false;
             }
             return prev;
@@ -491,3 +491,5 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
 });
+
+

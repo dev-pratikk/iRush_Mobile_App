@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+﻿﻿import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,7 +8,6 @@ import {
   TextInput,
   ActivityIndicator,
   RefreshControl,
-  BackHandler,
   Modal,
   ScrollView,
 } from 'react-native';
@@ -19,6 +18,7 @@ import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { NotificationHeaderButton } from '../../components/navigation/NotificationHeaderButton';
 import { useAuthContext } from '../../context/AuthContext';
 import { OrderCard } from '../../components/dashboard/OrderCard';
+import { useBackHandler } from '../../hooks/useBackHandler';
 import {
   formatCurrencyWithCents,
   formatNumber,
@@ -27,13 +27,14 @@ import {
   ORDERS_PAGE_LIMIT,
   isOrderNew,
   isOrderRepeat,
+  fetchOrdersByFastSearch,
+  fetchOrderById,
   type OrdersSearchType,
   type OrdersSearchParam,
+  type OrderItem,
 } from '../../services/api/orders.service';
 import { useOrders, type OrdersRowItem } from '../../hooks/useOrders';
 import { useSalespersons } from '../../hooks/useSalespersons';
-import { useSearchSuggestions } from '../../hooks/useSearchSuggestions';
-import type { SearchSuggestionItem } from '../../services/api/search.service';
 import { PaginationFooter } from '../../components/ui/PaginationFooter';
 import { SkeletonRowItem, SkeletonSummaryCard, SkeletonKpiCard } from '../../components/ui/SkeletonLoader';
 import { DateFilterPreset, getDateRangeForFilter, formatCustomRangeLabel } from '../../lib/date';
@@ -46,7 +47,255 @@ const INPUT_BG = '#F5F5F2';
 
 const DEFAULT_SALESPERSONS = ['Imran', 'John', 'Sarah', 'Alex', 'Michael', 'David'];
 
-// ─── Header Component ─────────────────────────────────────────────────────────
+const SEARCH_MODAL_PRIMARY = '#0F172A';
+const SEARCH_MODAL_SECONDARY = '#64748B';
+
+const decodeHtml = (str: string | null | undefined): string => {
+  if (!str) return '';
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim();
+};
+
+// â”€â”€â”€ Clickable Search Bar Button (Opens Dedicated Search Overlay) â”€â”€â”€â”€â”€â”€
+
+const OrderSearchBar = ({ onPress }: { onPress: () => void }) => {
+  return (
+    <TouchableOpacity
+      style={styles.searchInputWrap}
+      onPress={onPress}
+      activeOpacity={0.9}
+    >
+      <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
+      <Text style={styles.searchPlaceholderText}>Search by order no or part number</Text>
+    </TouchableOpacity>
+  );
+};
+
+// â”€â”€â”€ Dedicated Search Overlay Modal (Full-Screen Search Experience) â”€â”€â”€â”€â”€
+
+const SearchOverlayModal = ({
+  visible,
+  onClose,
+  query,
+  setQuery,
+  token,
+  onSelectOrder,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  query: string;
+  setQuery: (q: string) => void;
+  token?: string | null;
+  onSelectOrder: (item: OrderItem) => void;
+}) => {
+  const inputRef = useRef<TextInput>(null);
+  const [fetchedOrders, setFetchedOrders] = useState<OrderItem[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (!visible) return;
+
+    const performLiveSearch = async () => {
+      const q = query.trim();
+      if (!q) {
+        setFetchedOrders([]);
+        setSearching(false);
+        return;
+      }
+
+      setSearching(true);
+      try {
+        const results = await fetchOrdersByFastSearch(q, { token: token ?? null });
+        if (active) {
+          setFetchedOrders(results);
+        }
+      } catch (e) {
+        if (__DEV__) console.log('[SearchOverlay] Fast live search error:', e);
+      } finally {
+        if (active) setSearching(false);
+      }
+    };
+
+    const timer = setTimeout(performLiveSearch, 200);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [query, visible, token]);
+
+  const searchResults = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return fetchedOrders;
+
+    const getPartNoString = (item: any): string => {
+      return String(
+        item.pcbpartNo ||
+        item.PCBPARTNO ||
+        item.partNo ||
+        item.PARTNO ||
+        item.partNumber ||
+        item.PARTNUMBER ||
+        item.orderDetails?.[0]?.PCBPARTNO ||
+        item.orderDetails?.[0]?.PARTNO ||
+        item.orderDetails?.[0]?.pcbpartNo ||
+        item.orderSpecifications?.[0]?.PCBPARTNO ||
+        ''
+      ).trim();
+    };
+
+    const scored = fetchedOrders
+      .map((item: any) => {
+        const orderNoStr = String(item.orderNo || item.ORDER_NO || '').toLowerCase();
+        const companyStr = decodeHtml(item.companyName || item.COMPANY_NAME || '').toLowerCase();
+        const partNoStr = getPartNoString(item).toLowerCase();
+
+        let score = -1;
+
+        if (orderNoStr.startsWith(q)) {
+          score = 10000 - (orderNoStr.length - q.length);
+        } else if (orderNoStr.includes(q)) {
+          const idx = orderNoStr.indexOf(q);
+          score = 5000 - idx * 10 - (orderNoStr.length - q.length);
+        } else if (partNoStr.startsWith(q)) {
+          score = 3000 - (partNoStr.length - q.length);
+        } else if (partNoStr.includes(q)) {
+          const idx = partNoStr.indexOf(q);
+          score = 2500 - idx * 10;
+        } else if (companyStr.startsWith(q)) {
+          score = 2000 - (companyStr.length - q.length);
+        } else if (companyStr.includes(q)) {
+          const idx = companyStr.indexOf(q);
+          score = 1000 - idx * 10;
+        } else {
+          score = 500;
+        }
+
+        return { item, score, orderNoStr };
+      })
+      .filter((entry) => entry.score >= 0);
+
+    scored.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return b.orderNoStr.localeCompare(a.orderNoStr);
+    });
+
+    return scored.map((entry) => entry.item);
+  }, [query, fetchedOrders]);
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent={false}
+      onRequestClose={onClose}
+      onShow={() => inputRef.current?.focus()}
+    >
+      <SafeAreaView style={styles.searchOverlaySafeArea} edges={['top', 'bottom']}>
+        {/* Top Search Input Bar */}
+        <View style={styles.searchOverlayHeader}>
+          <View style={styles.searchOverlayInputWrap}>
+            <Ionicons name="search-outline" size={18} color={SEARCH_MODAL_SECONDARY} style={styles.searchIcon} />
+            <TextInput
+              ref={inputRef}
+              style={styles.searchOverlayInput}
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search by order #, or part #"
+              placeholderTextColor="#94A3B8"
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+            />
+            {query.length > 0 ? (
+              <TouchableOpacity onPress={() => setQuery('')} style={styles.clearBtn}>
+                <Ionicons name="close-circle" size={18} color="#94A3B8" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <TouchableOpacity onPress={onClose} style={styles.searchCancelBtn} activeOpacity={0.7}>
+            <Text style={styles.searchCancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Blank Screen with Live Suggestions */}
+        <ScrollView style={styles.searchSuggestionsScroll} keyboardShouldPersistTaps="handled">
+          <View style={styles.searchSuggestionsContainer}>
+            {searching ? (
+              <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color={SEARCH_MODAL_PRIMARY} />
+                <Text style={{ fontSize: 13, color: SEARCH_MODAL_SECONDARY, marginTop: 8 }}>Searching live orders…</Text>
+              </View>
+            ) : searchResults.length > 0 ? (
+              searchResults.map((item: any, idx: number) => {
+                const orderNoDisplay = item.orderNo || item.ORDER_NO || item.id;
+                const companyDisplay = decodeHtml(item.companyName || item.COMPANY_NAME || 'Higher Ground, LLC');
+                const statusDisplay = item.orderStatus || item.ORDER_STATUS || 'Open';
+                const partNoDisplay =
+                  item.pcbpartNo ||
+                  item.PCBPARTNO ||
+                  item.partNo ||
+                  item.PARTNO ||
+                  item.partNumber ||
+                  item.PARTNUMBER ||
+                  item.orderDetails?.[0]?.PCBPARTNO ||
+                  item.orderDetails?.[0]?.PARTNO ||
+                  item.orderDetails?.[0]?.pcbpartNo ||
+                  item.orderSpecifications?.[0]?.PCBPARTNO;
+
+                return (
+                  <TouchableOpacity
+                    key={item.ORDER_ID || item.id || idx}
+                    style={styles.suggestionCard}
+                    onPress={() => onSelectOrder(item)}
+                    activeOpacity={0.75}
+                  >
+                    <View style={styles.suggestionLeftCol}>
+                      <Text style={styles.suggestionOrderNo}>Order #{orderNoDisplay}</Text>
+                      <Text style={styles.suggestionCompany} numberOfLines={1}>
+                        {companyDisplay}
+                      </Text>
+                      {partNoDisplay ? (
+                        <Text style={{ fontSize: 11, color: SEARCH_MODAL_SECONDARY, marginTop: 2 }} numberOfLines={1}>
+                          Part: {partNoDisplay}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View style={styles.suggestionStatusPill}>
+                        <Text style={styles.suggestionStatusText}>{statusDisplay}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color="#94A3B8" style={{ marginLeft: 6 }} />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            ) : query.trim().length > 0 ? (
+              <View style={styles.emptySearchWrap}>
+                <Ionicons name="search-outline" size={32} color="#94A3B8" />
+                <Text style={styles.emptySearchTitle}>No matching orders found</Text>
+                <Text style={styles.emptySearchSub}>Try searching for a different order number or company name.</Text>
+              </View>
+            ) : (
+              <View style={styles.emptySearchWrap}>
+                <Ionicons name="hardware-chip-outline" size={32} color="#94A3B8" />
+                <Text style={styles.emptySearchTitle}>Type an order number or part #</Text>
+                <Text style={styles.emptySearchSub}>Live order suggestions will appear automatically as you type.</Text>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+};
+
+// â”€â”€â”€ Header Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const Header = ({
   activePreset,
@@ -98,7 +347,7 @@ const Header = ({
   );
 };
 
-// ─── White KPI Summary Card (Count & Revenue Overview) ──────────────────────
+// â”€â”€â”€ White KPI Summary Card (Count & Revenue Overview) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const SummaryOverviewCard = ({
   activePreset,
@@ -137,7 +386,7 @@ const SummaryOverviewCard = ({
   }
 
   if (qualifiers.length > 0) {
-    periodLabel = `${periodLabel} (${qualifiers.join(' · ')})`;
+    periodLabel = `${periodLabel} (${qualifiers.join(' Â· ')})`;
   }
 
   if (loading && totalRecords === 0) {
@@ -165,28 +414,22 @@ const SummaryOverviewCard = ({
   );
 };
 
-// ─── Search Bar & Salesperson Filter Section ──────────────────────────────────
+// â”€â”€â”€ Search Bar & Salesperson Filter Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // NOTE: Suggestions dropdown is rendered at screen-level, not here, to avoid
 // FlatList clipping the absolute overlay.
 
 const SearchBarSection = ({
-  inputText,
-  setInputText,
+  onOpenSearch,
   selectedSalesperson,
   setSelectedSalesperson,
   selectedCategory,
   setSelectedCategory,
-  onFocusChange,
-  onClear,
 }: {
-  inputText: string;
-  setInputText: (text: string) => void;
+  onOpenSearch: () => void;
   selectedSalesperson: string | null;
   setSelectedSalesperson: (sp: string | null) => void;
   selectedCategory: 'NEW' | 'REPEAT' | null;
   setSelectedCategory: (cat: 'NEW' | 'REPEAT' | null) => void;
-  onFocusChange: (focused: boolean) => void;
-  onClear: () => void;
 }) => {
   const { user } = useAuthContext();
   const token = (user as any)?.token ?? null;
@@ -201,47 +444,15 @@ const SearchBarSection = ({
   return (
     <View style={styles.searchSection}>
       <View style={styles.searchRow}>
-        {/* Unified Search Input */}
-        <View style={styles.searchInputWrap}>
-          <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            value={inputText}
-            onChangeText={(txt) => {
-              setInputText(txt);
-              onFocusChange(true);
-            }}
-            onFocus={() => onFocusChange(true)}
-            onBlur={() => {
-              setTimeout(() => onFocusChange(false), 200);
-            }}
-            placeholder="Search by order no or company name…"
-            placeholderTextColor={SECONDARY}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="search"
-          />
-          {inputText.length > 0 ? (
-            <TouchableOpacity
-              onPress={() => {
-                onClear();
-                onFocusChange(false);
-              }}
-              style={styles.clearButton}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="close-circle" size={18} color={SECONDARY} />
-            </TouchableOpacity>
-          ) : null}
+        {/* Clickable Search Bar Button (Opens Full-Screen Modal) */}
+        <View style={{ flex: 1 }}>
+          <OrderSearchBar onPress={onOpenSearch} />
         </View>
 
         {/* Salesperson Filter Button in Same Row */}
         <TouchableOpacity
           style={[styles.filterButton, !!selectedSalesperson && styles.filterButtonActive]}
-          onPress={() => {
-            onFocusChange(false);
-            setModalVisible(true);
-          }}
+          onPress={() => setModalVisible(true)}
           activeOpacity={0.8}
         >
           <Ionicons
@@ -348,7 +559,7 @@ const SearchBarSection = ({
   );
 };
 
-// ─── Order Row Component ──────────────────────────────────────────────────────
+// â”€â”€â”€ Order Row Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const OrderRow = React.memo(function OrderRow({ item }: { item: OrdersRowItem }) {
   return (
@@ -380,7 +591,7 @@ const OrderRow = React.memo(function OrderRow({ item }: { item: OrdersRowItem })
   );
 });
 
-// ─── Empty States ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Empty States â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const DefaultEmptyState = ({ activePreset, usingSample }: { activePreset: DateFilterPreset; usingSample: boolean }) => {
   const title =
@@ -394,7 +605,7 @@ const DefaultEmptyState = ({ activePreset, usingSample }: { activePreset: DateFi
   return (
     <View style={styles.emptyState}>
       <Ionicons name="cube-outline" size={36} color={SECONDARY} />
-      <Text style={styles.emptyTitle}>{usingSample ? 'Demo — ' + title : title}</Text>
+      <Text style={styles.emptyTitle}>{usingSample ? 'Demo â€” ' + title : title}</Text>
       <Text style={styles.emptySubtitle}>Pull down to refresh</Text>
     </View>
   );
@@ -425,7 +636,7 @@ const SearchEmptyState = ({
   );
 };
 
-// ─── Main Screen Component ────────────────────────────────────────────────────
+// â”€â”€â”€ Main Screen Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function AllOrdersScreen() {
   const { user } = useAuthContext();
@@ -474,27 +685,13 @@ export default function AllOrdersScreen() {
     }
   }, [params.period, params.startDate, params.endDate, getPresetFromParam]);
 
-  const [inputText, setInputText] = useState('');
-  const [debouncedValue, setDebouncedValue] = useState('');
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchModalVisible, setSearchModalVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedSalesperson, setSelectedSalesperson] = useState<string | null>(null);
-  const [selectedSuggestion, setSelectedSuggestion] = useState<SearchSuggestionItem | null>(null);
-
-  const { data: searchSuggestions = [] } = useSearchSuggestions(debouncedValue, token);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(inputText);
-    }, 350);
-    return () => clearTimeout(handler);
-  }, [inputText]);
 
   const handleClearSearch = useCallback(() => {
-    setInputText('');
-    setDebouncedValue('');
     setSelectedSalesperson(null);
     setSelectedCategory(null);
-    setSelectedSuggestion(null);
     setCurrentPage(1);
   }, []);
 
@@ -502,15 +699,37 @@ export default function AllOrdersScreen() {
     if (selectedSalesperson) {
       return { type: 'salesperson', value: selectedSalesperson };
     }
-    if (selectedSuggestion) {
-      return { type: selectedSuggestion.type, value: selectedSuggestion.value };
-    }
-    const trimmed = debouncedValue.trim();
-    if (!trimmed) return null;
-    const isNumeric = /^\d+$/.test(trimmed);
-    const detectedType: OrdersSearchType = isNumeric ? 'orderNo' : 'companyName';
-    return { type: detectedType, value: trimmed };
-  }, [debouncedValue, selectedSalesperson, selectedSuggestion]);
+    return null;
+  }, [selectedSalesperson]);
+
+  const handleSelectOrder = useCallback(
+    async (item: any) => {
+      const orderId = item.ORDER_ID || item.orderId || item.ORDERD_ID || item.id;
+      let fullOrder = item;
+
+      if (orderId) {
+        try {
+          const res = await fetchOrderById(orderId, { token });
+          if (res) fullOrder = res;
+        } catch (e) {
+          if (__DEV__) console.log('[AllOrdersScreen] fetchOrderById error on navigate:', e);
+        }
+      }
+
+      setSearchModalVisible(false);
+      setSearchQuery('');
+
+      router.push({
+        pathname: '/order-details' as any,
+        params: {
+          orderId: orderId ? String(orderId) : undefined,
+          orderData: JSON.stringify(fullOrder),
+          from: '/all-orders',
+        },
+      });
+    },
+    [token]
+  );
 
   const calculatedRange = useMemo(
     () => getDateRangeForFilter(activePreset, customRange),
@@ -536,8 +755,6 @@ export default function AllOrdersScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      setInputText('');
-      setDebouncedValue('');
       setSelectedSalesperson(null);
       setSelectedCategory(params.category ? (params.category.toUpperCase() as 'NEW' | 'REPEAT') : null);
 
@@ -550,23 +767,21 @@ export default function AllOrdersScreen() {
       }
 
       setFilterModalVisible(false);
+      setSearchModalVisible(false);
+      setSearchQuery('');
       setCurrentPage(1);
       refetch();
     }, [params.period, params.category, params.startDate, params.endDate, getPresetFromParam, refetch])
   );
 
-  useEffect(() => {
-    const onBackPress = () => {
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/orders');
-      }
-      return true;
-    };
-    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-    return () => subscription.remove();
-  }, []);
+  useBackHandler({
+    modalVisible: filterModalVisible || searchModalVisible,
+    onDismissModal: () => {
+      setFilterModalVisible(false);
+      setSearchModalVisible(false);
+      setSearchQuery('');
+    },
+  });
 
   const allFilteredItems = useMemo(() => {
     let filtered = items;
@@ -586,31 +801,10 @@ export default function AllOrdersScreen() {
       );
     }
 
-    const query = debouncedValue.trim().toLowerCase();
-    if (query) {
-      filtered = filtered.filter((it: any) => {
-        const cName = (it.companyName || it.COMPANY_NAME || '').toLowerCase();
-        const oNo = String(it.orderNo || it.ORDER_NO || '').toLowerCase();
-        const pNo = String(
-          it.pcbpartNo ||
-          it.PCBPARTNO ||
-          it.partNo ||
-          it.PARTNO ||
-          it.partNumber ||
-          it.PARTNUMBER ||
-          it.orderDetails?.[0]?.PCBPARTNO ||
-          it.orderDetails?.[0]?.PARTNO ||
-          it.orderDetails?.[0]?.pcbpartNo ||
-          ''
-        ).toLowerCase();
-        return cName.includes(query) || oNo.includes(query) || pNo.includes(query);
-      });
-    }
-
     return filtered;
-  }, [items, selectedCategory, selectedSalesperson, debouncedValue]);
+  }, [items, selectedCategory, selectedSalesperson]);
 
-  const hasActiveFilter = !!(selectedCategory || selectedSalesperson || debouncedValue.trim());
+  const hasActiveFilter = !!(selectedCategory || selectedSalesperson);
 
   const totalAmountCalculated = useMemo(() => {
     if (selectedCategory === 'NEW') {
@@ -650,14 +844,6 @@ export default function AllOrdersScreen() {
     }
     return allFilteredItems.length;
   }, [meta, selectedCategory, hasActiveFilter, items.length, allFilteredItems.length]);
-
-  const availableSalespersons = useMemo(() => {
-    const fromItems = items
-      .map((it: any) => it.salespersonName || it.salesPersonName)
-      .filter((n: any) => typeof n === 'string' && n.trim().length > 0);
-    const combined = Array.from(new Set([...DEFAULT_SALESPERSONS, ...fromItems]));
-    return combined.sort();
-  }, [items]);
 
   // Pagination Cursor
   const [currentPage, setCurrentPage] = useState(1);
@@ -719,59 +905,6 @@ export default function AllOrdersScreen() {
   const keyExtractor = useCallback((item: OrdersRowItem) => item.id, []);
   const ItemSeparator = useCallback(() => <View style={styles.separator} />, []);
 
-  // Available suggestions based on raw items
-  const availableSuggestions = useMemo(() => {
-    const companySet = new Set<string>();
-    const orderSet = new Set<string>();
-    const list: { text: string; type: 'company' | 'orderNo' }[] = [];
-
-    const decodeHtml = (str: string | null | undefined): string => {
-      if (!str) return '';
-      return str
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .trim();
-    };
-
-    items.forEach((it: any) => {
-      const rawCompany = it.companyName || it.COMPANY_NAME || it.company_name || it.company;
-      if (rawCompany && typeof rawCompany === 'string') {
-        const cleanCompany = decodeHtml(rawCompany);
-        if (cleanCompany && cleanCompany !== 'N/A' && !companySet.has(cleanCompany.toLowerCase())) {
-          companySet.add(cleanCompany.toLowerCase());
-          list.push({ text: cleanCompany, type: 'company' });
-        }
-      }
-
-      const rawOrderNo = it.orderNo || it.ORDER_NO || it.order_no;
-      if (rawOrderNo) {
-        const cleanOrderNo = String(rawOrderNo).replace(/^#/, '').trim();
-        if (cleanOrderNo && cleanOrderNo !== 'N/A' && !orderSet.has(cleanOrderNo.toLowerCase())) {
-          orderSet.add(cleanOrderNo.toLowerCase());
-          list.push({ text: cleanOrderNo, type: 'orderNo' });
-        }
-      }
-    });
-
-    return list;
-  }, [items]);
-
-  // Compute live suggestions at screen level
-  const screenSuggestions = useMemo(() => {
-    const query = inputText.trim().toLowerCase();
-    if (!query || !showSuggestions) return [];
-    const uniqueMap = new Map<string, { text: string; type: 'company' | 'orderNo' }>();
-    availableSuggestions.forEach((item) => {
-      if (item.text.toLowerCase().includes(query) && !uniqueMap.has(item.text.toLowerCase())) {
-        uniqueMap.set(item.text.toLowerCase(), item);
-      }
-    });
-    return Array.from(uniqueMap.values()).slice(0, 5);
-  }, [inputText, showSuggestions, availableSuggestions]);
-
   const ListHeader = useMemo(
     () => (
       <View style={{ paddingTop: 12 }}>
@@ -785,19 +918,16 @@ export default function AllOrdersScreen() {
           selectedCategory={selectedCategory}
         />
         <SearchBarSection
-          inputText={inputText}
-          setInputText={setInputText}
+          onOpenSearch={() => setSearchModalVisible(true)}
           selectedSalesperson={selectedSalesperson}
           setSelectedSalesperson={setSelectedSalesperson}
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
-          onFocusChange={setShowSuggestions}
-          onClear={handleClearSearch}
         />
         {errorMessage ? (
           <TouchableOpacity style={styles.errorRow} onPress={() => refetch()} activeOpacity={0.8}>
             <Ionicons name="warning-outline" size={16} color="#8A1C1C" />
-            <Text style={styles.errorRowText}>{errorMessage} — tap to retry</Text>
+            <Text style={styles.errorRowText}>{errorMessage} â€” tap to retry</Text>
           </TouchableOpacity>
         ) : null}
         <View style={styles.listDivider} />
@@ -809,13 +939,10 @@ export default function AllOrdersScreen() {
       totalRecords,
       totalAmountCalculated,
       isLoading,
-      inputText,
       selectedSalesperson,
       selectedCategory,
-      availableSalespersons,
       errorMessage,
       refetch,
-      handleClearSearch,
     ]
   );
 
@@ -835,53 +962,6 @@ export default function AllOrdersScreen() {
         onOpenFilter={() => setFilterModalVisible(true)}
       />
 
-      {/* Screen-level suggestions overlay — rendered OUTSIDE FlatList to avoid clipping */}
-      {showSuggestions && searchSuggestions.length > 0 ? (
-        <View style={styles.suggestionsOverlay} pointerEvents="box-none">
-          {searchSuggestions.map((sug, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={[
-                styles.suggestionRow,
-                idx === searchSuggestions.length - 1 && { borderBottomWidth: 0 },
-              ]}
-              onPress={() => {
-                setInputText(sug.label);
-                setSelectedSuggestion(sug);
-                setShowSuggestions(false);
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={
-                  sug.type === 'orderNo'
-                    ? 'document-text-outline'
-                    : sug.type === 'companyCode'
-                    ? 'business-outline'
-                    : 'cube-outline'
-                }
-                size={16}
-                color={SECONDARY}
-                style={{ marginRight: 8 }}
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.suggestionText} numberOfLines={1}>
-                  {sug.label}
-                </Text>
-                {sug.sublabel ? (
-                  <Text style={styles.suggestionSublabel} numberOfLines={1}>
-                    {sug.sublabel}
-                  </Text>
-                ) : null}
-              </View>
-              <Text style={styles.suggestionTypeTag}>
-                {sug.type === 'orderNo' ? 'Order #' : sug.type === 'companyCode' ? 'Company' : 'Part #'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      ) : null}
-
       {/* Main Content Area: FlatList + Fixed Bottom PaginationFooter */}
       <View style={styles.mainContainer}>
         <FlatList
@@ -898,10 +978,10 @@ export default function AllOrdersScreen() {
                 <SkeletonRowItem />
                 <SkeletonRowItem />
               </View>
-            ) : selectedSalesperson || debouncedValue.trim().length > 0 ? (
+            ) : selectedSalesperson ? (
               <SearchEmptyState
-                query={selectedSalesperson || debouncedValue.trim()}
-                type={selectedSalesperson ? 'salesperson' : /[a-zA-Z]/.test(debouncedValue.trim()) ? 'companyName' : 'orderNo'}
+                query={selectedSalesperson}
+                type="salesperson"
                 onClear={handleClearSearch}
               />
             ) : (
@@ -936,6 +1016,19 @@ export default function AllOrdersScreen() {
         />
       </View>
 
+      {/* Dedicated Full-Screen Search Overlay Modal */}
+      <SearchOverlayModal
+        visible={searchModalVisible}
+        onClose={() => {
+          setSearchModalVisible(false);
+          setSearchQuery('');
+        }}
+        query={searchQuery}
+        setQuery={setSearchQuery}
+        token={token}
+        onSelectOrder={handleSelectOrder}
+      />
+
       <DateFilterModal
         visible={filterModalVisible}
         onClose={() => setFilterModalVisible(false)}
@@ -947,7 +1040,7 @@ export default function AllOrdersScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const hairline = StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5;
 
@@ -1045,15 +1138,21 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   searchInputWrap: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: INPUT_BG,
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     paddingHorizontal: 12,
-    height: 42,
+    height: 44,
   },
-  searchIcon: { marginRight: 6 },
+  searchIcon: { marginRight: 8 },
+  searchPlaceholderText: {
+    fontSize: 14,
+    fontFamily: Typography.body,
+    color: SECONDARY,
+  },
   searchInput: {
     flex: 1,
     fontSize: 13,
@@ -1062,6 +1161,122 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   clearButton: { padding: 4 },
+  clearBtn: { padding: 4 },
+
+  // â”€â”€â”€ Search Overlay Modal Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  searchOverlaySafeArea: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  searchOverlayHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 12,
+    borderBottomWidth: hairline,
+    borderBottomColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  searchOverlayInputWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 42,
+  },
+  searchOverlayInput: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: Typography.body,
+    color: PRIMARY,
+  },
+  searchCancelBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+  },
+  searchCancelText: {
+    fontSize: 15,
+    fontFamily: Typography.headingSemiBold,
+    color: '#2563EB',
+  },
+  searchSuggestionsScroll: {
+    flex: 1,
+  },
+  searchSuggestionsContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 32,
+    gap: 10,
+  },
+  suggestionCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  suggestionLeftCol: {
+    flex: 1,
+    paddingRight: 12,
+    gap: 3,
+  },
+  suggestionOrderNo: {
+    fontSize: 15,
+    fontFamily: Typography.headingSemiBold,
+    fontWeight: '700',
+    color: PRIMARY,
+  },
+  suggestionCompany: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+  },
+  suggestionStatusPill: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  suggestionStatusText: {
+    fontSize: 12,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
+  },
+  emptySearchWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 24,
+    gap: 8,
+  },
+  emptySearchTitle: {
+    fontSize: 16,
+    fontFamily: Typography.headingSemiBold,
+    color: PRIMARY,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  emptySearchSub: {
+    fontSize: 13,
+    fontFamily: Typography.bodyMedium,
+    color: SECONDARY,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1346,3 +1561,4 @@ const styles = StyleSheet.create({
   clearSearchBtn: { marginTop: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: PRIMARY, borderRadius: 8 },
   clearSearchBtnText: { color: '#FFFFFF', fontSize: 13, fontFamily: Typography.headingSemiBold },
 });
+

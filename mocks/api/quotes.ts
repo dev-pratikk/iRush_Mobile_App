@@ -3,6 +3,7 @@ import type { QuotesDashboardResponse } from '../../types/api/quotes';
 export const SAMPLE_QUOTES: QuotesDashboardResponse = {
   quoteCount: 31,
   convertedCount: 6,
+  notConvertedCount: 25,
   quotesByNewCustomer: 11,
   quotesByExistingCustomer: 20,
   totalConvertedQuotesCount: 14,
@@ -38,6 +39,7 @@ export const SAMPLE_QUOTES: QuotesDashboardResponse = {
 export const EMPTY_QUOTES: QuotesDashboardResponse = {
   quoteCount: 0,
   convertedCount: 0,
+  notConvertedCount: 0,
   quotesByNewCustomer: 0,
   quotesByExistingCustomer: 0,
   totalConvertedQuotesCount: 0,

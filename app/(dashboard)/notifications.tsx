@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -13,6 +13,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useNotifications } from '../../context/NotificationContext';
+import { useBackHandler } from '../../hooks/useBackHandler';
 import { AppNotification } from '../../services/api/notification.service';
 import { Typography } from '../../constants/Typography';
 
@@ -39,19 +40,6 @@ export default function NotificationsScreen() {
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [selectedNotif, setSelectedNotif] = useState<AppNotification | null>(null);
 
-  React.useEffect(() => {
-    const onBackPress = () => {
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/(dashboard)');
-      }
-      return true;
-    };
-    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-    return () => subscription.remove();
-  }, []);
-
   const handleBack = () => {
     if (router.canGoBack()) {
       router.back();
@@ -59,6 +47,11 @@ export default function NotificationsScreen() {
       router.replace('/(dashboard)');
     }
   };
+
+  useBackHandler({
+    modalVisible: selectedNotif != null,
+    onDismissModal: () => setSelectedNotif(null),
+  });
 
   const filteredNotifications = notifications.filter((item) => {
     if (activeTab === 'api_error') return item.type === 'api_error';
@@ -576,3 +569,4 @@ const styles = StyleSheet.create({
     color: '#DC2626',
   },
 });
+

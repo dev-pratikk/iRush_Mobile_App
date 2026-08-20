@@ -22,6 +22,7 @@ export type {
   OpenOrdersPageResponse,
   PendingOrdersSummary,
   PartialOrdersSummary,
+  OpenOrdersSummary,
 } from '../../types/api/open-orders';
 export { SAMPLE_OPEN_ORDERS, EMPTY_OPEN_ORDERS } from '@mocks/api/open-orders';
 
@@ -54,12 +55,27 @@ export const extractOrderDate = (isoDate: string | null | undefined): string => 
 };
 
 export const extractDaysLeft = (item: OpenOrderItem): number => {
-  if (item.orderDetails && item.orderDetails.length > 0) {
-    const detail = item.orderDetails[0];
-    if (detail && typeof detail.DAY === 'number') {
-      return detail.DAY;
+  const detail = item.orderDetails && item.orderDetails.length > 0 ? item.orderDetails[0] : null;
+
+  const promisedDate = detail?.PROMISED_DATE || detail?.promisedDate || item?.PROMISED_DATE || (item as any)?.promisedDate;
+  const orderDate = item.ORDER_DATE || (item as any).orderDate || (item as any).ORDERDATE || null;
+
+  if (promisedDate && orderDate) {
+    const start = new Date(orderDate);
+    const end = new Date(promisedDate);
+    if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+      const diffMs = end.getTime() - start.getTime();
+      const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+      if (Number.isFinite(diffDays)) {
+        return diffDays;
+      }
     }
   }
+
+  if (detail && typeof detail.DAY === 'number') {
+    return detail.DAY;
+  }
+
   return 0;
 };
 
@@ -148,9 +164,9 @@ export const getOpenOrders = async (
 };
 
 // ─── Paginated fetcher for useInfiniteResource ──────────────────────────────
-// Separate call per filter (pending | partial), always sends limit=10 explicitly.
+// Separate call per filter (pending | partial | all), always sends limit=10 explicitly.
 // Returns PaginatedResult<OpenOrderItem> + summary objects in the extra fields.
-export type OpenOrderFilter = 'pending' | 'partial';
+export type OpenOrderFilter = 'pending' | 'partial' | 'all';
 export type OpenOrderSearchType = 'orderNo' | 'companyCode' | 'companyName' | 'partNumber' | 'salesperson';
 
 export interface OpenOrderSearchParam {
@@ -228,6 +244,7 @@ export const fetchOpenOrdersPage = async (
       // useInfiniteResource stores the full page object; meta reads page 1
       pendingOrdersSummary: data.pendingOrdersSummary ?? null,
       partialOrdersSummary: data.partialOrdersSummary ?? null,
+      openOrdersSummary: data.openOrdersSummary ?? null,
     };
   } catch (error) {
     throw toServiceError(error);

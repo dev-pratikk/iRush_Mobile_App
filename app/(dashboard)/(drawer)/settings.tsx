@@ -12,13 +12,15 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Typography } from '../../constants/Typography';
-import { useAuthContext } from '../../context/AuthContext';
+import { Typography } from '../../../constants/Typography';
+import { useAuthContext } from '../../../context/AuthContext';
 import { router, usePathname } from 'expo-router';
-import { useThemeColors } from '../../context/ThemeContext';
-import { NotificationHeaderButton } from '../../components/navigation/NotificationHeaderButton';
+import { useThemeColors } from '../../../context/ThemeContext';
+import { NotificationHeaderButton } from '../../../components/navigation/NotificationHeaderButton';
+import { useBackHandler } from '../../../hooks/useBackHandler';
+import { BottomNavBar as BottomNav } from '../../../components/navigation/BottomNavBar';
 
-import { pingPongService, PingPongEndpointReport, PINGPONG_MONITORED_APIS } from '../../services/api/pingpong.service';
+import { pingPongService, PingPongEndpointReport, PINGPONG_MONITORED_APIS } from '../../../services/api/pingpong.service';
 
 const PRIMARY = '#2C2C2A';
 const SECONDARY = '#9C9B95';
@@ -31,7 +33,7 @@ const GREEN_TEXT = '#15803D';
 const RED_BG = '#FEE2E2';
 const RED_TEXT = '#B91C1C';
 
-// ─── Header ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const Header = () => (
   <View style={styles.header}>
@@ -51,62 +53,17 @@ const Header = () => (
   </View>
 );
 
-// ─── Bottom Nav Bar ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Bottom Nav Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-const BottomNav = () => {
-  const colors = useThemeColors();
-  const pathname = usePathname();
-  const tabs = [
-    { icon: 'home', label: 'Dashboard', route: '/' },
-    { icon: 'document-text', label: 'Orders', route: '/orders' },
-    { icon: 'cube', label: 'Open orders', route: '/open-orders' },
-    { icon: 'chatbox', label: 'Quotes', route: '/quotes' },
-  ];
-  return (
-    <View style={[styles.bottomNav, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-      {tabs.map((tab, index) => {
-        const isActive = pathname === tab.route;
-        return (
-          <TouchableOpacity key={index} style={styles.navTab} onPress={() => router.push(tab.route as any)}>
-            <Ionicons
-              name={isActive ? `${tab.icon}` : (`${tab.icon}-outline` as any)}
-              size={24}
-              color={isActive ? colors.primary : colors.inactive}
-            />
-            <Text
-              style={[
-                styles.navLabel,
-                { color: isActive ? colors.primary : colors.inactive },
-              ]}
-            >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
-};
 
-// ─── Main Settings & API Status Screen ─────────────────────────────────────────
+
+// â”€â”€â”€ Main Settings & API Status Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function SettingsScreen() {
   const { user, logout } = useAuthContext();
   const token = (user as any)?.token ?? null;
 
-  // Hardware Back button handling (Android)
-  useEffect(() => {
-    const onBackPress = () => {
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/');
-      }
-      return true;
-    };
-    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-    return () => subscription.remove();
-  }, []);
+  
 
   const [reports, setReports] = useState<PingPongEndpointReport[]>(() => pingPongService.getReports());
   const [isTestingAll, setIsTestingAll] = useState(false);
@@ -115,7 +72,7 @@ export default function SettingsScreen() {
 
   // Subscribe to live Ping-Pong updates
   useEffect(() => {
-    const unsubscribe = pingPongService.subscribe((liveData) => {
+    const unsubscribe = pingPongService.subscribe((liveData: any) => {
       setReports(liveData);
     });
     return () => unsubscribe();
@@ -179,7 +136,7 @@ export default function SettingsScreen() {
               <View style={styles.summaryTitleCol}>
                 <Text style={styles.summaryCardTitle}>API Ping-Pong Monitor</Text>
                 <Text style={styles.summaryCardSubtitle}>
-                  {totalCount} Endpoints · Avg Latency: {avgLatency} ms
+                  {totalCount} Endpoints Â· Avg Latency: {avgLatency} ms
                 </Text>
               </View>
 
@@ -286,7 +243,7 @@ export default function SettingsScreen() {
 
                   <View style={styles.reportFooterRow}>
                     <Text style={styles.reportLatencyText}>
-                      Latency: <Text style={styles.boldText}>{item.latencyMs !== null ? `${item.latencyMs} ms` : '—'}</Text>
+                      Latency: <Text style={styles.boldText}>{item.latencyMs !== null ? `${item.latencyMs} ms` : 'â€”'}</Text>
                     </Text>
                     {item.lastChecked ? (
                       <Text style={styles.reportTimeText}>Checked: {item.lastChecked} PST</Text>
@@ -328,7 +285,7 @@ export default function SettingsScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const hairline = StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5;
 
@@ -571,3 +528,5 @@ const styles = StyleSheet.create({
   navTab: { alignItems: 'center', paddingVertical: 4 },
   navLabel: { fontSize: 11, fontFamily: Typography.bodyMedium, marginTop: 4 },
 });
+
+

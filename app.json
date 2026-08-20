@@ -20,7 +20,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -34,7 +34,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
+      "plugins": [
       "expo-router",
       "expo-font",
       "expo-secure-store",
@@ -42,6 +42,14 @@
         "expo-local-authentication",
         {
           "faceIDPermission": "iRUSH uses Face ID to let you log in quickly and securely."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "ndkVersion": "26.1.10909125"
+          }
         }
       ]
     ],

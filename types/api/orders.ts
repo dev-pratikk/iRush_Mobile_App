@@ -75,6 +75,7 @@ export interface OrderItem {
   COMPANY_NAME?: string;
   COMPANY_CODE?: string;
   ORDER_DATE?: string;
+  PROMISED_DATE?: string;
   UPDATED_DATE?: string;
   ORDER_TYPE_NAME?: string;
   CUSTOMERID?: number | string;
@@ -99,6 +100,7 @@ export interface OrderItem {
   companyName?: string;
   companyCode?: string;
   orderDate?: string;
+  promisedDate?: string;
   updatedDate?: string;
   orderType?: string;
   orderStatus?: string;

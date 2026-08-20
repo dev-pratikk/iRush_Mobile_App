@@ -31,7 +31,14 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+
+# scratch / pdf files
+*.pdf
+insert_components.js
+temp_new_components.tsx
+order_details_respsoen.txt
 
 # typescript
 *.tsbuildinfo

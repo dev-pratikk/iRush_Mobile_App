@@ -13,20 +13,22 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Typography } from '../../constants/Typography';
-import { useThemeColors } from '../../context/ThemeContext';
-import { useAuthContext } from '../../context/AuthContext';
-import { NotificationHeaderButton } from '../../components/navigation/NotificationHeaderButton';
-import { SkeletonSummaryCard, SkeletonKpiCard } from '../../components/ui/SkeletonLoader';
+import { Typography } from '../../../constants/Typography';
+import { useThemeColors } from '../../../context/ThemeContext';
+import { useAuthContext } from '../../../context/AuthContext';
+import { NotificationHeaderButton } from '../../../components/navigation/NotificationHeaderButton';
+import { SkeletonSummaryCard, SkeletonKpiCard } from '../../../components/ui/SkeletonLoader';
 import { router, usePathname, useFocusEffect } from 'expo-router';
 import {
   fetchQuotesList,
   fetchQuoteById,
   type QuoteListItem,
-} from '../../services/api/quote-list.service';
-import { DateFilterPreset, getDateRangeForFilter, formatCustomRangeLabel } from '../../lib/date';
-import { DateFilterModal } from '../../components/ui/DateFilterModal';
-import { formatOrderDate } from '../../lib/formatters';
+} from '../../../services/api/quote-list.service';
+import { DateFilterPreset, getDateRangeForFilter, formatCustomRangeLabel } from '../../../lib/date';
+import { DateFilterModal } from '../../../components/ui/DateFilterModal';
+import { formatOrderDate } from '../../../lib/formatters';
+import { useBackHandler } from '../../../hooks/useBackHandler';
+import { BottomNavBar as BottomNav } from '../../../components/navigation/BottomNavBar';
 
 const PRIMARY = '#0F172A';
 const SECONDARY = '#64748B';
@@ -40,7 +42,7 @@ const stripQuotePrefix = (raw: string | null | undefined): string => {
   return raw.replace(/^[A-Za-z\-]+/, '').trim() || raw.trim();
 };
 
-// ─── Header ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const Header = ({
   activePreset,
@@ -84,16 +86,16 @@ const Header = ({
   );
 };
 
-// ─── Search Bar (tap to open search overlay) ──────────────────────────────────
+// â”€â”€â”€ Search Bar (tap to open search overlay) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const QuoteSearchBar = ({ onPress }: { onPress: () => void }) => (
   <TouchableOpacity style={styles.searchInputWrap} onPress={onPress} activeOpacity={0.9}>
     <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
-    <Text style={styles.searchPlaceholderText}>Search by quote no, company…</Text>
+    <Text style={styles.searchPlaceholderText}>Search by quote number</Text>
   </TouchableOpacity>
 );
 
-// ─── Search Overlay Modal ─────────────────────────────────────────────────────
+// â”€â”€â”€ Search Overlay Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const SearchOverlayModal = ({
   visible,
@@ -113,10 +115,6 @@ const SearchOverlayModal = ({
   const inputRef = useRef<TextInput>(null);
   const [results, setResults] = useState<QuoteListItem[]>([]);
   const [searching, setSearching] = useState(false);
-
-  useEffect(() => {
-    if (visible) setTimeout(() => inputRef.current?.focus(), 120);
-  }, [visible]);
 
   useEffect(() => {
     let active = true;
@@ -160,7 +158,13 @@ const SearchOverlayModal = ({
   }, [query, visible, token]);
 
   return (
-    <Modal visible={visible} animationType="fade" transparent={false} onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent={false}
+      onRequestClose={onClose}
+      onShow={() => inputRef.current?.focus()}
+    >
       <SafeAreaView style={styles.searchOverlaySafeArea} edges={['top', 'bottom']}>
         <View style={styles.searchOverlayHeader}>
           <View style={styles.searchOverlayInputWrap}>
@@ -170,7 +174,7 @@ const SearchOverlayModal = ({
               style={styles.searchOverlayInput}
               value={query}
               onChangeText={setQuery}
-              placeholder="Search by quote #, company…"
+              placeholder="Search by quote_no, company"
               placeholderTextColor="#94A3B8"
               autoCapitalize="none"
               autoCorrect={false}
@@ -192,7 +196,7 @@ const SearchOverlayModal = ({
             {searching ? (
               <View style={{ paddingVertical: 24, alignItems: 'center' }}>
                 <ActivityIndicator size="small" color={PRIMARY} />
-                <Text style={{ fontSize: 13, color: SECONDARY, marginTop: 8 }}>Searching quotes…</Text>
+                <Text style={{ fontSize: 13, color: SECONDARY, marginTop: 8 }}>Searching quote no</Text>
               </View>
             ) : results.length > 0 ? (
               results.map((item, idx) => {
@@ -242,7 +246,7 @@ const SearchOverlayModal = ({
   );
 };
 
-// ─── Summary Card (dark grey like orders.tsx) ──────────────────────────────────
+// â”€â”€â”€ Summary Card (dark grey like orders.tsx) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const SummaryCard = ({
   count,
@@ -264,7 +268,6 @@ const SummaryCard = ({
         </View>
         <View style={styles.summaryColRight}>
           <View style={styles.conversionPillRow}>
-            <Ionicons name="checkmark-circle" size={14} color={GREEN} />
             <Text style={styles.conversionPillText}>{convertedCount} converted</Text>
           </View>
         </View>
@@ -273,7 +276,7 @@ const SummaryCard = ({
   );
 };
 
-// ─── Converted / Not Converted KPI Cards ──────────────────────────────────────
+// â”€â”€â”€ Converted / Not Converted KPI Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const QuotesKpiGrid = ({
   convertedCount = 0,
@@ -304,78 +307,33 @@ const QuotesKpiGrid = ({
       <View style={styles.kpiRow}>
         <TouchableOpacity style={styles.kpiCard} onPress={onPressConverted} activeOpacity={0.75}>
           <View style={styles.kpiIconRow}>
-            <Ionicons name="checkmark-circle" size={15} color={GREEN} />
             <Text style={[styles.kpiHeaderLabel, { color: GREEN }]}>CONVERTED</Text>
           </View>
           <Text style={styles.kpiValueText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
             {convertedCount}
           </Text>
-          <Text style={styles.kpiSubText}>quotes → orders</Text>
+          <Text style={styles.kpiSubText}>Quotes {'->'} Orders</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.kpiCard} onPress={onPressNotConverted} activeOpacity={0.75}>
           <View style={styles.kpiIconRow}>
-            <Ionicons name="time-outline" size={15} color="#F59E0B" />
             <Text style={[styles.kpiHeaderLabel, { color: '#B45309' }]}>NOT CONVERTED</Text>
           </View>
           <Text style={styles.kpiValueText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
             {notConvertedCount}
           </Text>
-          <Text style={styles.kpiSubText}>quotes pending</Text>
+          <Text style={styles.kpiSubText}>Quotes Pending</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
 
-// ─── Bottom Navigation ────────────────────────────────────────────────────────
+// â”€â”€â”€ Bottom Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-const BottomNav = () => {
-  const colors = useThemeColors();
-  const pathname = usePathname();
-  const insets = useSafeAreaInsets();
-  const tabs = [
-    { icon: 'home', label: 'Dashboard', route: '/' },
-    { icon: 'document-text', label: 'Orders', route: '/orders' },
-    { icon: 'cube', label: 'Open orders', route: '/open-orders' },
-    { icon: 'chatbox', label: 'Quotes', route: '/quotes' },
-  ];
-  return (
-    <View
-      style={[
-        styles.bottomNav,
-        {
-          backgroundColor: colors.card,
-          borderTopColor: colors.border,
-          paddingBottom: Math.max(insets.bottom, 4),
-          height: 56 + Math.max(insets.bottom, 4),
-        },
-      ]}
-    >
-      {tabs.map((tab, index) => {
-        const isActive = pathname === tab.route;
-        return (
-          <TouchableOpacity
-            key={index}
-            style={styles.navTab}
-            onPress={() => router.push(tab.route as any)}
-          >
-            <Ionicons
-              name={isActive ? (tab.icon as any) : (`${tab.icon}-outline` as any)}
-              size={24}
-              color={isActive ? colors.primary : colors.inactive}
-            />
-            <Text style={[styles.navLabel, { color: isActive ? colors.primary : colors.inactive }]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
-};
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+
+// â”€â”€â”€ Main Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function QuotesScreen() {
   const { user } = useAuthContext();
@@ -399,20 +357,18 @@ export default function QuotesScreen() {
       try {
         const calculatedRange = getDateRangeForFilter(preset, range);
 
-        // Fetch all, converted, and not-converted in parallel
-        const [allRes, convertedRes, notConvertedRes] = await Promise.allSettled([
-          fetchQuotesList({ token, startDate: calculatedRange.startDate, endDate: calculatedRange.endDate, page: 1, limit: 1 }),
-          fetchQuotesList({ token, startDate: calculatedRange.startDate, endDate: calculatedRange.endDate, quoteStatus: 'converted', page: 1, limit: 1 }),
-          fetchQuotesList({ token, startDate: calculatedRange.startDate, endDate: calculatedRange.endDate, quoteStatus: 'notconverted', page: 1, limit: 1 }),
-        ]);
+        // Single fetch to get dashboard counts (count, convertedCount, notConvertedCount)
+        const res = await fetchQuotesList({
+          token,
+          startDate: calculatedRange.startDate,
+          endDate: calculatedRange.endDate,
+          page: 1,
+          limit: 1,
+        });
 
-        const total = allRes.status === 'fulfilled' ? (allRes.value.totalRecords || allRes.value.count) : 0;
-        const converted = convertedRes.status === 'fulfilled' ? (convertedRes.value.totalRecords || convertedRes.value.count) : 0;
-        const notConverted = notConvertedRes.status === 'fulfilled' ? (notConvertedRes.value.totalRecords || notConvertedRes.value.count) : 0;
-
-        setTotalCount(total);
-        setConvertedCount(converted);
-        setNotConvertedCount(notConverted);
+        setTotalCount(res.totalRecords);
+        setConvertedCount(res.convertedCount);
+        setNotConvertedCount(res.notConvertedCount);
       } catch (err) {
         if (__DEV__) console.log('[QuotesScreen] fetchQuotes error:', err);
         setTotalCount(0); setConvertedCount(0); setNotConvertedCount(0);
@@ -428,26 +384,14 @@ export default function QuotesScreen() {
     fetchQuotesForPreset(activePreset, customRange);
   }, [activePreset, customRange, fetchQuotesForPreset]);
 
-  useEffect(() => {
-    const onBackPress = () => {
-      if (router.canGoBack()) router.back();
-      else router.replace('/');
-      return true;
-    };
-    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-    return () => sub.remove();
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      setActivePreset('today');
-      setCustomRange(null);
-      setQuery('');
+  useBackHandler({
+    modalVisible: filterModalVisible || searchModalVisible,
+    onDismissModal: () => {
       setFilterModalVisible(false);
       setSearchModalVisible(false);
-      fetchQuotesForPreset('today', null);
-    }, [fetchQuotesForPreset])
-  );
+      setQuery('');
+    },
+  });
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -481,7 +425,7 @@ export default function QuotesScreen() {
     setQuery('');
     router.push({
       pathname: '/quote-details' as any,
-      params: { quoteId: String(item.quoteId) },
+      params: { quoteId: String(item.quoteId), from: '/quotes' },
     });
   }, []);
 
@@ -550,7 +494,7 @@ export default function QuotesScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
@@ -709,3 +653,5 @@ const styles = StyleSheet.create({
   navTab: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   navLabel: { fontSize: 10, fontFamily: Typography.body, marginTop: 3 },
 });
+
+

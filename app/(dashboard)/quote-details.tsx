@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Modal,
   TouchableWithoutFeedback,
+  Dimensions,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,20 +18,21 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useAuthContext } from '../../context/AuthContext';
 import { formatOrderDate } from '../../lib/formatters';
 import { fetchQuoteById, type QuoteDetail, type QuoteContact } from '../../services/api/quote-list.service';
+import { useBackHandler } from '../../hooks/useBackHandler';
 
-// ─── Theme ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Theme â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-const PRIMARY     = '#0F172A';
-const SECONDARY   = '#64748B';
-const PAGE_BG     = '#F8FAFC';
-const CARD_BG     = '#FFFFFF';
+const PRIMARY = '#0F172A';
+const SECONDARY = '#64748B';
+const PAGE_BG = '#F8FAFC';
+const CARD_BG = '#FFFFFF';
 const CARD_BORDER = '#E2E8F0';
-const GREEN       = '#16A34A';
-const GREEN_BG    = '#DCFCE7';
+const GREEN = '#16A34A';
+const GREEN_BG = '#DCFCE7';
 
 const hairline = StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const stripQuotePrefix = (raw: string | null | undefined): string => {
   if (!raw) return 'N/A';
@@ -57,6 +59,25 @@ const formatPhone = (raw: string | null | undefined): string => {
   return raw;
 };
 
+const getSpecValue = (spec: Record<string, any> | null | undefined, keys: string[]): string => {
+  if (!spec || typeof spec !== 'object') return 'N/A';
+
+  const candidates = Object.keys(spec).map((key) => ({ key, normalized: key.toLowerCase().replace(/[^a-z0-9]/g, '') }));
+
+  for (const key of keys) {
+    const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const match = candidates.find((entry) => entry.normalized === normalizedKey);
+    if (match) {
+      const value = spec[match.key];
+      if (value !== null && value !== undefined && String(value).trim() !== '') {
+        return String(value).trim();
+      }
+    }
+  }
+
+  return 'N/A';
+};
+
 // Formats raw API key to Title Case (first letter capital, rest lowercase per word)
 const formatRawKeyToTitleCase = (key: string): string => {
   if (!key) return '';
@@ -72,7 +93,7 @@ const formatRawKeyToTitleCase = (key: string): string => {
     .join(' ');
 };
 
-// ─── Contact Info Modal Component ─────────────────────────────────────────────
+// â”€â”€â”€ Contact Info Modal Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const ContactModal = ({
   visible,
@@ -87,97 +108,99 @@ const ContactModal = ({
 }) => {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.modalOverlay}>
-          <TouchableWithoutFeedback>
-            <View style={styles.modalCard}>
-              {/* Header */}
-              <View style={styles.modalHeader}>
-                <View style={styles.modalHeaderLeft}>
-                  <View style={styles.modalIconCircle}>
-                    <Ionicons name="person-outline" size={20} color="#0F172A" />
-                  </View>
-                  <View>
-                    <Text style={styles.modalTitle}>Contact Information</Text>
-                    <Text style={styles.modalSubTitle}>Quote {quoteNo}</Text>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  style={styles.modalCloseBtn}
-                  onPress={onClose}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons name="close" size={20} color="#64748B" />
-                </TouchableOpacity>
-              </View>
+      <View style={styles.modalOverlay}>
+        {/* Backdrop: separate touchable behind card */}
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={StyleSheet.absoluteFill} />
+        </TouchableWithoutFeedback>
 
-              {/* Info Grid */}
-              <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
-                {contacts.length === 0 ? (
-                  <View style={{ paddingVertical: 16, alignItems: 'center' }}>
-                    <Text style={{ fontSize: 13, color: SECONDARY, fontFamily: Typography.body }}>
-                      No contact details available
-                    </Text>
-                  </View>
-                ) : (
-                  contacts.map((c, idx) => {
-                    const fullName = [c.firstName, c.lastName].filter(Boolean).map(safeDisplayString).join(' ') || 'N/A';
-                    return (
-                      <View
-                        key={idx}
-                        style={[
-                          styles.modalBodyGrid,
-                          idx < contacts.length - 1 ? { borderBottomWidth: 1, borderBottomColor: '#E2E8F0', paddingBottom: 12, marginBottom: 12 } : null,
-                        ]}
-                      >
-                        <View style={styles.modalGridRow}>
-                          <Text style={styles.gridKey}>Contact Name</Text>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Text style={styles.gridValueBold}>{fullName}</Text>
-                            {c.isPrimary ? (
-                              <View style={styles.primaryBadge}>
-                                <Text style={styles.primaryBadgeText}>Primary</Text>
-                              </View>
-                            ) : null}
-                          </View>
-                        </View>
-                        {c.jobTitle ? (
-                          <View style={styles.modalGridRow}>
-                            <Text style={styles.gridKey}>Job Title</Text>
-                            <Text style={styles.gridValue}>{safeDisplayString(c.jobTitle)}</Text>
-                          </View>
-                        ) : null}
-                        {c.phone1 ? (
-                          <View style={styles.modalGridRow}>
-                            <Text style={styles.gridKey}>Phone</Text>
-                            <Text style={styles.gridValue}>{formatPhone(safeDisplayString(c.phone1))}</Text>
-                          </View>
-                        ) : null}
-                        {c.email ? (
-                          <View style={styles.modalGridRow}>
-                            <Text style={styles.gridKey}>Email</Text>
-                            <Text style={styles.gridValue}>{safeDisplayString(c.email)}</Text>
+        {/* Card: NOT wrapped in Touchable */}
+        <View style={styles.modalCard} pointerEvents="box-none">
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <View style={styles.modalHeaderLeft}>
+              <View style={styles.modalIconCircle}>
+                <Ionicons name="person-outline" size={20} color="#0F172A" />
+              </View>
+              <View>
+                <Text style={styles.modalTitle}>Contact Information</Text>
+                <Text style={styles.modalSubTitle}>Quote {quoteNo}</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close" size={20} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Info Grid */}
+          <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
+            {contacts.length === 0 ? (
+              <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, color: SECONDARY, fontFamily: Typography.body }}>
+                  No contact details available
+                </Text>
+              </View>
+            ) : (
+              contacts.map((c, idx) => {
+                const fullName = [c.firstName, c.lastName].filter(Boolean).map(safeDisplayString).join(' ') || 'N/A';
+                return (
+                  <View
+                    key={idx}
+                    style={[
+                      styles.modalBodyGrid,
+                      idx < contacts.length - 1 ? { borderBottomWidth: 1, borderBottomColor: '#E2E8F0', paddingBottom: 12, marginBottom: 12 } : null,
+                    ]}
+                  >
+                    <View style={styles.modalGridRow}>
+                      <Text style={styles.gridKey}>Contact Name</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={styles.gridValueBold}>{fullName}</Text>
+                        {c.isPrimary ? (
+                          <View style={styles.primaryBadge}>
+                            <Text style={styles.primaryBadgeText}>Primary</Text>
                           </View>
                         ) : null}
                       </View>
-                    );
-                  })
-                )}
-              </ScrollView>
+                    </View>
+                    {c.jobTitle ? (
+                      <View style={styles.modalGridRow}>
+                        <Text style={styles.gridKey}>Job Title</Text>
+                        <Text style={styles.gridValue}>{safeDisplayString(c.jobTitle)}</Text>
+                      </View>
+                    ) : null}
+                    {c.phone1 ? (
+                      <View style={styles.modalGridRow}>
+                        <Text style={styles.gridKey}>Phone</Text>
+                        <Text style={styles.gridValue}>{formatPhone(safeDisplayString(c.phone1))}</Text>
+                      </View>
+                    ) : null}
+                    {c.email ? (
+                      <View style={styles.modalGridRow}>
+                        <Text style={styles.gridKey}>Email</Text>
+                        <Text style={styles.gridValue}>{safeDisplayString(c.email)}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                );
+              })
+            )}
+          </ScrollView>
 
-              {/* Close Button */}
-              <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
-                <Text style={styles.primaryActionBtnText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableWithoutFeedback>
+          {/* Close Button */}
+          <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
+            <Text style={styles.primaryActionBtnText}>Close</Text>
+          </TouchableOpacity>
         </View>
-      </TouchableWithoutFeedback>
+      </View>
     </Modal>
   );
 };
 
-// ─── All Specifications Modal Component (Exact Response Keys & Values) ─────────
+// â”€â”€â”€ All Specifications Modal Component (Exact Response Keys & Values) â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const AllSpecificationsModal = ({
   visible,
@@ -193,23 +216,30 @@ const AllSpecificationsModal = ({
   rawEntries: { label: string; rawKey: string; value: string }[];
 }) => {
   const insets = useSafeAreaInsets();
+  const screenHeight = Dimensions.get('window').height;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.specsModalOverlay}>
-        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
-        {/* Card: flex column so ScrollView fills available height */}
+        {/* Backdrop: separate touchable behind card */}
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={StyleSheet.absoluteFill} />
+        </TouchableWithoutFeedback>
+
+        {/* Card: NOT wrapped in Touchable */}
         <View
           style={[
             styles.specsModalCard,
             {
+              height: screenHeight * 0.70,
+              maxHeight: screenHeight * 0.88,
               width: '96%',
               maxWidth: 480,
-              maxHeight: '88%',
               marginTop: Math.max(insets.top + 16, 24),
               marginBottom: Math.max(insets.bottom + 16, 24),
             },
           ]}
+          pointerEvents="box-none"
         >
           {/* Header */}
           <View style={styles.specsModalHeader}>
@@ -239,7 +269,7 @@ const AllSpecificationsModal = ({
             </TouchableOpacity>
           </View>
 
-          {/* Scrollable Raw Specs List — flex:1 ensures it fills remaining card height */}
+          {/* Scrollable Raw Specs List â€” flex:1 ensures it fills remaining card height */}
           <ScrollView
             style={styles.specsScrollView}
             contentContainerStyle={styles.specsScrollContent}
@@ -283,7 +313,7 @@ const AllSpecificationsModal = ({
   );
 };
 
-// ─── Quote Message Full Modal Component ────────────────────────────────────────
+// â”€â”€â”€ Quote Message Full Modal Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const QuoteMessageModal = ({
   visible,
@@ -297,9 +327,10 @@ const QuoteMessageModal = ({
   message: string;
 }) => {
   const insets = useSafeAreaInsets();
+  const screenHeight = Dimensions.get('window').height;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View
         style={[
           styles.specsModalOverlay,
@@ -309,8 +340,24 @@ const QuoteMessageModal = ({
           },
         ]}
       >
-        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
-        <View style={[styles.specsModalCard, { width: '94%', maxWidth: 480, maxHeight: '82%' }]}>
+        {/* Backdrop: separate touchable behind card */}
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={StyleSheet.absoluteFill} />
+        </TouchableWithoutFeedback>
+
+        {/* Card: NOT wrapped in Touchable */}
+        <View
+          style={[
+            styles.specsModalCard,
+            {
+              height: screenHeight * 0.65,
+              maxHeight: screenHeight * 0.82,
+              width: '94%',
+              maxWidth: 480,
+            },
+          ]}
+          pointerEvents="box-none"
+        >
           {/* Header */}
           <View style={styles.specsModalHeader}>
             <View style={styles.modalHeaderLeft}>
@@ -336,6 +383,7 @@ const QuoteMessageModal = ({
             style={styles.specsScrollView}
             contentContainerStyle={styles.specsScrollContent}
             showsVerticalScrollIndicator={true}
+            nestedScrollEnabled={true}
           >
             <View style={styles.messageContentCardFull}>
               <Text style={styles.messageContentTextFull}>{message}</Text>
@@ -354,10 +402,10 @@ const QuoteMessageModal = ({
   );
 };
 
-// ─── Main Screen Component ────────────────────────────────────────────────────
+// â”€â”€â”€ Main Screen Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function QuoteDetailsScreen() {
-  const params = useLocalSearchParams<{ quoteId?: string }>();
+  const params = useLocalSearchParams<{ quoteId?: string; from?: string }>();
   const { user } = useAuthContext();
   const token = (user as any)?.token ?? null;
 
@@ -370,17 +418,20 @@ export default function QuoteDetailsScreen() {
   const [messageModalVisible, setMessageModalVisible] = useState(false);
 
   const handleBack = useCallback(() => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/quotes');
+    // router.back() correctly pops the push-stack even inside a Drawer navigator.
+    // The 'from' param fallback is only relevant when opened via a deep link
+    // (no stack history at all), in which case router.back() would be a no-op.
+    router.back();
   }, []);
 
-  useEffect(() => {
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      handleBack();
-      return true;
-    });
-    return () => sub.remove();
-  }, [handleBack]);
+  useBackHandler({
+    modalVisible: contactModalVisible || specsModalVisible || messageModalVisible,
+    onDismissModal: () => {
+      setContactModalVisible(false);
+      setSpecsModalVisible(false);
+      setMessageModalVisible(false);
+    },
+  });
 
   useEffect(() => {
     const id = params.quoteId;
@@ -427,7 +478,7 @@ export default function QuoteDetailsScreen() {
     return val === '1' || val === 'yes' || val === 'true';
   }, [quote?.quoteSpecifications]);
 
-  // Compute inline core specs: ONLY Layers and Board Size
+  // Compute inline core specs: Layers and Board Type
   const inlineLayers = useMemo(() => {
     if (!quote?.quoteSpecifications || quote.quoteSpecifications.length === 0) return 'N/A';
     const spec = quote.quoteSpecifications[0] as any;
@@ -435,17 +486,25 @@ export default function QuoteDetailsScreen() {
     return String(spec.layer ?? spec.Layer ?? spec.layerCount ?? 'N/A');
   }, [quote?.quoteSpecifications]);
 
-  const inlineBoardSize = useMemo(() => {
+  const inlineBoardType = useMemo(() => {
     if (!quote?.quoteSpecifications || quote.quoteSpecifications.length === 0) return 'N/A';
     const spec = quote.quoteSpecifications[0] as any;
     if (!spec) return 'N/A';
-    if (spec.dimensionl != null && spec.dimensionb != null) {
-      return `${spec.dimensionl} × ${spec.dimensionb} mils`;
-    }
-    if (spec.BoardSize || spec.boardSize) {
-      return String(spec.BoardSize || spec.boardSize);
-    }
-    return 'N/A';
+
+    const value = getSpecValue(spec, [
+      'boardType',
+      'board_type',
+      'boardTypeName',
+      'typeOfOrder',
+      'typeoforder',
+      'orderType',
+      'pcbType',
+      'PcbType',
+      'type',
+      'Type',
+    ]);
+
+    return value === 'N/A' ? 'N/A' : value;
   }, [quote?.quoteSpecifications]);
 
   // Primary Contact Name for the table row
@@ -466,7 +525,7 @@ export default function QuoteDetailsScreen() {
         </View>
         <View style={styles.centeredWrap}>
           <ActivityIndicator color={PRIMARY} size="large" />
-          <Text style={styles.loadingText}>Loading quote details…</Text>
+          <Text style={styles.loadingText}>Loading quote detailsâ€¦</Text>
         </View>
       </SafeAreaView>
     );
@@ -519,9 +578,9 @@ export default function QuoteDetailsScreen() {
             <Text style={styles.heroAmountTextCentered}>
               {formatOrderDate(quote.quoteDate)}
             </Text>
-            <Text style={styles.heroDotTextCentered}> · </Text>
+            <Text style={styles.heroDotTextCentered}>  </Text>
             <Text style={[styles.heroStatusTextCentered, isConverted ? styles.statusOpen : styles.statusOther]}>
-              {isConverted ? 'Converted' : 'Not Converted'}
+              ({isConverted ? 'Converted' : 'Not Converted'})
             </Text>
           </View>
           {isConverted && quote.orderNo ? (
@@ -604,16 +663,6 @@ export default function QuoteDetailsScreen() {
                 <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
               </View>
             </TouchableOpacity>
-
-            {isConverted ? (
-              <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
-                <View style={styles.rowLeft}>
-                  <Ionicons name="checkmark-done-outline" size={17} color={GREEN} style={styles.rowIcon} />
-                  <Text style={styles.rowKey}>Order Link</Text>
-                </View>
-                <Text style={[styles.rowValue, { color: GREEN }]}>Order #{quote.orderNo ?? ''}</Text>
-              </View>
-            ) : null}
           </View>
         </View>
 
@@ -641,9 +690,13 @@ export default function QuoteDetailsScreen() {
           </View>
 
           <View style={styles.cardGroup}>
-            <View style={[styles.specRowItem, { borderBottomWidth: 0 }]}>
+            <View style={styles.specRowItem}>
               <Text style={styles.specRowKey}>Layers</Text>
               <Text style={styles.specRowValueBold}>{inlineLayers}</Text>
+            </View>
+            <View style={[styles.specRowItem, { borderBottomWidth: 0 }]}>
+              <Text style={styles.specRowKey}>Board Type</Text>
+              <Text style={styles.specRowValueBold}>{inlineBoardType}</Text>
             </View>
           </View>
         </View>
@@ -709,7 +762,7 @@ export default function QuoteDetailsScreen() {
   );
 }
 
-// ─── Styles (matches order-details.tsx styles exactly) ─────────────────────────
+// â”€â”€â”€ Styles (matches order-details.tsx styles exactly) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -1147,6 +1200,7 @@ const styles = StyleSheet.create({
   },
   specsScrollView: {
     flex: 1,
+    minHeight: 0,
   },
   specsScrollContent: {
     padding: 16,
@@ -1159,3 +1213,4 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 });
+

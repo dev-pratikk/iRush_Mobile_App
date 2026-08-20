@@ -8,7 +8,12 @@ import {
   trimStr,
   type OpenOrderSearchParam,
 } from '../services/api/open-orders.service';
-import type { OpenOrderItem, PendingOrdersSummary, PartialOrdersSummary } from '../types/api/open-orders';
+import type {
+  OpenOrderItem,
+  PendingOrdersSummary,
+  PartialOrdersSummary,
+  OpenOrdersSummary,
+} from '../types/api/open-orders';
 
 // ─── Mapped row type (only what the list card needs) ──────────────────────────
 // Raw OpenOrderItem carries heavy nested objects (orderVendors, invoices,
@@ -187,6 +192,42 @@ export function usePartialOrders(
 
   // Extract the summary from page 1 metadata
   const summary: PartialOrdersSummary | null = (result.meta?.partialOrdersSummary as PartialOrdersSummary) ?? null;
+
+  return { ...result, summary };
+}
+
+/**
+ * useOpenOrders — infinite scroll hook for ?filter=all (all open orders: pending + partial combined)
+ */
+export function useOpenOrders(
+  token: string | null | undefined,
+  search?: OpenOrderSearchParam | null,
+  customRange?: { startDate: string; endDate: string } | null
+) {
+  const searchValue = search?.value?.trim() ?? '';
+  const searchType = search?.type ?? 'orderNo';
+  const startISO = customRange?.startDate ?? '';
+  const endISO = customRange?.endDate ?? '';
+
+  const fetcher = useCallback(
+    (page: number) =>
+      fetchOpenOrdersPage('all', {
+        token: token ?? null,
+        page,
+        search: searchValue ? { type: searchType, value: searchValue } : null,
+        customRange: startISO && endISO ? { startDate: startISO, endDate: endISO } : null,
+      }),
+    [token, searchType, searchValue, startISO, endISO]
+  );
+
+  const result = useInfiniteResource<OpenOrderItem, OpenOrderRowItem>({
+    queryKey: ['open-orders', 'all', token ?? null, searchType, searchValue, startISO, endISO],
+    fetcher,
+    mapItem: mapOpenOrderItem,
+  });
+
+  // Extract the summary from page 1 metadata
+  const summary: OpenOrdersSummary | null = (result.meta?.openOrdersSummary as OpenOrdersSummary) ?? null;
 
   return { ...result, summary };
 }

@@ -41,189 +41,172 @@ export const OrderCard = React.memo(function OrderCard({
   const formattedNo = (orderNo || '').replace(/^#/, '').trim() || 'N/A';
   const formattedDate = formatOrderDate(orderDate);
 
-  const calculatedMarkupPct = React.useMemo(() => {
-    if (typeof markupPercentage === 'number' && Number.isFinite(markupPercentage)) {
-      return Math.round(markupPercentage);
-    }
-    const cost = orderCost || 0;
-    const total = orderTotal || 0;
-    const rawMarkup = typeof markup === 'number' ? markup : total - cost;
-    if (cost > 0) {
-      return Math.round((rawMarkup / cost) * 100);
-    }
-    return total > 0 ? 100 : 0;
-  }, [markupPercentage, orderCost, orderTotal, markup]);
-
   const isLate = typeof daysLeft === 'number' && daysLeft < 0;
-  const daysBadge = isLate ? `+${Math.abs(daysLeft)}d late` : `${daysLeft}d left`;
+  const daysBadge = isLate ? `${Math.abs(daysLeft)}d overdue` : `${daysLeft}d remaining`;
 
   const itemPayload = { customerStatus, orderCategory, ORDER_CATEGORY: orderCategory, CUSTOMER_STATUS: customerStatus };
   const isNewCustomer = isOrderNew(itemPayload);
   const isRepeatCustomer = isOrderRepeat(itemPayload);
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
-      {/* Top Main Section */}
-      <View style={styles.mainRow}>
-        {/* Left Column: Order No (Highlighted Badge, no #), Company, Order Type */}
-        <View style={styles.leftCol}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <View style={styles.orderNoHighlightBadge}>
-              <Text style={styles.orderNoHighlightText} numberOfLines={1}>
-                {formattedNo}
-              </Text>
-            </View>
-            {isNewCustomer ? (
-              <View style={styles.newBadge}>
-                <Text style={styles.newBadgeText}>NEW</Text>
-              </View>
-            ) : isRepeatCustomer ? (
-              <View style={styles.repeatBadge}>
-                <Text style={styles.repeatBadgeText}>REPEAT</Text>
-              </View>
-            ) : null}
-          </View>
-          <Text style={styles.companyText} numberOfLines={1} ellipsizeMode="tail">
-            {companyName || 'N/A'}
-          </Text>
-          <Text style={styles.orderTypeText} numberOfLines={1} ellipsizeMode="tail">
-            {orderType.trim() || 'Full Turnkey'}
-          </Text>
+    <TouchableOpacity style={styles.cardContainer} onPress={onPress} activeOpacity={0.82}>
+      {/* Top Header Row */}
+      <View style={styles.headerRow}>
+        <View style={styles.orderBadge}>
+          <Ionicons name="cube-outline" size={13} color="#0F172A" />
+          <Text style={styles.orderNoText}>Order #{formattedNo}</Text>
         </View>
 
-        {/* Right Column: Order Value, Date, Days Left */}
-        <View style={styles.rightCol}>
-          <Text style={styles.amountText}>{formatCurrencyWithCents(orderTotal)}</Text>
-          {formattedDate ? <Text style={styles.dateText}>{formattedDate}</Text> : null}
-          <View style={[styles.daysBadge, isLate ? styles.daysBadgeLate : styles.daysBadgeNormal]}>
-            <Ionicons
-              name="time-outline"
-              size={11}
-              color={isLate ? '#DC2626' : '#2563EB'}
-              style={{ marginRight: 3 }}
-            />
-            <Text style={[styles.daysBadgeText, isLate ? styles.daysBadgeTextLate : styles.daysBadgeTextNormal]}>
-              {daysBadge}
-            </Text>
-          </View>
+        <View style={styles.tagContainer}>
+          {isNewCustomer ? (
+            <View style={styles.newTag}>
+              <Text style={styles.newTagText}>NEW</Text>
+            </View>
+          ) : isRepeatCustomer ? (
+            <View style={styles.repeatTag}>
+              <Text style={styles.repeatTagText}>REPEAT</Text>
+            </View>
+          ) : null}
+
+          {daysLeft !== undefined && (
+            <View style={[styles.daysBadge, isLate ? styles.daysBadgeLate : styles.daysBadgeNormal]}>
+              <Ionicons
+                name={isLate ? 'warning-outline' : 'time-outline'}
+                size={11}
+                color={isLate ? '#DC2626' : '#2563EB'}
+              />
+              <Text style={[styles.daysBadgeText, isLate ? styles.daysBadgeTextLate : styles.daysBadgeTextNormal]}>
+                {daysBadge}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
 
-      {/* Divider */}
-      <View style={styles.divider} />
+      {/* Body Section */}
+      <View style={styles.bodyRow}>
+        <View style={styles.infoCol}>
+          <Text style={styles.companyName} numberOfLines={1} ellipsizeMode="tail">
+            {companyName || 'N/A'}
+          </Text>
+          <View style={styles.typeRow}>
+            <Ionicons name="hardware-chip-outline" size={12} color="#64748B" />
+            <Text style={styles.orderTypeText} numberOfLines={1}>
+              {orderType.trim() || 'Full Turnkey'}
+            </Text>
+            {formattedDate ? (
+              <>
+                <Text style={styles.dotSeparator}>•</Text>
+                <Text style={styles.dateText}>{formattedDate}</Text>
+              </>
+            ) : null}
+          </View>
+        </View>
 
-      {/* Bottom Row of Clean Styled Pills */}
-      <View style={styles.footerPillRow}>
-        {/* Vendor Assigned Pill */}
-        <View style={styles.vendorPill}>
+        <View style={styles.amountCol}>
+          <Text style={styles.amountText}>{formatCurrencyWithCents(orderTotal)}</Text>
+          <Ionicons name="chevron-forward" size={16} color="#94A3B8" style={{ marginTop: 2 }} />
+        </View>
+      </View>
+
+      {/* Footer Pill Details */}
+      <View style={styles.footerRow}>
+        <View style={styles.pill}>
           <Ionicons name="people-outline" size={12} color="#475569" />
           <Text style={styles.pillText}>
-            <Text style={styles.pillValueBold}>{assignedVendorCount}/{expectedVendorCount}</Text> vendors
+            Vendors: <Text style={styles.pillBold}>{assignedVendorCount}/{expectedVendorCount}</Text>
           </Text>
         </View>
 
-        {/* Order Cost Pill */}
-        <View style={styles.costPill}>
-          <Ionicons name="wallet-outline" size={12} color="#475569" />
-          <Text style={styles.pillText}>
-            Cost: <Text style={styles.pillValueBold}>{formatCurrencyWithCents(orderCost)}</Text>
-          </Text>
-        </View>
+        {orderCost > 0 ? (
+          <View style={styles.pill}>
+            <Ionicons name="wallet-outline" size={12} color="#475569" />
+            <Text style={styles.pillText}>
+              Cost: <Text style={styles.pillBold}>{formatCurrencyWithCents(orderCost)}</Text>
+            </Text>
+          </View>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
 });
 
 const styles = StyleSheet.create({
-  card: {
+  cardContainer: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderRadius: 14,
+    padding: 14,
+    marginHorizontal: 16,
+    marginVertical: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  mainRow: {
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    marginBottom: 10,
   },
-  leftCol: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  orderNoHighlightBadge: {
-    alignSelf: 'flex-start',
+  orderBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     backgroundColor: '#F1F5F9',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    borderColor: '#E2E8F0',
   },
-  orderNoHighlightText: {
-    fontSize: 14,
-    fontFamily: Typography.heading,
+  orderNoText: {
+    fontSize: 13,
+    fontFamily: Typography.headingSemiBold,
     color: '#0F172A',
-    letterSpacing: -0.2,
+    letterSpacing: -0.1,
   },
-  newBadge: {
+  tagContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  newTag: {
     backgroundColor: '#EFF6FF',
     borderWidth: 1,
     borderColor: '#BFDBFE',
-    paddingHorizontal: 6,
+    paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 6,
   },
-  newBadgeText: {
+  newTagText: {
     fontSize: 10,
     fontFamily: Typography.headingSemiBold,
     color: '#1D4ED8',
   },
-  repeatBadge: {
+  repeatTag: {
     backgroundColor: '#F5F3FF',
     borderWidth: 1,
     borderColor: '#DDD6FE',
-    paddingHorizontal: 6,
+    paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 6,
   },
-  repeatBadgeText: {
+  repeatTagText: {
     fontSize: 10,
     fontFamily: Typography.headingSemiBold,
     color: '#6D28D9',
   },
-  companyText: {
-    fontSize: 14,
-    fontFamily: Typography.headingSemiBold,
-    color: '#334155',
-  },
-  orderTypeText: {
-    fontSize: 12,
-    fontFamily: Typography.bodyMedium,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  rightCol: {
-    alignItems: 'flex-end',
-  },
-  amountText: {
-    fontSize: 16.5,
-    fontFamily: Typography.heading,
-    color: '#0F172A',
-  },
-  dateText: {
-    fontSize: 12,
-    fontFamily: Typography.bodyMedium,
-    color: '#64748B',
-    marginTop: 2,
-  },
   daysBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 3,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 8,
-    marginTop: 5,
+    borderRadius: 6,
   },
   daysBadgeNormal: {
     backgroundColor: '#EFF6FF',
@@ -232,7 +215,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF2F2',
   },
   daysBadgeText: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontFamily: Typography.headingSemiBold,
   },
   daysBadgeTextNormal: {
@@ -241,19 +224,62 @@ const styles = StyleSheet.create({
   daysBadgeTextLate: {
     color: '#DC2626',
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
-    marginVertical: 12,
-  },
-  footerPillRow: {
+  bodyRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 6,
+    alignItems: 'center',
+    paddingVertical: 4,
   },
-  vendorPill: {
+  infoCol: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  companyName: {
+    fontSize: 15,
+    fontFamily: Typography.headingSemiBold,
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  typeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  orderTypeText: {
+    fontSize: 12,
+    fontFamily: Typography.bodyMedium,
+    color: '#64748B',
+  },
+  dotSeparator: {
+    fontSize: 12,
+    color: '#94A3B8',
+  },
+  dateText: {
+    fontSize: 12,
+    fontFamily: Typography.bodyMedium,
+    color: '#64748B',
+  },
+  amountCol: {
+    alignItems: 'flex-end',
+    flexDirection: 'row',
+    gap: 4,
+  },
+  amountText: {
+    fontSize: 17,
+    fontFamily: Typography.headingSemiBold,
+    color: '#0F172A',
+    letterSpacing: -0.3,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  pill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -261,27 +287,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 10,
-  },
-  costPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   pillText: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontFamily: Typography.bodyMedium,
     color: '#475569',
   },
-  pillValueBold: {
-    fontSize: 11.5,
+  pillBold: {
     fontFamily: Typography.headingSemiBold,
     color: '#0F172A',
   },

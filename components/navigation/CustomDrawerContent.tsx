@@ -19,11 +19,11 @@ const getLogo = (theme: string) => {
 
 const menuItems = [
   { icon: 'home', label: 'Dashboard', route: '/' },
-  { icon: 'cube', label: 'Open orders', route: '/open-orders' },
+  { icon: 'document-text', label: 'Orders', route: '/orders' },
   { icon: 'chatbox', label: 'Quotes', route: '/quotes' },
+  { icon: 'receipt', label: 'AR', route: '/ar' },
   { icon: 'people', label: 'New Customers', route: '/new-customers' },
   { icon: 'receipt', label: 'Invoices', route: '/invoices' },
-  { icon: 'bar-chart', label: 'Reports', route: '/reports' },
   { icon: 'settings', label: 'Settings', route: '/settings' },
 ] as const;
 

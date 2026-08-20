@@ -9,6 +9,7 @@ import {
   Alert,
   Modal,
   TouchableWithoutFeedback,
+  Dimensions,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +17,7 @@ import { Typography } from '../../constants/Typography';
 import { router, useLocalSearchParams } from 'expo-router';
 import { formatCurrencyWithCents, formatOrderDate, fetchOrderById } from '../../services/api/orders.service';
 import { useAuthContext } from '../../context/AuthContext';
+import { useBackHandler } from '../../hooks/useBackHandler';
 
 const PRIMARY = '#0F172A';
 const SECONDARY = '#64748B';
@@ -93,7 +95,7 @@ const extractOrderTotal = (ord: any): number => {
   return 0;
 };
 
-// ─── Location / Address Modal Component ───────────────────────────────────────
+// â”€â”€â”€ Location / Address Modal Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const LocationModal = ({
   visible,
@@ -108,51 +110,53 @@ const LocationModal = ({
 }) => {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.modalOverlay}>
-          <TouchableWithoutFeedback>
-            <View style={styles.modalCard}>
-              {/* Header */}
-              <View style={styles.modalHeader}>
-                <View style={styles.modalHeaderLeft}>
-                  <View style={styles.modalIconCircle}>
-                    <Ionicons name="location-outline" size={20} color="#0F172A" />
-                  </View>
-                  <View>
-                    <Text style={styles.modalTitle}>Shipping Address</Text>
-                    <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  style={styles.modalCloseBtn}
-                  onPress={onClose}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons name="close" size={20} color="#64748B" />
-                </TouchableOpacity>
-              </View>
+      <View style={styles.modalOverlay}>
+        {/* Backdrop: separate touchable behind card */}
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={StyleSheet.absoluteFill} />
+        </TouchableWithoutFeedback>
 
-              {/* Address Body */}
-              <View style={styles.modalBodyGrid}>
-                <Text style={styles.gridKey}>Destination Address</Text>
-                <Text style={[styles.gridValueBold, { fontSize: 14, lineHeight: 20, marginTop: 4 }]}>
-                  {address}
-                </Text>
+        {/* Card: NOT wrapped in Touchable */}
+        <View style={styles.modalCard} pointerEvents="box-none">
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <View style={styles.modalHeaderLeft}>
+              <View style={styles.modalIconCircle}>
+                <Ionicons name="location-outline" size={20} color="#0F172A" />
               </View>
-
-              {/* Primary Close Button */}
-              <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
-                <Text style={styles.primaryActionBtnText}>Close</Text>
-              </TouchableOpacity>
+              <View>
+                <Text style={styles.modalTitle}>Shipping Address</Text>
+                <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
+              </View>
             </View>
-          </TouchableWithoutFeedback>
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close" size={20} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Address Body */}
+          <View style={styles.modalBodyGrid}>
+            <Text style={styles.gridKey}>Destination Address</Text>
+            <Text style={[styles.gridValueBold, { fontSize: 14, lineHeight: 20, marginTop: 4 }]}>
+              {address}
+            </Text>
+          </View>
+
+          {/* Primary Close Button */}
+          <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
+            <Text style={styles.primaryActionBtnText}>Close</Text>
+          </TouchableOpacity>
         </View>
-      </TouchableWithoutFeedback>
+      </View>
     </Modal>
   );
 };
 
-// ─── Contact Info Modal Component (No Dialer execution) ───────────────────────
+// â”€â”€â”€ Contact Info Modal Component (No Dialer execution) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const ContactModal = ({
   visible,
@@ -171,61 +175,63 @@ const ContactModal = ({
 }) => {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.modalOverlay}>
-          <TouchableWithoutFeedback>
-            <View style={styles.modalCard}>
-              {/* Header */}
-              <View style={styles.modalHeader}>
-                <View style={styles.modalHeaderLeft}>
-                  <View style={styles.modalIconCircle}>
-                    <Ionicons name="person-outline" size={20} color="#0F172A" />
-                  </View>
-                  <View>
-                    <Text style={styles.modalTitle}>Contact Information</Text>
-                    <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  style={styles.modalCloseBtn}
-                  onPress={onClose}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons name="close" size={20} color="#64748B" />
-                </TouchableOpacity>
+      <View style={styles.modalOverlay}>
+        {/* Backdrop: separate touchable behind card */}
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={StyleSheet.absoluteFill} />
+        </TouchableWithoutFeedback>
+
+        {/* Card: NOT wrapped in Touchable */}
+        <View style={styles.modalCard} pointerEvents="box-none">
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <View style={styles.modalHeaderLeft}>
+              <View style={styles.modalIconCircle}>
+                <Ionicons name="person-outline" size={20} color="#0F172A" />
               </View>
-
-              {/* Info Grid */}
-              <View style={styles.modalBodyGrid}>
-                <View style={styles.modalGridRow}>
-                  <Text style={styles.gridKey}>Contact Name</Text>
-                  <Text style={styles.gridValueBold}>{contactName}</Text>
-                </View>
-
-                <View style={styles.modalGridRow}>
-                  <Text style={styles.gridKey}>Phone</Text>
-                  <Text style={styles.gridValue}>{contactPhone}</Text>
-                </View>
-
-                <View style={styles.modalGridRow}>
-                  <Text style={styles.gridKey}>Email</Text>
-                  <Text style={styles.gridValue}>{contactEmail}</Text>
-                </View>
+              <View>
+                <Text style={styles.modalTitle}>Contact Information</Text>
+                <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
               </View>
-
-              {/* Primary Close Button */}
-              <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
-                <Text style={styles.primaryActionBtnText}>Close</Text>
-              </TouchableOpacity>
             </View>
-          </TouchableWithoutFeedback>
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close" size={20} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Info Grid */}
+          <View style={styles.modalBodyGrid}>
+            <View style={styles.modalGridRow}>
+              <Text style={styles.gridKey}>Contact Name</Text>
+              <Text style={styles.gridValueBold}>{contactName}</Text>
+            </View>
+
+            <View style={styles.modalGridRow}>
+              <Text style={styles.gridKey}>Phone</Text>
+              <Text style={styles.gridValue}>{contactPhone}</Text>
+            </View>
+
+            <View style={styles.modalGridRow}>
+              <Text style={styles.gridKey}>Email</Text>
+              <Text style={styles.gridValue}>{contactEmail}</Text>
+            </View>
+          </View>
+
+          {/* Primary Close Button */}
+          <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
+            <Text style={styles.primaryActionBtnText}>Close</Text>
+          </TouchableOpacity>
         </View>
-      </TouchableWithoutFeedback>
+      </View>
     </Modal>
   );
 };
 
-// ─── Tracking Modal Component ──────────────────────────────────────────────────
+// â”€â”€â”€ Tracking Modal Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const TrackModal = ({
   visible,
@@ -248,98 +254,100 @@ const TrackModal = ({
 }) => {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.modalOverlay}>
-          <TouchableWithoutFeedback>
-            <View style={styles.modalCard}>
-              {/* Header */}
-              <View style={styles.modalHeader}>
-                <View style={styles.modalHeaderLeft}>
-                  <View style={styles.modalIconCircle}>
-                    <Ionicons name="bus-outline" size={20} color="#0F172A" />
+      <View style={styles.modalOverlay}>
+        {/* Backdrop: separate touchable behind card */}
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={StyleSheet.absoluteFill} />
+        </TouchableWithoutFeedback>
+
+        {/* Card: NOT wrapped in Touchable */}
+        <View style={styles.modalCard} pointerEvents="box-none">
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <View style={styles.modalHeaderLeft}>
+              <View style={styles.modalIconCircle}>
+                <Ionicons name="bus-outline" size={20} color="#0F172A" />
+              </View>
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.modalTitle}>Shipment Tracking</Text>
+                  <View style={styles.demoTagPill}>
+                    <Text style={styles.demoTagText}>Demo Data</Text>
                   </View>
-                  <View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={styles.modalTitle}>Shipment Tracking</Text>
-                      <View style={styles.demoTagPill}>
-                        <Text style={styles.demoTagText}>Demo Data</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
-                  </View>
                 </View>
-                <TouchableOpacity
-                  style={styles.modalCloseBtn}
-                  onPress={onClose}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons name="close" size={20} color="#64748B" />
-                </TouchableOpacity>
+                <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
               </View>
-
-              {/* Status Banner */}
-              <View style={styles.trackCardBanner}>
-                <View style={styles.trackStatusPill}>
-                  <View style={styles.statusDotActive} />
-                  <Text style={styles.trackStatusText}>{status}</Text>
-                </View>
-                <Text style={styles.carrierText}>{carrier}</Text>
-              </View>
-
-              {/* Info Grid */}
-              <View style={styles.modalBodyGrid}>
-                <View style={styles.modalGridRow}>
-                  <Text style={styles.gridKey}>Tracking Number</Text>
-                  <Text style={styles.gridValueBold}>#{trackingNo}</Text>
-                </View>
-
-                <View style={styles.modalGridRow}>
-                  <Text style={styles.gridKey}>Shipped Date</Text>
-                  <Text style={styles.gridValue}>{shipDate}</Text>
-                </View>
-
-                <View style={styles.modalGridRow}>
-                  <Text style={styles.gridKey}>Estimated Delivery</Text>
-                  <Text style={styles.gridValueHighlight}>{estDelivery}</Text>
-                </View>
-              </View>
-
-              {/* Progress Steps */}
-              <View style={styles.timelineContainer}>
-                <View style={styles.timelineStep}>
-                  <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
-                  <Text style={styles.timelineTextDone}>Processed</Text>
-                </View>
-                <View style={styles.timelineLineDone} />
-                <View style={styles.timelineStep}>
-                  <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
-                  <Text style={styles.timelineTextDone}>Shipped</Text>
-                </View>
-                <View style={styles.timelineLineDone} />
-                <View style={styles.timelineStep}>
-                  <Ionicons name="radio-button-on" size={18} color="#2563EB" />
-                  <Text style={styles.timelineTextActive}>In Transit</Text>
-                </View>
-                <View style={styles.timelineLinePending} />
-                <View style={styles.timelineStep}>
-                  <Ionicons name="ellipse-outline" size={18} color="#94A3B8" />
-                  <Text style={styles.timelineTextPending}>Delivered</Text>
-                </View>
-              </View>
-
-              {/* Primary Close Button */}
-              <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
-                <Text style={styles.primaryActionBtnText}>Close</Text>
-              </TouchableOpacity>
             </View>
-          </TouchableWithoutFeedback>
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close" size={20} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Status Banner */}
+          <View style={styles.trackCardBanner}>
+            <View style={styles.trackStatusPill}>
+              <View style={styles.statusDotActive} />
+              <Text style={styles.trackStatusText}>{status}</Text>
+            </View>
+            <Text style={styles.carrierText}>{carrier}</Text>
+          </View>
+
+          {/* Info Grid */}
+          <View style={styles.modalBodyGrid}>
+            <View style={styles.modalGridRow}>
+              <Text style={styles.gridKey}>Tracking Number</Text>
+              <Text style={styles.gridValueBold}>#{trackingNo}</Text>
+            </View>
+
+            <View style={styles.modalGridRow}>
+              <Text style={styles.gridKey}>Shipped Date</Text>
+              <Text style={styles.gridValue}>{shipDate}</Text>
+            </View>
+
+            <View style={styles.modalGridRow}>
+              <Text style={styles.gridKey}>Estimated Delivery</Text>
+              <Text style={styles.gridValueHighlight}>{estDelivery}</Text>
+            </View>
+          </View>
+
+          {/* Progress Steps */}
+          <View style={styles.timelineContainer}>
+            <View style={styles.timelineStep}>
+              <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
+              <Text style={styles.timelineTextDone}>Processed</Text>
+            </View>
+            <View style={styles.timelineLineDone} />
+            <View style={styles.timelineStep}>
+              <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
+              <Text style={styles.timelineTextDone}>Shipped</Text>
+            </View>
+            <View style={styles.timelineLineDone} />
+            <View style={styles.timelineStep}>
+              <Ionicons name="radio-button-on" size={18} color="#2563EB" />
+              <Text style={styles.timelineTextActive}>In Transit</Text>
+            </View>
+            <View style={styles.timelineLinePending} />
+            <View style={styles.timelineStep}>
+              <Ionicons name="ellipse-outline" size={18} color="#94A3B8" />
+              <Text style={styles.timelineTextPending}>Delivered</Text>
+            </View>
+          </View>
+
+          {/* Primary Close Button */}
+          <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
+            <Text style={styles.primaryActionBtnText}>Close</Text>
+          </TouchableOpacity>
         </View>
-      </TouchableWithoutFeedback>
+      </View>
     </Modal>
   );
 };
 
-// ─── Invoice Modal Component (Matches Proforma Invoice Layout) ──────────────────
+// â”€â”€â”€ Invoice Modal Component (Matches Proforma Invoice Layout) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const InvoiceModal = ({
   visible,
@@ -359,7 +367,15 @@ const InvoiceModal = ({
   invStatus,
   invAmount,
   contactName,
-  fullAddress,
+  billingAddressText,
+  shippingAddressText,
+  shippingVia,
+  orderTypeName,
+  orderedQuantity,
+  qtyShipped,
+  invoiceDetailsUnitPrice,
+  invoiceDetailsTotalAmount,
+  miscDetails,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -378,222 +394,208 @@ const InvoiceModal = ({
   invStatus: string;
   invAmount: number;
   contactName: string;
-  fullAddress: string;
+  billingAddressText: string;
+  shippingAddressText: string;
+  shippingVia: string;
+  orderTypeName: string;
+  orderedQuantity: number;
+  qtyShipped: number;
+  invoiceDetailsUnitPrice: number;
+  invoiceDetailsTotalAmount: number;
+  miscDetails: any[];
 }) => {
   const insets = useSafeAreaInsets();
   const isUnpaid =
     invStatus.toLowerCase().includes('unpaid') || invStatus === 'Open' || invStatus === 'Pending' || invAmount === 0;
 
   const effectiveCompanyCode = companyCode || 'GS 100';
-  const effectivePo = poNumber || '1364 / WIRE TRANSFER';
-  const effectiveSalesperson = salesperson !== 'N/A' ? salesperson : 'Mehraj';
-  const subtotal = orderTotal > 0 ? orderTotal : (lineQty > 0 && unitPrice > 0 ? lineQty * unitPrice : 36560.00);
-  const taxRate = 0.09375;
-  const taxAmount = Math.round(subtotal * taxRate * 100) / 100;
-  const totalDue = Math.round((subtotal + taxAmount) * 100) / 100;
+  const effectivePo = poNumber || 'N/A';
+  const effectiveSalesperson = salesperson !== 'N/A' ? salesperson : 'N/A';
+  const effectiveShippingVia = shippingVia || 'N/A';
+  const effectiveOrderType = orderTypeName !== 'N/A' ? orderTypeName : 'PCB Parts';
+
+  const effectiveQtyReq = orderedQuantity > 0 ? orderedQuantity : lineQty;
+  const effectiveQtyShp = qtyShipped > 0 ? qtyShipped : effectiveQtyReq;
+  const effectiveUnitPrice = invoiceDetailsUnitPrice > 0 ? invoiceDetailsUnitPrice : unitPrice;
+  const subtotal = invoiceDetailsTotalAmount > 0 ? invoiceDetailsTotalAmount : (effectiveUnitPrice > 0 && effectiveQtyShp > 0 ? effectiveQtyShp * effectiveUnitPrice : orderTotal);
+
+  const miscList = Array.isArray(miscDetails) ? miscDetails.filter((m: any) => m && (m.MISC_NAME || m.miscName) && (m.MISC_AMOUNT != null || m.miscAmount != null)) : [];
+
+  let chargesTotal = 0;
+  miscList.forEach((m: any) => {
+    const amt = Number(m.MISC_AMOUNT ?? m.miscAmount ?? 0);
+    if (Number.isFinite(amt)) chargesTotal += amt;
+  });
+
+  const finalTotalDue = invAmount > 0 ? invAmount : (subtotal + chargesTotal);
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View
-        style={[
-          styles.modalOverlay,
-          {
-            paddingTop: Math.max(insets.top + 16, 24),
-            paddingBottom: Math.max(insets.bottom + 16, 24),
-          },
-        ]}
-      >
-        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
-        <View
-          style={[
-            styles.modalCard,
-            {
-              maxWidth: 500,
-              width: '96%',
-              maxHeight: '92%',
-              paddingHorizontal: 18,
-              paddingVertical: 16,
-              flexDirection: 'column',
-            },
-          ]}
-        >
-          {/* Header */}
+    <Modal visible={visible} presentationStyle="pageSheet" animationType="slide" onRequestClose={onClose}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        {/* Card content - now full screen */}
+        <View style={styles.invoiceModalContainer}>
           <View style={styles.modalHeader}>
-            <View style={styles.modalHeaderLeft}>
-              <View style={styles.modalIconCircle}>
-                <Ionicons name="receipt-outline" size={20} color="#0F172A" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={styles.modalTitle} numberOfLines={1}>
-                    Invoice Breakdown
-                  </Text>
-                  <View style={isUnpaid ? styles.unpaidBadgePill : styles.paidBadgePill}>
-                    <Text style={isUnpaid ? styles.unpaidBadgeText : styles.paidBadgeText}>
-                      {isUnpaid ? 'UNPAID' : 'PAID'}
-                    </Text>
+                <View style={styles.modalHeaderLeft}>
+                  <View style={styles.modalIconCircle}>
+                    <Ionicons name="receipt-outline" size={20} color="#0F172A" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={styles.modalTitle} numberOfLines={1}>
+                        Invoice Breakdown
+                      </Text>
+                      <View style={isUnpaid ? styles.unpaidBadgePill : styles.paidBadgePill}>
+                        <Text style={isUnpaid ? styles.unpaidBadgeText : styles.paidBadgeText}>
+                          {isUnpaid ? 'UNPAID' : 'PAID'}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.modalSubTitle}>Invoice #{invNumber !== 'N/A' ? invNumber : `${orderNo}-1`}</Text>
                   </View>
                 </View>
-                <Text style={styles.modalSubTitle}>Invoice #{invNumber !== 'N/A' ? invNumber : `${orderNo}-1`}</Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={styles.modalCloseBtn}
-              onPress={onClose}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="close" size={20} color="#475569" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Scrollable Proforma Invoice Body */}
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 8 }}>
-            {/* Invoice Metadata Banner */}
-            <View style={styles.invMetaBanner}>
-              <View style={styles.invMetaRow}>
-                <Text style={styles.invMetaLabel}>INVOICE #</Text>
-                <Text style={styles.invMetaValue}>{invNumber !== 'N/A' ? invNumber : `${orderNo}-1`}</Text>
-              </View>
-              <View style={styles.invMetaRow}>
-                <Text style={styles.invMetaLabel}>Date</Text>
-                <Text style={styles.invMetaValue}>{orderDate}</Text>
-              </View>
-              <View style={styles.invMetaRow}>
-                <Text style={styles.invMetaLabel}>Customer #</Text>
-                <Text style={styles.invMetaValue}>{effectiveCompanyCode}</Text>
-              </View>
-              <View style={styles.invMetaRow}>
-                <Text style={styles.invMetaLabel}>Customer PO #</Text>
-                <Text style={styles.invMetaValue}>{effectivePo}</Text>
-              </View>
-            </View>
-
-            {/* Bill To & Ship To Cards */}
-            <View style={styles.invAddressContainer}>
-              <View style={styles.invAddressCard}>
-                <Text style={styles.invAddressTitle}>BILL TO</Text>
-                <Text style={styles.invAddressName}>{contactName !== 'N/A' ? contactName : 'Salman Mirza'}</Text>
-                <Text style={styles.invAddressCompany}>{companyName !== 'N/A' ? companyName : 'GS Microelectronics US, Inc.'}</Text>
-                <Text style={styles.invAddressText}>{fullAddress}</Text>
+                <TouchableOpacity
+                  style={styles.modalCloseBtn}
+                  onPress={onClose}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="close" size={20} color="#475569" />
+                </TouchableOpacity>
               </View>
 
-              <View style={styles.invAddressCard}>
-                <Text style={styles.invAddressTitle}>SHIP TO</Text>
-                <Text style={styles.invAddressName}>{contactName !== 'N/A' ? contactName : 'Hoang Nguyen'}</Text>
-                <Text style={styles.invAddressCompany}>{companyName !== 'N/A' ? companyName : 'GS Microelectronics US, Inc.'}</Text>
-                <Text style={styles.invAddressText}>{fullAddress}</Text>
-              </View>
-            </View>
+              <ScrollView style={styles.invoiceScrollView} contentContainerStyle={styles.invoiceScrollContent} showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
+                <View style={styles.invMetaBanner}>
+                  <View style={styles.invMetaRow}>
+                    <Text style={styles.invMetaLabel}>INVOICE #</Text>
+                    <Text style={styles.invMetaValue}>{invNumber !== 'N/A' ? invNumber : `${orderNo}-1`}</Text>
+                  </View>
+                  <View style={styles.invMetaRow}>
+                    <Text style={styles.invMetaLabel}>Customer #</Text>
+                    <Text style={styles.invMetaValue}>{effectiveCompanyCode}</Text>
+                  </View>
+                  <View style={styles.invMetaRow}>
+                    <Text style={styles.invMetaLabel}>Customer PO #</Text>
+                    <Text style={styles.invMetaValue}>{effectivePo}</Text>
+                  </View>
+                </View>
 
-            {/* Order & Terms Bar */}
-            <View style={styles.invTermsBar}>
-              <View style={styles.invTermsCol}>
-                <Text style={styles.invTermsLabel}>ORDER DATE</Text>
-                <Text style={styles.invTermsValue}>{orderDate}</Text>
-              </View>
-              <View style={styles.invTermsCol}>
-                <Text style={styles.invTermsLabel}>SHIP VIA</Text>
-                <Text style={styles.invTermsValue}>Customer Pick Up</Text>
-              </View>
-              <View style={styles.invTermsCol}>
-                <Text style={styles.invTermsLabel}>FOB</Text>
-                <Text style={styles.invTermsValue}>Origin</Text>
-              </View>
-              <View style={styles.invTermsCol}>
-                <Text style={styles.invTermsLabel}>TERMS</Text>
-                <Text style={styles.invTermsValue}>{netTerm || 'Wire'}</Text>
-              </View>
-              <View style={styles.invTermsCol}>
-                <Text style={styles.invTermsLabel}>SALES PERSON</Text>
-                <Text style={styles.invTermsValue}>{effectiveSalesperson}</Text>
-              </View>
-              <View style={styles.invTermsCol}>
-                <Text style={styles.invTermsLabel}>ORDER #</Text>
-                <Text style={styles.invTermsValue}>{orderNo}</Text>
-              </View>
-            </View>
+                <View style={styles.invAddressContainer}>
+                  <View style={styles.invAddressCard}>
+                    <Text style={styles.invAddressTitle}>BILL TO</Text>
+                    <Text style={styles.invAddressName}>{contactName !== 'N/A' ? contactName : companyName}</Text>
+                    <Text style={styles.invAddressCompany}>{companyName !== 'N/A' ? companyName : 'N/A'}</Text>
+                    <Text style={styles.invAddressText}>{billingAddressText}</Text>
+                  </View>
 
-            {/* Line Item Breakdown Card (Responsive, 100% Width, No Horizontal Scroll) */}
-            <View style={styles.invLineItemCard}>
-              <View style={styles.invLineItemHeaderRow}>
-                <View style={{ flex: 1, paddingRight: 8 }}>
-                  <Text style={styles.invLineItemPartNo}>
-                    {partNo !== 'N/A' ? partNo : 'BRAMBLE TEST BOARD REV A'}
-                  </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                    <View style={styles.productTypePill}>
-                      <Text style={styles.productTypeText}>PCB Parts</Text>
+                  <View style={styles.invAddressCard}>
+                    <Text style={styles.invAddressTitle}>SHIP TO</Text>
+                    <Text style={styles.invAddressName}>{contactName !== 'N/A' ? contactName : companyName}</Text>
+                    <Text style={styles.invAddressCompany}>{companyName !== 'N/A' ? companyName : 'N/A'}</Text>
+                    <Text style={styles.invAddressText}>{shippingAddressText}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.invTermsBar}>
+                  <View style={styles.invTermsCol}>
+                    <Text style={styles.invTermsLabel}>ORDER DATE</Text>
+                    <Text style={styles.invTermsValue}>{orderDate}</Text>
+                  </View>
+                  <View style={styles.invTermsCol}>
+                    <Text style={styles.invTermsLabel}>SHIP VIA</Text>
+                    <Text style={styles.invTermsValue}>{effectiveShippingVia}</Text>
+                  </View>
+                  <View style={styles.invTermsCol}>
+                    <Text style={styles.invTermsLabel}>TERMS</Text>
+                    <Text style={styles.invTermsValue}>{netTerm || 'N/A'}</Text>
+                  </View>
+                  <View style={styles.invTermsCol}>
+                    <Text style={styles.invTermsLabel}>SALES PERSON</Text>
+                    <Text style={styles.invTermsValue}>{effectiveSalesperson}</Text>
+                  </View>
+                  <View style={styles.invTermsCol}>
+                    <Text style={styles.invTermsLabel}>OUR ORDER #</Text>
+                    <Text style={styles.invTermsValue}>{orderNo}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.invLineItemCard}>
+                  <View style={styles.invLineItemHeaderRow}>
+                    <View style={{ flex: 1, paddingRight: 8 }}>
+                      <Text style={styles.invLineItemPartNo}>
+                        {partNo !== 'N/A' ? partNo : 'N/A'}
+                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                        <View style={styles.productTypePill}>
+                          <Text style={styles.productTypeText}>{effectiveOrderType}</Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={styles.invLineItemTotalLabel}>AMOUNT</Text>
+                      <Text style={styles.invLineItemTotalVal}>
+                        {formatCurrencyWithCents(subtotal)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.invMetricsGrid}>
+                    <View style={styles.invMetricCol}>
+                      <Text style={styles.invMetricLabel}>QTY REQUIRED</Text>
+                      <Text style={styles.invMetricVal}>{effectiveQtyReq || 0}</Text>
+                    </View>
+                    <View style={styles.invMetricCol}>
+                      <Text style={styles.invMetricLabel}>QTY SHIPPED</Text>
+                      <Text style={styles.invMetricVal}>{effectiveQtyShp || 0}</Text>
+                    </View>
+                    <View style={styles.invMetricCol}>
+                      <Text style={styles.invMetricLabel}>ITEM/PART #</Text>
+                      <Text style={[styles.invMetricVal, { fontSize: 10 }]} numberOfLines={1}>
+                        {partNo !== 'N/A' ? partNo : 'N/A'}
+                      </Text>
+                    </View>
+                    <View style={[styles.invMetricCol, { alignItems: 'flex-end' }]}>
+                      <Text style={styles.invMetricLabel}>UNIT PRICE</Text>
+                      <Text style={styles.invMetricVal}>
+                        {effectiveUnitPrice > 0 ? formatCurrencyWithCents(effectiveUnitPrice) : '$0.00'}
+                      </Text>
                     </View>
                   </View>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.invLineItemTotalLabel}>AMOUNT</Text>
-                  <Text style={styles.invLineItemTotalVal}>
-                    {formatCurrencyWithCents(subtotal)}
-                  </Text>
-                </View>
-              </View>
 
-              {/* 4 Metrics Grid below Part # */}
-              <View style={styles.invMetricsGrid}>
-                <View style={styles.invMetricCol}>
-                  <Text style={styles.invMetricLabel}>QTY REQ</Text>
-                  <Text style={styles.invMetricVal}>{lineQty || 50}</Text>
-                </View>
-                <View style={styles.invMetricCol}>
-                  <Text style={styles.invMetricLabel}>QTY SHP</Text>
-                  <Text style={styles.invMetricVal}>{lineQty || 50}</Text>
-                </View>
-                <View style={styles.invMetricCol}>
-                  <Text style={styles.invMetricLabel}>BACK ORDER</Text>
-                  <Text style={styles.invMetricVal}>0</Text>
-                </View>
-                <View style={[styles.invMetricCol, { alignItems: 'flex-end' }]}>
-                  <Text style={styles.invMetricLabel}>UNIT PRICE</Text>
-                  <Text style={styles.invMetricVal}>
-                    {unitPrice > 0 ? formatCurrencyWithCents(unitPrice) : '$731.20'}
-                  </Text>
-                </View>
-              </View>
-            </View>
+                <View style={styles.invTotalsCard}>
+                  <View style={styles.invTotalRow}>
+                    <Text style={styles.invTotalLabel}>Subtotal</Text>
+                    <Text style={styles.invTotalVal}>{formatCurrencyWithCents(subtotal)}</Text>
+                  </View>
 
-            {/* Totals Summary */}
-            <View style={styles.invTotalsCard}>
-              <View style={styles.invTotalRow}>
-                <Text style={styles.invTotalLabel}>Subtotal</Text>
-                <Text style={styles.invTotalVal}>{formatCurrencyWithCents(subtotal)}</Text>
-              </View>
-              <View style={styles.invTotalRow}>
-                <Text style={styles.invTotalLabel}>Sales Tax (9.375%)</Text>
-                <Text style={styles.invTotalVal}>{formatCurrencyWithCents(taxAmount)}</Text>
-              </View>
-              <View style={[styles.invTotalRow, { borderTopWidth: 1, borderTopColor: '#CBD5E1', paddingTop: 8, marginTop: 4 }]}>
-                <Text style={[styles.invTotalLabel, { fontSize: 14, fontWeight: '700', color: '#0F172A' }]}>TOTAL DUE</Text>
-                <Text style={{ fontSize: 16, fontWeight: '800', color: '#0F172A' }}>{formatCurrencyWithCents(totalDue)}</Text>
-              </View>
-            </View>
+                  {miscList.map((m: any, idx: number) => {
+                    const name = String(m.MISC_NAME ?? m.miscName ?? 'Charge');
+                    const amt = Number(m.MISC_AMOUNT ?? m.miscAmount ?? 0);
+                    return (
+                      <View key={idx} style={styles.invTotalRow}>
+                        <Text style={styles.invTotalLabel}>{name}</Text>
+                        <Text style={styles.invTotalVal}>{formatCurrencyWithCents(amt)}</Text>
+                      </View>
+                    );
+                  })}
 
-            {/* External Remark */}
-            <View style={styles.invRemarkBox}>
-              <Ionicons name="information-circle-outline" size={16} color="#475569" style={{ marginTop: 1 }} />
-              <Text style={styles.invRemarkText}>
-                ~ Proforma Invoice ~ Requesting prepayment amount of {formatCurrencyWithCents(totalDue)} ASAP ~
-              </Text>
-            </View>
-          </ScrollView>
+                  <View style={[styles.invTotalRow, { borderTopWidth: 1, borderTopColor: '#CBD5E1', paddingTop: 8, marginTop: 4 }]}>
+                    <Text style={[styles.invTotalLabel, { fontSize: 14, fontWeight: '700', color: '#0F172A' }]}>TOTAL DUE</Text>
+                    <Text style={{ fontSize: 16, fontWeight: '800', color: '#0F172A' }}>{formatCurrencyWithCents(finalTotalDue)}</Text>
+                  </View>
+                </View>
+              </ScrollView>
 
-          {/* Bottom Close Button */}
-          <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
-            <Text style={styles.primaryActionBtnText}>Close</Text>
-          </TouchableOpacity>
+              <TouchableOpacity style={[styles.primaryActionBtn, { marginTop: 16 }]} onPress={onClose} activeOpacity={0.85}>
+                <Text style={styles.primaryActionBtnText}>Close</Text>
+              </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 };
 
-// ─── Full Specifications Modal Component ─────────────────────────────────────
+// â”€â”€â”€ Full Specifications Modal Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const AllSpecificationsModal = ({
   visible,
@@ -608,28 +610,23 @@ const AllSpecificationsModal = ({
   isItar: boolean;
   specsList: { label: string; value: string; isBold?: boolean }[];
 }) => {
-  const insets = useSafeAreaInsets();
-
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View
-        style={[
-          styles.specsModalOverlay,
-          {
-            paddingTop: Math.max(insets.top + 16, 24),
-            paddingBottom: Math.max(insets.bottom + 16, 24),
-          },
-        ]}
-      >
-        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
-        <View style={[styles.specsModalCard, { width: '96%', maxWidth: 480, maxHeight: '88%' }]}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.specsModalOverlay}>
+        {/* Backdrop: separate touchable behind card */}
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={StyleSheet.absoluteFill} />
+        </TouchableWithoutFeedback>
+
+        {/* Card: NOT wrapped in Touchable */}
+        <View style={styles.specsModalContainer} pointerEvents="box-none">
           {/* Header */}
           <View style={styles.specsModalHeader}>
             <View style={styles.modalHeaderLeft}>
               <View style={styles.modalIconCircle}>
                 <Ionicons name="list-outline" size={20} color="#0F172A" />
               </View>
-              <View>
+              <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Text style={styles.modalTitle}>All Specifications</Text>
                   {isItar ? (
@@ -654,9 +651,10 @@ const AllSpecificationsModal = ({
           {/* Scrollable Specs List */}
           <ScrollView
             style={styles.specsScrollView}
-            contentContainerStyle={styles.specsScrollContent}
+            contentContainerStyle={styles.specsScrollContentSimple}
             showsVerticalScrollIndicator={true}
-            bounces={true}
+            scrollEventThrottle={16}
+            nestedScrollEnabled={true}
           >
             <View style={styles.cardGroup}>
               {specsList.map((item, index) => (
@@ -688,7 +686,239 @@ const AllSpecificationsModal = ({
   );
 };
 
-// ─── Main Screen Component ────────────────────────────────────────────────────
+const VendorsModal = ({
+  visible,
+  onClose,
+  orderNo,
+  orderVendors,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  orderNo: string;
+  orderVendors: any[];
+}) => {
+  const [expandedVendorIds, setExpandedVendorIds] = useState<Set<string>>(new Set());
+  const insets = useSafeAreaInsets();
+
+  const toggleVendor = useCallback((ordvenId: string) => {
+    setExpandedVendorIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(ordvenId)) {
+        next.delete(ordvenId);
+      } else {
+        next.add(ordvenId);
+      }
+      return next;
+    });
+  }, []);
+
+  const formatValue = (val: any): string => {
+    if (val === null || val === undefined || val === '') return '';
+    const str = String(val).trim();
+    if (str === 'null' || str === 'undefined') return '';
+    return str;
+  };
+
+  const formatDate = (d: string | null | undefined) => {
+    if (!d) return '';
+    return formatOrderDate(d);
+  };
+
+  const vendors = Array.isArray(orderVendors) ? orderVendors : [];
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.specsModalOverlay}>
+        {/* Backdrop: separate touchable behind card */}
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={StyleSheet.absoluteFill} />
+        </TouchableWithoutFeedback>
+
+        {/* Card: NOT wrapped in Touchable */}
+        <View style={[styles.specsModalCard, { width: '96%', maxWidth: 480 }]} pointerEvents="box-none">
+          <View style={styles.specsModalHeader}>
+            <View style={styles.modalHeaderLeft}>
+              <View style={styles.modalIconCircle}>
+                <Ionicons name="business-outline" size={20} color="#0F172A" />
+              </View>
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.modalTitle}>Vendors ({vendors.length})</Text>
+                </View>
+                <Text style={styles.modalSubTitle}>Order #{orderNo}</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.specsCloseBtn}
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close" size={20} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            style={styles.specsScrollView}
+            contentContainerStyle={styles.specsScrollContent}
+            showsVerticalScrollIndicator={true}
+            bounces={true}
+            nestedScrollEnabled={true}
+          >
+            {vendors.length === 0 ? (
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <Text style={{ color: '#64748B', fontSize: 14 }}>No vendors found</Text>
+              </View>
+            ) : (
+              <View style={{ gap: 12 }}>
+                {vendors.map((ov, idx) => {
+                  const vendorName = ov?.vendor?.vendorCompanyName ?? ov?.vendorCompanyName ?? 'Unknown Vendor';
+                  const vendorDetails = Array.isArray(ov?.vendorDetails) ? ov.vendorDetails : [];
+                  const ordvenId = String(ov?.ORDVEN_ID ?? idx);
+                  const isExpanded = expandedVendorIds.has(ordvenId);
+
+                  const qty = Number(vendorDetails[0]?.ORDERVENDOR_QTY ?? 0);
+                  const unitPrice = Number(vendorDetails[0]?.VENDOR_UNITPRICE ?? 0);
+                  const subTotal = Number(vendorDetails[0]?.VENDOR_TOTAL ?? ov?.VENDOR_TOTAL ?? 0);
+                  const finishDate = formatDate(vendorDetails[0]?.ORDERVENDOR_FINISHDATE);
+
+                  const tooling = formatValue(ov?.VENDOR_TOOLING);
+                  const testing = formatValue(ov?.VENDOR_TESTING);
+                  const setup = formatValue(ov?.VENDOR_SETUP);
+                  const stencil = formatValue(ov?.VENDOR_STENCIL);
+                  const programming = formatValue(ov?.VENDOR_PROGRAMMING);
+                  const urgentCost = formatValue(ov?.VENDOR_URGENTCOST);
+                  const totalCost = formatValue(ov?.VENDOR_TOTALCOST);
+
+                  return (
+                    <View key={ordvenId} style={styles.cardGroup}>
+                      <View style={styles.rowItem}>
+                        <View style={[styles.rowLeft, { flex: 1 }]}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.rowKey, { fontSize: 14, fontWeight: '600', color: PRIMARY }]} numberOfLines={1}>
+                              {vendorName}
+                            </Text>
+                          </View>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <Text style={[styles.rowValue, { fontSize: 13.5 }]}>
+                            {formatCurrencyWithCents(subTotal)}
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => toggleVendor(ordvenId)}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                          >
+                            <Ionicons
+                              name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                              size={18}
+                              color="#64748B"
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+
+                      {isExpanded ? (
+                        <View style={{ paddingHorizontal: 16, paddingBottom: 14, gap: 10 }}>
+                          <View style={styles.modalBodyGrid}>
+                            {qty > 0 ? (
+                              <View style={styles.modalGridRow}>
+                                <Text style={styles.gridKey}>Quantity</Text>
+                                <Text style={styles.gridValueBold}>{qty}</Text>
+                              </View>
+                            ) : null}
+
+                            {unitPrice > 0 ? (
+                              <View style={styles.modalGridRow}>
+                                <Text style={styles.gridKey}>Unit Price</Text>
+                                <Text style={styles.gridValueBold}>{formatCurrencyWithCents(unitPrice)}</Text>
+                              </View>
+                            ) : null}
+
+                            {subTotal > 0 ? (
+                              <View style={styles.modalGridRow}>
+                                <Text style={styles.gridKey}>Sub Total</Text>
+                                <Text style={styles.gridValueBold}>{formatCurrencyWithCents(subTotal)}</Text>
+                              </View>
+                            ) : null}
+
+                            {tooling ? (
+                              <View style={styles.modalGridRow}>
+                                <Text style={styles.gridKey}>Tooling</Text>
+                                <Text style={styles.gridValueBold}>{formatCurrencyWithCents(Number(tooling))}</Text>
+                              </View>
+                            ) : null}
+
+                            {testing ? (
+                              <View style={styles.modalGridRow}>
+                                <Text style={styles.gridKey}>Testing</Text>
+                                <Text style={styles.gridValueBold}>{formatCurrencyWithCents(Number(testing))}</Text>
+                              </View>
+                            ) : null}
+
+                            {setup ? (
+                              <View style={styles.modalGridRow}>
+                                <Text style={styles.gridKey}>Setup</Text>
+                                <Text style={styles.gridValueBold}>{formatCurrencyWithCents(Number(setup))}</Text>
+                              </View>
+                            ) : null}
+
+                            {stencil ? (
+                              <View style={styles.modalGridRow}>
+                                <Text style={styles.gridKey}>Stencil</Text>
+                                <Text style={styles.gridValueBold}>{formatCurrencyWithCents(Number(stencil))}</Text>
+                              </View>
+                            ) : null}
+
+                            {programming ? (
+                              <View style={styles.modalGridRow}>
+                                <Text style={styles.gridKey}>Programming</Text>
+                                <Text style={styles.gridValueBold}>{formatCurrencyWithCents(Number(programming))}</Text>
+                              </View>
+                            ) : null}
+
+                            {urgentCost ? (
+                              <View style={styles.modalGridRow}>
+                                <Text style={styles.gridKey}>Urgent Cost</Text>
+                                <Text style={styles.gridValueBold}>{formatCurrencyWithCents(Number(urgentCost))}</Text>
+                              </View>
+                            ) : null}
+
+                            {totalCost ? (
+                              <View style={[styles.modalGridRow, { borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 8, marginTop: 2 }]}>
+                                <Text style={[styles.gridKey, { fontWeight: '700', color: PRIMARY }]}>Total Cost</Text>
+                                <Text style={{ fontSize: 14, fontWeight: '800', color: PRIMARY }}>
+                                  {formatCurrencyWithCents(Number(totalCost))}
+                                </Text>
+                              </View>
+                            ) : null}
+
+                            {finishDate ? (
+                              <View style={styles.modalGridRow}>
+                                <Text style={styles.gridKey}>Finish Date</Text>
+                                <Text style={styles.gridValue}>{finishDate}</Text>
+                              </View>
+                            ) : null}
+                          </View>
+                        </View>
+                      ) : null}
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </ScrollView>
+
+          <View style={styles.specsModalFooter}>
+            <TouchableOpacity style={styles.primaryActionBtn} onPress={onClose} activeOpacity={0.85}>
+              <Text style={styles.primaryActionBtnText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+// â”€â”€â”€ Main Screen Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function OrderDetailsScreen() {
   const params = useLocalSearchParams<{ orderData?: string; orderId?: string; from?: string }>();
@@ -700,25 +930,24 @@ export default function OrderDetailsScreen() {
   const [trackModalVisible, setTrackModalVisible] = useState(false);
   const [invoiceModalVisible, setInvoiceModalVisible] = useState(false);
   const [specsModalVisible, setSpecsModalVisible] = useState(false);
+  const [vendorsModalVisible, setVendorsModalVisible] = useState(false);
 
   const handleBack = React.useCallback(() => {
-    if (router.canGoBack()) {
-      router.back();
-    } else if (params.from) {
-      router.replace(params.from as any);
-    } else {
-      router.replace('/all-orders' as any);
-    }
-  }, [params.from]);
+    // Stack navigator correctly pops back to the parent screen.
+    router.back();
+  }, []);
 
-  useEffect(() => {
-    const onBackPress = () => {
-      handleBack();
-      return true;
-    };
-    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-    return () => subscription.remove();
-  }, [handleBack]);
+  useBackHandler({
+    modalVisible: locationModalVisible || contactModalVisible || trackModalVisible || invoiceModalVisible || specsModalVisible || vendorsModalVisible,
+    onDismissModal: () => {
+      setLocationModalVisible(false);
+      setContactModalVisible(false);
+      setTrackModalVisible(false);
+      setInvoiceModalVisible(false);
+      setSpecsModalVisible(false);
+      setVendorsModalVisible(false);
+    },
+  });
 
   const initialParsedOrder = useMemo(() => {
     if (params.orderData) {
@@ -776,15 +1005,15 @@ export default function OrderDetailsScreen() {
   const markupPct = Number.isFinite(order?.MARKUP_PERCENTAGE)
     ? Math.round(order.MARKUP_PERCENTAGE!)
     : (Number.isFinite(order?.markupPercentage)
-    ? Math.round(order.markupPercentage!)
-    : (orderCost > 0 ? Math.round((markupAmount / orderCost) * 100) : (orderTotal > 0 ? 100 : 0)));
+      ? Math.round(order.markupPercentage!)
+      : (orderCost > 0 ? Math.round((markupAmount / orderCost) * 100) : (orderTotal > 0 ? 100 : 0)));
 
   const orderStatus = String(order?.ORDER_STATUS ?? order?.orderStatus ?? 'Open').trim();
 
   // Specifications
   const spec = order?.orderSpecifications && order.orderSpecifications.length > 0 ? order.orderSpecifications[0] : null;
 
-  // Order info — handle both UPPER_SNAKE and camelCase
+  // Order info â€” handle both UPPER_SNAKE and camelCase
   const rawType = order?.ORDER_TYPE_NAME ?? order?.orderTypeName ?? order?.ORDER_TYPE ?? order?.orderType ?? spec?.OrderType;
   const orderType = rawType && String(rawType).trim() !== 'null' && String(rawType).trim() !== '' ? String(rawType).trim() : 'N/A';
 
@@ -801,7 +1030,7 @@ export default function OrderDetailsScreen() {
     'N/A'
   ).trim();
 
-  // customerStatus — old endpoint: CUSTOMER_STATUS; new endpoint: ORDER_REPEATOF
+  // customerStatus â€” old endpoint: CUSTOMER_STATUS; new endpoint: ORDER_REPEATOF
   const customerStatus = (
     order?.CUSTOMER_STATUS ??
     order?.customerStatus ??
@@ -814,7 +1043,7 @@ export default function OrderDetailsScreen() {
   ).trim();
 
   const companyCode = String(order?.COMPANY_CODE ?? order?.companyCode ?? '').trim();
-  const poNumber = String(order?.PO_NUMBER ?? order?.poNumber ?? order?.CUSTOMER_PO ?? order?.customerPo ?? '').trim();
+  const poNumber = String(order?.PO_NO ?? order?.PO_NUMBER ?? order?.poNumber ?? order?.CUSTOMER_PO ?? order?.customerPo ?? '').trim();
 
   // Dates
   const formatDate = (d: string | null | undefined) => {
@@ -823,6 +1052,9 @@ export default function OrderDetailsScreen() {
   const orderDate = formatDate(order?.ORDER_DATE ?? order?.orderDate);
   const updatedDate = formatDate(order?.UPDATED_DATE ?? order?.updatedDate);
   const quoteDate = formatDate(order?.QUOTE_DATE ?? order?.quoteDate);
+
+  const hasLoadedOrder = Boolean(order && Object.keys(order).length > 0);
+  const showSkeletonField = !hasLoadedOrder;
 
   // Line items
   const details = order?.orderDetails && order.orderDetails.length > 0 ? order.orderDetails[0] : null;
@@ -840,15 +1072,16 @@ export default function OrderDetailsScreen() {
   const expectedVendorCount = Number(order?.expectedVendorCount ?? 0);
   const vendorFulfillmentLabel =
     vendorFulfillment === 'NO_VENDOR' ? 'No Vendor' :
-    vendorFulfillment === 'PARTIAL_VENDOR' ? 'Partially Sourced' :
-    vendorFulfillment === 'FULLY_SOURCED' ? 'Fully Sourced' :
-    vendorFulfillment || 'N/A';
+      vendorFulfillment === 'PARTIAL_VENDOR' ? 'Partially Sourced' :
+        vendorFulfillment === 'FULLY_SOURCED' ? 'Fully Sourced' :
+          vendorFulfillment || 'N/A';
 
   // Specifications
   const partNo = (spec?.PCBPARTNO ?? order?.pcbpartNo ?? order?.PCBPARTNO ?? order?.partNo ?? order?.PARTNO ?? 'N/A').trim();
   const rev = spec?.REV != null ? String(spec.REV).trim() : (order?.rev != null ? String(order.rev).trim() : '0');
   const orderTypeSpec = (spec?.OrderType ?? order?.ORDER_TYPE_NAME ?? order?.orderType ?? 'Full Turnkey').trim();
   const boardSize = (spec?.BoardSize ?? order?.boardSize ?? 'N/A').trim();
+  const boardType = (spec?.BoardType ?? spec?.boardType ?? order?.boardType ?? spec?.PcbType ?? spec?.pcbType ?? 'N/A').trim();
   const panelSize = (spec?.PanelSize ?? order?.panelSize ?? 'N/A').trim();
   const boardsPerPanel = spec?.BoardPerPanel != null ? String(spec.BoardPerPanel).trim() : (order?.boardsPerPanel != null ? String(order.boardsPerPanel).trim() : 'N/A');
   const layerCount = (spec?.Layer ?? order?.layerCount ?? 'N/A').trim();
@@ -1024,25 +1257,52 @@ export default function OrderDetailsScreen() {
   const zip = ship.zipCode || '';
   const fullAddress = [addr1 + addr2, city, state, zip].filter(Boolean).join(', ') || 'Address not available';
 
+  // Billing Address
+  const bill = order?.billingAddress || {};
+  const billCity = bill.cityName || '';
+  const billState = bill.stateName ? bill.stateName.toUpperCase() : '';
+  const billAddr1 = bill.addressText1 || '';
+  const billAddr2 = bill.addressText2 ? `, ${bill.addressText2}` : '';
+  const billZip = bill.zipCode || '';
+  const billingAddressText = [billAddr1 + billAddr2, billCity, billState, billZip].filter(Boolean).join(', ') || 'Address not available';
+  const shippingAddressText = fullAddress;
+  const shippingVia = String(ship.shippingVia ?? bill.shippingVia ?? '').trim();
+
   const contact = order?.customerContact || {};
   const firstName = contact.firstName || order?.contactFirstName || '';
   const lastName = contact.lastName || order?.contactLastName || '';
-  const contactName = `${firstName} ${lastName}`.trim() || 'N/A';
-  const contactEmail = contact.email || order?.contactEmail || 'N/A';
+  const contactName = `${firstName} ${lastName}`.trim() || (showSkeletonField ? 'Loading…' : 'N/A');
+  const contactEmail = contact.email || order?.contactEmail || (showSkeletonField ? 'Loading…' : 'N/A');
   const rawPhone = contact.phone1 || order?.contactPhone || '';
   const formattedPhone =
     rawPhone.length === 10
       ? `(${rawPhone.slice(0, 3)}) ${rawPhone.slice(3, 6)}-${rawPhone.slice(6)}`
-      : rawPhone || 'N/A';
+      : rawPhone || (showSkeletonField ? 'Loading…' : 'N/A');
 
   // Invoice & Shipment
   const inv = order?.invoices && order.invoices.length > 0 ? order.invoices[0] : null;
-  const invNumber = inv?.INV_NUMBER ?? order?.invoiceNumber ?? 'N/A';
-  const invStatus = inv?.invoiceStatus ?? order?.invoiceStatus ?? 'N/A';
-  const invAmount = inv?.INVOICE_AMOUNT ?? order?.invoiceAmount ?? 0;
+  
+  // Log invoice shape for debugging field mapping
+  if (__DEV__ && inv) {
+    console.log('[OrderDetails] Invoice object shape:', JSON.stringify(inv, null, 2));
+  }
+  
+  const invNumber = inv?.INV_NUMBER ?? inv?.invoiceNumber ?? inv?.INVOICE_NUMBER ?? inv?.invoice_number ?? order?.invoiceNumber ?? 'N/A';
+  const invStatus = inv?.invoiceStatus ?? inv?.INVOICE_STATUS ?? inv?.invoice_status ?? order?.invoiceStatus ?? 'N/A';
+  const invAmount = Number(inv?.INVOICE_AMOUNT ?? inv?.invoiceAmount ?? inv?.AMOUNT ?? inv?.amount ?? order?.invoiceAmount ?? 0);
+  const invDetails = inv?.invoiceDetails && inv.invoiceDetails.length > 0 ? inv.invoiceDetails[0] : null;
+  const qtyShipped = Number(invDetails?.ORDERSLIP_QTY ?? invDetails?.orderslip_qty ?? invDetails?.qtyShipped ?? 0);
+  const invoiceDetailsUnitPrice = Number(invDetails?.UNIT_PRICE ?? invDetails?.unit_price ?? invDetails?.unitPrice ?? 0);
+  const invoiceDetailsTotalAmount = Number(invDetails?.TOTAL_AMOUNT ?? invDetails?.total_amount ?? invDetails?.totalAmount ?? 0);
+  const miscDetails = inv?.miscDetails ?? inv?.MISC_DETAILS ?? [];
 
   const pack = order?.orderPackingSlips && order.orderPackingSlips.length > 0 ? order.orderPackingSlips[0] : null;
   const trackingNo = pack?.TRACK_NUMBER ?? order?.trackingNumber ?? 'N/A';
+
+  // Order type name for product type
+  const orderTypeNameRaw = order?.ORDER_TYPE_NAME ?? order?.orderTypeName ?? spec?.OrderType ?? '';
+  const orderTypeName = orderTypeNameRaw && String(orderTypeNameRaw).trim() !== 'null' && String(orderTypeNameRaw).trim() !== '' ? String(orderTypeNameRaw).trim() : 'N/A';
+  const orderedQuantityVal = Number(order?.orderedQuantity ?? 0);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -1059,10 +1319,10 @@ export default function OrderDetailsScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Top Hero Section */}
+        {/* Top Hero Section with a white card behind the original content */}
         <View style={styles.heroSectionCentered}>
           <Text style={styles.heroCompanyNameCentered} numberOfLines={1}>
-            {companyName}
+            {companyName}{companyCode ? ` (${companyCode})` : ''}
           </Text>
           <Text style={styles.heroOrderNoCentered} numberOfLines={1}>
             Order #{orderNo}
@@ -1088,17 +1348,17 @@ export default function OrderDetailsScreen() {
           {/* Horizontal Dates Bar */}
           <View style={styles.heroDatesRowHorizontal}>
             <View style={styles.heroDateItem}>
-              <Text style={styles.heroDateLabel}>ORDER</Text>
+              <Text style={styles.heroDateLabel}>ORDER DATE</Text>
               <Text style={styles.heroDateValue}>{orderDate}</Text>
             </View>
             <View style={styles.heroDateDivider} />
             <View style={styles.heroDateItem}>
-              <Text style={styles.heroDateLabel}>PROMISED</Text>
+              <Text style={styles.heroDateLabel}>PROMISED DATE</Text>
               <Text style={styles.heroDateValue}>{promisedDate !== 'N/A' ? promisedDate : '—'}</Text>
             </View>
             <View style={styles.heroDateDivider} />
             <View style={styles.heroDateItem}>
-              <Text style={styles.heroDateLabel}>FINISH</Text>
+              <Text style={styles.heroDateLabel}>FINISH DATE</Text>
               <Text style={styles.heroDateValue}>{finishDate !== 'N/A' ? finishDate : '—'}</Text>
             </View>
           </View>
@@ -1224,16 +1484,15 @@ export default function OrderDetailsScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Minimal 2 Core Parameters */}
+          {/* Minimal 1 Core Parameters */}
           <View style={styles.cardGroup}>
-            <View style={styles.specRowItem}>
+            <View style={[styles.specRowItem]}>
               <Text style={styles.specRowKey}>Layers</Text>
               <Text style={styles.specRowValueBold}>{layerCount}</Text>
             </View>
-
             <View style={[styles.specRowItem, { borderBottomWidth: 0 }]}>
-              <Text style={styles.specRowKey}>Board Size</Text>
-              <Text style={styles.specRowValue}>{boardSize}</Text>
+              <Text style={styles.specRowKey}>Service Type</Text>
+              <Text style={styles.specRowValueBold}>{orderTypeSpec}</Text>
             </View>
           </View>
         </View>
@@ -1242,13 +1501,22 @@ export default function OrderDetailsScreen() {
         <View style={styles.sectionWrap}>
           <Text style={styles.sectionHeaderTitle}>VENDOR & SHIPPING</Text>
           <View style={styles.cardGroup}>
-            <View style={styles.rowItem}>
+            <TouchableOpacity
+              style={styles.rowItem}
+              onPress={() => setVendorsModalVisible(true)}
+              activeOpacity={0.7}
+            >
               <View style={styles.rowLeft}>
                 <Ionicons name="business-outline" size={17} color={SECONDARY} style={styles.rowIcon} />
-                <Text style={styles.rowKey}>Vendor</Text>
+                <Text style={styles.rowKey}>Vendors ({Array.isArray(order?.orderVendors) ? order.orderVendors.length : 0})</Text>
               </View>
-              <Text style={styles.rowValue}>{vendorName}</Text>
-            </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 }}>
+                <Text style={[styles.rowValue, { flexShrink: 1 }]} numberOfLines={1}>
+                  {Array.isArray(order?.orderVendors) && order.orderVendors.length > 0 ? `${order.orderVendors.length} vendors` : 'N/A'}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+              </View>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.rowItem, { borderBottomWidth: 0 }]}
@@ -1271,19 +1539,22 @@ export default function OrderDetailsScreen() {
 
         {/* Section 4: INVOICE */}
         <View style={styles.sectionWrap}>
-          <Text style={styles.sectionHeaderTitle}>INVOICE</Text>
+          <Text style={styles.sectionHeaderTitle}>INVOICE ({Array.isArray(order?.invoices) ? order.invoices.length : 0})</Text>
           <TouchableOpacity style={styles.cardGroup} onPress={() => setInvoiceModalVisible(true)} activeOpacity={0.8}>
-            <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
-              <View style={styles.rowLeft}>
-                <Ionicons name="alert-circle-outline" size={17} color={RED_TEXT} style={styles.rowIcon} />
-                <Text style={styles.rowKey}>{invNumber}</Text>
+            <View style={[styles.specRowItem, { borderBottomWidth: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }]}>
+              <View style={{ flex: 1, gap: 8 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={styles.specRowKey}>Invoice Number</Text>
+                  <Text style={styles.specRowValueBold}>{invNumber !== 'N/A' ? invNumber : 'Pending'}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={styles.specRowKey}>Invoice Amount</Text>
+                  <Text style={[styles.specRowValueBold, { color: invAmount > 0 ? PRIMARY : SECONDARY }]}>
+                    {formatCurrencyWithCents(invAmount)}
+                  </Text>
+                </View>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={[styles.rowValue, { color: RED_TEXT }]}>
-                  {invStatus} · {formatCurrencyWithCents(invAmount)}
-                </Text>
-                <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
-              </View>
+              <Ionicons name="chevron-forward" size={16} color="#94A3B8" style={{ marginLeft: 8, marginTop: 6 }} />
             </View>
           </TouchableOpacity>
         </View>
@@ -1348,7 +1619,15 @@ export default function OrderDetailsScreen() {
         invStatus={invStatus}
         invAmount={invAmount}
         contactName={contactName}
-        fullAddress={fullAddress}
+        billingAddressText={billingAddressText}
+        shippingAddressText={shippingAddressText}
+        shippingVia={shippingVia}
+        orderTypeName={orderTypeName}
+        orderedQuantity={orderedQuantityVal}
+        qtyShipped={qtyShipped}
+        invoiceDetailsUnitPrice={invoiceDetailsUnitPrice}
+        invoiceDetailsTotalAmount={invoiceDetailsTotalAmount}
+        miscDetails={miscDetails}
       />
 
       <AllSpecificationsModal
@@ -1357,6 +1636,13 @@ export default function OrderDetailsScreen() {
         orderNo={orderNo}
         isItar={isItar}
         specsList={dynamicSpecsList}
+      />
+
+      <VendorsModal
+        visible={vendorsModalVisible}
+        onClose={() => setVendorsModalVisible(false)}
+        orderNo={orderNo}
+        orderVendors={order?.orderVendors ?? []}
       />
     </SafeAreaView>
   );
@@ -1399,8 +1685,12 @@ const styles = StyleSheet.create({
     gap: 18,
   },
 
-  // Centered Hero section matching user's image layout
+  // Centered Hero section with white card behind the original content
   heroSectionCentered: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
     alignItems: 'center',
     paddingVertical: 14,
     paddingHorizontal: 16,
@@ -1653,7 +1943,7 @@ const styles = StyleSheet.create({
     color: '#15803D',
   },
 
-  // ─── Modal Styles ─────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Modal Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.55)',
@@ -1956,12 +2246,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
   },
-  specsModalCard: {
-    width: '100%',
-    maxHeight: '84%',
+  specsModalContainer: {
+    width: '90%',
+    maxWidth: 480,
+    maxHeight: '90%',
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     overflow: 'hidden',
+    flexDirection: 'column',
+  },
+  specsModalCard: {
+    width: '100%',
+    height: '84%',
+    minHeight: 0,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    overflow: 'hidden',
+    flexDirection: 'column',
   },
   specsModalHeader: {
     flexDirection: 'row',
@@ -1976,7 +2277,11 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
   },
   specsScrollView: {
-    flexShrink: 1,
+    flex: 1,
+    minHeight: 0,
+  },
+  specsScrollContentSimple: {
+    paddingVertical: 14,
     paddingHorizontal: 20,
   },
   specsScrollContent: {
@@ -2015,6 +2320,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
+  },
+
+  // Invoice Modal
+  invoiceModalContainer: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    overflow: 'hidden',
+    flexDirection: 'column',
+  },
+  invoiceScrollView: {
+    flex: 1,
+    minHeight: 0,
+  },
+  invoiceScrollContent: {
+    paddingBottom: 16,
+    gap: 12,
   },
 
   // Horizontal Dates Bar in Top Hero
@@ -2252,3 +2578,4 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 });
+

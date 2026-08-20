@@ -30,18 +30,27 @@ export const computeConversionRate = (quoteCount: number, convertedCount: number
   return Math.round((convertedCount / quoteCount) * 100);
 };
 
-const normalizeQuotesResponse = (data: QuotesDashboardResponse | null | undefined): QuotesDashboardResponse => ({
-  quoteCount: Number.isFinite(data?.quoteCount) ? data!.quoteCount : 0,
-  convertedCount: Number.isFinite(data?.convertedCount) ? data!.convertedCount : 0,
-  quotesByNewCustomer: Number.isFinite(data?.quotesByNewCustomer) ? data!.quotesByNewCustomer : 0,
-  quotesByExistingCustomer: Number.isFinite(data?.quotesByExistingCustomer) ? data!.quotesByExistingCustomer : 0,
-  totalConvertedQuotesCount: Number.isFinite(data?.totalConvertedQuotesCount) ? data!.totalConvertedQuotesCount : 0,
-  quotes: Array.isArray(data?.quotes) ? data!.quotes : EMPTY_QUOTES.quotes,
-  quotesBySalesperson: Array.isArray(data?.quotesBySalesperson) ? data!.quotesBySalesperson : [],
-  quotesByServiceType: Array.isArray(data?.quotesByServiceType) ? data!.quotesByServiceType : [],
-  quotesToOrdersBySalesperson: Array.isArray(data?.quotesToOrdersBySalesperson) ? data!.quotesToOrdersBySalesperson : [],
-  quotesToOrdersByServiceType: Array.isArray(data?.quotesToOrdersByServiceType) ? data!.quotesToOrdersByServiceType : [],
-});
+const normalizeQuotesResponse = (data: QuotesDashboardResponse | null | undefined): QuotesDashboardResponse => {
+  const quoteCount = Number.isFinite(data?.quoteCount) ? data!.quoteCount : 0;
+  const convertedCount = Number.isFinite(data?.convertedCount) ? data!.convertedCount : 0;
+  const notConvertedCount = Number.isFinite(data?.notConvertedCount)
+    ? data!.notConvertedCount!
+    : Math.max(0, quoteCount - convertedCount);
+
+  return {
+    quoteCount,
+    convertedCount,
+    notConvertedCount,
+    quotesByNewCustomer: Number.isFinite(data?.quotesByNewCustomer) ? data!.quotesByNewCustomer : 0,
+    quotesByExistingCustomer: Number.isFinite(data?.quotesByExistingCustomer) ? data!.quotesByExistingCustomer : 0,
+    totalConvertedQuotesCount: Number.isFinite(data?.totalConvertedQuotesCount) ? data!.totalConvertedQuotesCount : 0,
+    quotes: Array.isArray(data?.quotes) ? data!.quotes : EMPTY_QUOTES.quotes,
+    quotesBySalesperson: Array.isArray(data?.quotesBySalesperson) ? data!.quotesBySalesperson : [],
+    quotesByServiceType: Array.isArray(data?.quotesByServiceType) ? data!.quotesByServiceType : [],
+    quotesToOrdersBySalesperson: Array.isArray(data?.quotesToOrdersBySalesperson) ? data!.quotesToOrdersBySalesperson : [],
+    quotesToOrdersByServiceType: Array.isArray(data?.quotesToOrdersByServiceType) ? data!.quotesToOrdersByServiceType : [],
+  };
+};
 
 const toServiceError = (error: unknown) => {
   if (!(error instanceof ApiClientError)) {

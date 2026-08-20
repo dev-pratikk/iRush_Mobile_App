@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useEffect } from 'react';
+﻿import React, { useCallback, useMemo, useEffect } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Text, RefreshControl, BackHandler } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import {
   cleanupName,
   formatNumber,
 } from '../../services/api/quotes.service';
+import { useBackHandler } from '../../hooks/useBackHandler';
 
 const PRIMARY = '#0F172A';
 const SECONDARY = '#64748B';
@@ -36,7 +37,7 @@ const SummaryBar = ({ totalReps, totalQuotes }: { totalReps: number; totalQuotes
   return (
     <View style={styles.summaryBar}>
       <Text style={styles.summaryText}>
-        {totalReps} {totalReps === 1 ? 'salesperson' : 'salespeople'} · {formatNumber(totalQuotes)} quote{totalQuotes === 1 ? '' : 's'}
+        {totalReps} {totalReps === 1 ? 'salesperson' : 'salespeople'} Â· {formatNumber(totalQuotes)} quote{totalQuotes === 1 ? '' : 's'}
       </Text>
     </View>
   );
@@ -69,7 +70,7 @@ const RepCard = React.memo(function RepCard({
           {name}
         </Text>
         <Text style={styles.shareText}>
-          {formatNumber(count)} quotes · {sharePctStr}%
+          {formatNumber(count)} quotes Â· {sharePctStr}%
         </Text>
       </View>
 
@@ -100,18 +101,7 @@ const EmptyState = () => {
 export default function QuotesBySalespersonScreen() {
   const [refreshing, setRefreshing] = React.useState(false);
 
-  useEffect(() => {
-    const onBackPress = () => {
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/quotes');
-      }
-      return true;
-    };
-    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-    return () => subscription.remove();
-  }, []);
+  
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 600);
@@ -282,3 +272,4 @@ const styles = StyleSheet.create({
     color: SECONDARY,
   },
 });
+

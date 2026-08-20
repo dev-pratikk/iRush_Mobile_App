@@ -10,7 +10,7 @@ import { Typography } from '../../constants/Typography';
 const tabs = [
   { key: 'home', icon: 'home', label: 'Dashboard', route: '/' },
   { key: 'orders', icon: 'document-text', label: 'Orders', route: '/orders' },
-  { key: 'quotes', icon: 'chatbox', label: 'Quotes', route: '/all-quotes' },
+  { key: 'quotes', icon: 'chatbox', label: 'Quotes', route: '/quotes' },
   { key: 'ar', icon: 'receipt', label: 'AR', route: '/ar' },
 ] as const;
 
@@ -80,7 +80,7 @@ export function BottomNavBar({
             activeOpacity={0.7}
             onPress={() => {
               if (pathname !== tab.route) {
-                router.push(tab.route as any);
+                router.replace(tab.route as any);
               }
             }}
           >

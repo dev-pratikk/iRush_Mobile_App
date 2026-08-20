@@ -29,7 +29,7 @@ function CustomDrawerContent(props: any) {
   const menuItems = [
     { icon: 'home', label: 'Dashboard', route: '/' },
     { icon: 'document-text', label: 'Orders', route: '/orders' },
-    { icon: 'chatbox', label: 'Quotes', route: '/all-quotes' },
+    { icon: 'chatbox', label: 'Quotes', route: '/quotes' },
     { icon: 'receipt', label: 'AR/Receivables', route: '/ar' },
     { icon: 'settings', label: 'Settings', route: '/settings' },
   ];
@@ -37,7 +37,7 @@ function CustomDrawerContent(props: any) {
   const checkIsActive = (route: string) => {
     if (route === '/') return pathname === '/' || pathname === '/index' || pathname === '';
     if (route === '/orders') return pathname.includes('/order') || pathname.includes('/open-orders') || pathname.includes('/pending-orders') || pathname.includes('/partial-orders');
-    if (route === '/all-quotes') return pathname.includes('/quote');
+    if (route === '/quotes' || route === '/all-quotes') return pathname.includes('/quote');
     if (route === '/ar') return pathname.includes('/ar');
     if (route === '/settings') return pathname.includes('/settings');
     return pathname === route;
@@ -61,7 +61,7 @@ function CustomDrawerContent(props: any) {
             <TouchableOpacity
               key={index}
               style={styles.menuItemContainer}
-              onPress={() => router.push(item.route as any)}
+              onPress={() => router.replace(item.route as any)}
               activeOpacity={0.7}
             >
               <View

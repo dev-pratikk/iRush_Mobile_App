@@ -7,13 +7,11 @@ import {
   Text,
   TextInput,
   RefreshControl,
-  Alert,
   Modal,
   ActivityIndicator,
-  BackHandler,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '../../../constants/Typography';
 import { useThemeColors } from '../../../context/ThemeContext';
 import { useAuthContext } from '../../../context/AuthContext';
@@ -22,7 +20,8 @@ import {
   SkeletonSummaryCard,
   SkeletonKpiCard,
 } from '../../../components/ui/SkeletonLoader';
-import { router, usePathname, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { BottomNavBar as BottomNav } from '../../../components/navigation/BottomNavBar';
 import {
   formatCurrencyWithCents,
@@ -30,9 +29,7 @@ import {
   fetchOrdersPage,
   fetchOrdersByFastSearch,
   fetchOrderById,
-  SAMPLE_ORDERS,
   type OrderItem,
-  type OrdersSearchType,
 } from '../../../services/api/orders.service';
 import {
   OpenOrdersResponse,
@@ -42,11 +39,7 @@ import {
 } from '../../../services/api/open-orders.service';
 import { DateFilterPreset, getDateRangeForFilter, formatCustomRangeLabel } from '../../../lib/date';
 import { DateFilterModal } from '../../../components/ui/DateFilterModal';
-import { formatOrderDate } from '../../../lib/formatters';
 import { useBackHandler } from '../../../hooks/useBackHandler';
-
-const PRIMARY = '#0F172A';
-const SECONDARY = '#64748B';
 
 const decodeHtml = (str: string | null | undefined): string => {
   if (!str) return '';
@@ -59,7 +52,7 @@ const decodeHtml = (str: string | null | undefined): string => {
     .trim();
 };
 
-// â”€â”€â”€ Header Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Header Component ─────────────────────────────────────────────────────────
 
 const Header = ({
   activePreset,
@@ -70,6 +63,9 @@ const Header = ({
   customRange?: { startDate: string; endDate: string } | null;
   onOpenFilter: () => void;
 }) => {
+  const colors = useThemeColors();
+  const navigation = useNavigation();
+
   const getFilterLabel = () => {
     if (activePreset === 'today') return 'Today';
     if (activePreset === 'week') return 'This Week';
@@ -81,53 +77,52 @@ const Header = ({
   };
 
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
       <TouchableOpacity
         style={styles.headerIconWrap}
-        onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
         hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
       >
-        <Ionicons name="arrow-back" size={20} color={PRIMARY} />
+        <Ionicons name="menu-outline" size={22} color={colors.textPrimary} />
       </TouchableOpacity>
 
-      {/* Left-aligned Title */}
-      <Text style={styles.headerTitleLeft}>Orders</Text>
+      <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Orders</Text>
 
       <View style={styles.headerRightWrap}>
-        {/* Date Filter Button */}
         <TouchableOpacity
-          style={styles.filterBtnPill}
+          style={[styles.filterBtnPill, { backgroundColor: `${colors.primary}10`, borderColor: `${colors.primary}30` }]}
           onPress={onOpenFilter}
           activeOpacity={0.8}
         >
-          <Ionicons name="calendar-outline" size={13} color={PRIMARY} />
-          <Text style={styles.filterBtnText}>{getFilterLabel()}</Text>
-          <Ionicons name="chevron-down" size={12} color={PRIMARY} />
+          <Ionicons name="calendar-outline" size={13} color={colors.primary} />
+          <Text style={[styles.filterBtnText, { color: colors.primary }]}>{getFilterLabel()}</Text>
+          <Ionicons name="chevron-down" size={12} color={colors.primary} />
         </TouchableOpacity>
 
-        {/* Notification Bell */}
-        <NotificationHeaderButton iconColor={PRIMARY} size={20} />
+        <NotificationHeaderButton iconColor={colors.textPrimary} size={20} />
       </View>
     </View>
   );
 };
 
-// â”€â”€â”€ Main Dashboard Search Bar Button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Search Bar ───────────────────────────────────────────────────────────────
 
 const OrderSearchBar = ({ onPress }: { onPress: () => void }) => {
+  const colors = useThemeColors();
+
   return (
     <TouchableOpacity
-      style={styles.searchInputWrap}
+      style={[styles.searchInputWrap, { backgroundColor: colors.card, borderColor: colors.border }]}
       onPress={onPress}
-      activeOpacity={0.9}
+      activeOpacity={0.85}
     >
-      <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
-      <Text style={styles.searchPlaceholderText}>Search by order no or part number</Text>
+      <Ionicons name="search-outline" size={18} color={colors.textSecondary} style={styles.searchIcon} />
+      <Text style={[styles.searchPlaceholderText, { color: colors.placeholder }]}>Search by order # or part number</Text>
     </TouchableOpacity>
   );
 };
 
-// â”€â”€â”€ Dedicated Search Overlay Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Search Overlay Modal ─────────────────────────────────────────────────────
 
 const SearchOverlayModal = ({
   visible,
@@ -144,6 +139,7 @@ const SearchOverlayModal = ({
   token?: string | null;
   onSelectOrder: (item: OrderItem) => void;
 }) => {
+  const colors = useThemeColors();
   const inputRef = useRef<TextInput>(null);
   const [fetchedOrders, setFetchedOrders] = useState<OrderItem[]>([]);
   const [searching, setSearching] = useState(false);
@@ -163,9 +159,7 @@ const SearchOverlayModal = ({
       setSearching(true);
       try {
         const results = await fetchOrdersByFastSearch(q, { token: token ?? null });
-        if (active) {
-          setFetchedOrders(results);
-        }
+        if (active) setFetchedOrders(results);
       } catch (e) {
         if (__DEV__) console.log('[SearchOverlay] Fast live search error:', e);
       } finally {
@@ -193,51 +187,16 @@ const SearchOverlayModal = ({
         item.partNumber ||
         item.PARTNUMBER ||
         item.orderDetails?.[0]?.PCBPARTNO ||
-        item.orderDetails?.[0]?.PARTNO ||
-        item.orderDetails?.[0]?.pcbpartNo ||
-        item.orderSpecifications?.[0]?.PCBPARTNO ||
         ''
       ).trim();
     };
 
-    const scored = fetchedOrders
-      .map((item: any) => {
-        const orderNoStr = String(item.orderNo || item.ORDER_NO || '').toLowerCase();
-        const companyStr = decodeHtml(item.companyName || item.COMPANY_NAME || '').toLowerCase();
-        const partNoStr = getPartNoString(item).toLowerCase();
-
-        let score = -1;
-
-        if (orderNoStr.startsWith(q)) {
-          score = 10000 - (orderNoStr.length - q.length);
-        } else if (orderNoStr.includes(q)) {
-          const idx = orderNoStr.indexOf(q);
-          score = 5000 - idx * 10 - (orderNoStr.length - q.length);
-        } else if (partNoStr.startsWith(q)) {
-          score = 3000 - (partNoStr.length - q.length);
-        } else if (partNoStr.includes(q)) {
-          const idx = partNoStr.indexOf(q);
-          score = 2500 - idx * 10;
-        } else if (companyStr.startsWith(q)) {
-          score = 2000 - (companyStr.length - q.length);
-        } else if (companyStr.includes(q)) {
-          const idx = companyStr.indexOf(q);
-          score = 1000 - idx * 10;
-        } else {
-          // Backend returned this order for active search query â†’ keep it!
-          score = 500;
-        }
-
-        return { item, score, orderNoStr };
-      })
-      .filter((entry) => entry.score >= 0);
-
-    scored.sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      return b.orderNoStr.localeCompare(a.orderNoStr);
+    return fetchedOrders.filter((item: any) => {
+      const orderNoStr = String(item.orderNo || item.ORDER_NO || '').toLowerCase();
+      const companyStr = decodeHtml(item.companyName || item.COMPANY_NAME || '').toLowerCase();
+      const partNoStr = getPartNoString(item).toLowerCase();
+      return orderNoStr.includes(q) || companyStr.includes(q) || partNoStr.includes(q);
     });
-
-    return scored.map((entry) => entry.item);
   }, [query, fetchedOrders]);
 
   return (
@@ -248,96 +207,78 @@ const SearchOverlayModal = ({
       onRequestClose={onClose}
       onShow={() => inputRef.current?.focus()}
     >
-      <SafeAreaView style={styles.searchOverlaySafeArea} edges={['top', 'bottom']}>
-        {/* Top Search Input Bar */}
-        <View style={styles.searchOverlayHeader}>
-          <View style={styles.searchOverlayInputWrap}>
-            <Ionicons name="search-outline" size={18} color={SECONDARY} style={styles.searchIcon} />
+      <SafeAreaView style={[styles.searchOverlaySafeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+        <View style={[styles.searchOverlayHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <View style={[styles.searchOverlayInputWrap, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <Ionicons name="search-outline" size={18} color={colors.textSecondary} style={styles.searchIcon} />
             <TextInput
               ref={inputRef}
-              style={styles.searchOverlayInput}
+              style={[styles.searchOverlayInput, { color: colors.textPrimary }]}
               value={query}
               onChangeText={setQuery}
-              placeholder="Search by order #, or part #"
-              placeholderTextColor="#94A3B8"
+              placeholder="Search by order # or part #"
+              placeholderTextColor={colors.placeholder}
               autoCapitalize="none"
               autoCorrect={false}
               returnKeyType="search"
             />
             {query.length > 0 ? (
               <TouchableOpacity onPress={() => setQuery('')} style={styles.clearBtn}>
-                <Ionicons name="close-circle" size={18} color="#94A3B8" />
+                <Ionicons name="close-circle" size={18} color={colors.textMuted} />
               </TouchableOpacity>
             ) : null}
           </View>
           <TouchableOpacity onPress={onClose} style={styles.searchCancelBtn} activeOpacity={0.7}>
-            <Text style={styles.searchCancelText}>Cancel</Text>
+            <Text style={[styles.searchCancelText, { color: colors.primary }]}>Cancel</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Blank Screen with Live Suggestions */}
         <ScrollView style={styles.searchSuggestionsScroll} keyboardShouldPersistTaps="handled">
           <View style={styles.searchSuggestionsContainer}>
             {searching ? (
               <View style={{ paddingVertical: 24, alignItems: 'center' }}>
-                <ActivityIndicator size="small" color={PRIMARY} />
-                <Text style={{ fontSize: 13, color: SECONDARY, marginTop: 8 }}>Searching live ordersâ€¦</Text>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 8 }}>Searching live orders…</Text>
               </View>
             ) : searchResults.length > 0 ? (
               searchResults.map((item: any, idx: number) => {
                 const orderNoDisplay = item.orderNo || item.ORDER_NO || item.id;
                 const companyDisplay = decodeHtml(item.companyName || item.COMPANY_NAME || 'Higher Ground, LLC');
                 const statusDisplay = item.orderStatus || item.ORDER_STATUS || 'Open';
-                const partNoDisplay =
-                  item.pcbpartNo ||
-                  item.PCBPARTNO ||
-                  item.partNo ||
-                  item.PARTNO ||
-                  item.partNumber ||
-                  item.PARTNUMBER ||
-                  item.orderDetails?.[0]?.PCBPARTNO ||
-                  item.orderDetails?.[0]?.PARTNO ||
-                  item.orderDetails?.[0]?.pcbpartNo ||
-                  item.orderSpecifications?.[0]?.PCBPARTNO;
 
                 return (
                   <TouchableOpacity
                     key={item.ORDER_ID || item.id || idx}
-                    style={styles.suggestionCard}
+                    style={[styles.suggestionCard, { backgroundColor: colors.card, borderColor: colors.border }]}
                     onPress={() => onSelectOrder(item)}
                     activeOpacity={0.75}
                   >
                     <View style={styles.suggestionLeftCol}>
-                      <Text style={styles.suggestionOrderNo}>Order #{orderNoDisplay}</Text>
-                      <Text style={styles.suggestionCompany} numberOfLines={1}>
+                      <Text style={[styles.suggestionOrderNo, { color: colors.textPrimary }]}>Order #{orderNoDisplay}</Text>
+                      <Text style={[styles.suggestionCompany, { color: colors.textSecondary }]} numberOfLines={1}>
                         {companyDisplay}
                       </Text>
-                      {partNoDisplay ? (
-                        <Text style={{ fontSize: 11, color: SECONDARY, marginTop: 2 }} numberOfLines={1}>
-                          Part: {partNoDisplay}
-                        </Text>
-                      ) : null}
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <View style={styles.suggestionStatusPill}>
-                        <Text style={styles.suggestionStatusText}>{statusDisplay}</Text>
+                      <View style={[styles.suggestionStatusPill, { backgroundColor: `${colors.primary}12` }]}>
+                        <Text style={[styles.suggestionStatusText, { color: colors.primary }]}>{statusDisplay}</Text>
                       </View>
-                      <Ionicons name="chevron-forward" size={16} color="#94A3B8" style={{ marginLeft: 6 }} />
+                      <Ionicons name="chevron-forward" size={16} color={colors.textMuted} style={{ marginLeft: 6 }} />
                     </View>
                   </TouchableOpacity>
                 );
               })
-            ) : query.trim().length > 0 ? (
-              <View style={styles.emptySearchWrap}>
-                <Ionicons name="search-outline" size={32} color="#94A3B8" />
-                <Text style={styles.emptySearchTitle}>No matching orders found</Text>
-                <Text style={styles.emptySearchSub}>Try searching for a different order number or company name.</Text>
-              </View>
             ) : (
               <View style={styles.emptySearchWrap}>
-                <Ionicons name="hardware-chip-outline" size={32} color="#94A3B8" />
-                <Text style={styles.emptySearchTitle}>Type an order number or part #</Text>
-                <Text style={styles.emptySearchSub}>Live order suggestions will appear automatically as you type.</Text>
+                <Ionicons name="search-outline" size={32} color={colors.textMuted} />
+                <Text style={[styles.emptySearchTitle, { color: colors.textPrimary }]}>
+                  {query.trim().length > 0 ? 'No matching orders found' : 'Type an order number or part #'}
+                </Text>
+                <Text style={[styles.emptySearchSub, { color: colors.textSecondary }]}>
+                  {query.trim().length > 0
+                    ? 'Try searching for a different order number or company name.'
+                    : 'Live order suggestions will appear automatically as you type.'}
+                </Text>
               </View>
             )}
           </View>
@@ -347,7 +288,7 @@ const SearchOverlayModal = ({
   );
 };
 
-// â”€â”€â”€ Top Grey Summary Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Hero Summary Overview Card ───────────────────────────────────────────────
 
 const SummaryCard = ({
   count,
@@ -360,38 +301,48 @@ const SummaryCard = ({
   loading: boolean;
   onPress?: () => void;
 }) => {
+  const colors = useThemeColors();
+
   if (loading && count === 0 && totalAmount === 0) {
     return <SkeletonSummaryCard />;
   }
 
   const content = (
-    <View style={styles.summaryRow}>
-      <View style={styles.summaryColLeft}>
-        <Text style={styles.summaryCountLabel}>Orders</Text>
-        <Text style={styles.summaryCount}>{formatNumber(count)}</Text>
+    <View style={[styles.heroCard, { backgroundColor: `${colors.primary}0D`, borderColor: `${colors.primary}25` }]}>
+      <View style={styles.heroHeaderRow}>
+        <View style={[styles.heroIconBadge, { backgroundColor: colors.primary }]}>
+          <Ionicons name="document-text" size={16} color="#FFFFFF" />
+        </View>
+        <Text style={[styles.heroTitle, { color: colors.textSecondary }]}>TOTAL ORDERS OVERVIEW</Text>
+        {onPress && <Ionicons name="arrow-forward" size={16} color={colors.primary} style={{ marginLeft: 'auto' }} />}
       </View>
-      <View style={styles.summaryColRight}>
-        <Text style={styles.summaryValue}>{formatCurrencyWithCents(totalAmount)}</Text>
+
+      <View style={styles.heroBodyRow}>
+        <View style={styles.heroCountCol}>
+          <Text style={[styles.heroCountText, { color: colors.textPrimary }]}>{formatNumber(count)}</Text>
+          <Text style={[styles.heroCountLabel, { color: colors.textSecondary }]}>Total Orders</Text>
+        </View>
+
+        <View style={styles.heroAmountCol}>
+          <Text style={[styles.heroAmountText, { color: colors.primary }]}>{formatCurrencyWithCents(totalAmount)}</Text>
+          <Text style={[styles.heroAmountLabel, { color: colors.textSecondary }]}>Total Volume</Text>
+        </View>
       </View>
     </View>
   );
 
   if (onPress) {
     return (
-      <TouchableOpacity style={styles.summaryCard} onPress={onPress} activeOpacity={0.8}>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
         {content}
       </TouchableOpacity>
     );
   }
 
-  return (
-    <View style={styles.summaryCard}>
-      {content}
-    </View>
-  );
+  return content;
 };
 
-// â”€â”€â”€ NEW & REPEAT KPI Cards Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Dual KPI Action Cards (NEW & REPEAT) ─────────────────────────────────────
 
 const OrdersKpiGrid = ({
   newCount = 0,
@@ -410,6 +361,8 @@ const OrdersKpiGrid = ({
   onPressNew: () => void;
   onPressRepeat: () => void;
 }) => {
+  const colors = useThemeColors();
+
   if (loading) {
     return (
       <View style={styles.kpiContainer}>
@@ -425,43 +378,45 @@ const OrdersKpiGrid = ({
     <View style={styles.kpiContainer}>
       <View style={styles.kpiRow}>
         <TouchableOpacity
-          style={styles.kpiCard}
+          style={[styles.kpiCardAction, { backgroundColor: colors.card, borderColor: colors.border }]}
           onPress={onPressNew}
-          activeOpacity={0.75}
+          activeOpacity={0.8}
         >
-          <Text style={styles.kpiHeaderLabel}>NEW</Text>
-          <Text style={styles.kpiValueText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
-            {formatNumber(newCount)}
-          </Text>
-          <Text style={styles.kpiSubText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
-            {formatCurrencyWithCents(newAmount)}
-          </Text>
+          <View style={styles.kpiCardHeader}>
+            <View style={[styles.kpiTag, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}>
+              <Text style={[styles.kpiTagText, { color: '#1D4ED8' }]}>NEW</Text>
+            </View>
+            <Ionicons name="sparkles" size={14} color="#2563EB" />
+          </View>
+
+          <Text style={[styles.kpiCountValue, { color: colors.textPrimary }]}>{formatNumber(newCount)}</Text>
+          <Text style={[styles.kpiAmountValue, { color: colors.textSecondary }]}>{formatCurrencyWithCents(newAmount)}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.kpiCard}
+          style={[styles.kpiCardAction, { backgroundColor: colors.card, borderColor: colors.border }]}
           onPress={onPressRepeat}
-          activeOpacity={0.75}
+          activeOpacity={0.8}
         >
-          <Text style={styles.kpiHeaderLabel}>REPEAT</Text>
-          <Text style={styles.kpiValueText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
-            {formatNumber(repeatCount)}
-          </Text>
-          <Text style={styles.kpiSubText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
-            {formatCurrencyWithCents(repeatAmount)}
-          </Text>
+          <View style={styles.kpiCardHeader}>
+            <View style={[styles.kpiTag, { backgroundColor: '#F5F3FF', borderColor: '#DDD6FE' }]}>
+              <Text style={[styles.kpiTagText, { color: '#6D28D9' }]}>REPEAT</Text>
+            </View>
+            <Ionicons name="repeat-outline" size={14} color="#7C3AED" />
+          </View>
+
+          <Text style={[styles.kpiCountValue, { color: colors.textPrimary }]}>{formatNumber(repeatCount)}</Text>
+          <Text style={[styles.kpiAmountValue, { color: colors.textSecondary }]}>{formatCurrencyWithCents(repeatAmount)}</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
 
-// â”€â”€â”€ Bottom Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-
-// ━━━━ Pending, Partial & Open KPI Grid ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ─── Open Orders Status Cards Grid ───────────────────────────────────────────
 
 const PendingAndPartialKpiGrid = ({ data }: { data: OpenOrdersResponse }) => {
+  const colors = useThemeColors();
   const pendingCount = data.pendingOrdersCount ?? data.pendingOrdersSummary?.totalOrders ?? 0;
   const pendingAmount = data.pendingOrdersAmount ?? data.pendingOrdersSummary?.totalOrderedAmount ?? 0;
 
@@ -472,44 +427,71 @@ const PendingAndPartialKpiGrid = ({ data }: { data: OpenOrdersResponse }) => {
   const openAmount = data.totalOpenOrdersAmount ?? pendingAmount + partialAmount;
 
   return (
-    <View style={{ gap: 10 }}>
+    <View style={{ gap: 10, marginTop: 10 }}>
+      {/* ALL OPEN ORDERS CARD */}
+      <TouchableOpacity
+        style={[styles.openOrdersFullCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+        onPress={() => router.push('/open-orders' as any)}
+        activeOpacity={0.8}
+      >
+        <View style={styles.openOrdersHeader}>
+          <View style={[styles.openIconWrap, { backgroundColor: '#DCFCE7' }]}>
+            <Ionicons name="cube" size={15} color="#16A34A" />
+          </View>
+          <Text style={[styles.openOrdersTitle, { color: colors.textPrimary }]}>ALL OPEN ORDERS</Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} style={{ marginLeft: 'auto' }} />
+        </View>
+
+        <View style={styles.openOrdersBody}>
+          <View>
+            <Text style={[styles.openOrdersCount, { color: colors.textPrimary }]}>{formatNumber(openCount)}</Text>
+            <Text style={[styles.openOrdersSub, { color: colors.textSecondary }]}>Active Orders</Text>
+          </View>
+
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={[styles.openOrdersAmount, { color: '#16A34A' }]}>{formatCurrencyWithCents(openAmount)}</Text>
+            <Text style={[styles.openOrdersSub, { color: colors.textSecondary }]}>Value</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      {/* PENDING & PARTIAL CARDS */}
       <View style={styles.kpiRow}>
         <TouchableOpacity
-          style={styles.whiteKpiCard}
-          onPress={() => router.push('/open-orders' as any)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.kpiHeaderLabel}>ALL OPEN ORDERS</Text>
-          <Text style={styles.kpiCountText}>{formatNumber(openCount)}</Text>
-          <Text style={styles.kpiAmountText}>{formatCurrencyWithCents(openAmount)}</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.kpiRow}>
-        <TouchableOpacity
-          style={styles.whiteKpiCard}
+          style={[styles.splitCard, { backgroundColor: colors.card, borderColor: colors.border }]}
           onPress={() => router.push('/pending-orders' as any)}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
-          <Text style={styles.kpiHeaderLabel}>PENDING ORDERS</Text>
-          <Text style={styles.kpiCountText}>{formatNumber(pendingCount)}</Text>
-          <Text style={styles.kpiAmountText}>{formatCurrencyWithCents(pendingAmount)}</Text>
+          <View style={styles.splitHeader}>
+            <View style={[styles.dotPill, { backgroundColor: '#FEF3C7' }]}>
+              <View style={[styles.dot, { backgroundColor: '#D97706' }]} />
+              <Text style={{ fontSize: 10, fontFamily: Typography.headingSemiBold, color: '#D97706' }}>PENDING</Text>
+            </View>
+          </View>
+          <Text style={[styles.splitCount, { color: colors.textPrimary }]}>{formatNumber(pendingCount)}</Text>
+          <Text style={[styles.splitAmount, { color: colors.textSecondary }]}>{formatCurrencyWithCents(pendingAmount)}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.whiteKpiCard}
+          style={[styles.splitCard, { backgroundColor: colors.card, borderColor: colors.border }]}
           onPress={() => router.push('/partial-orders' as any)}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
-          <Text style={styles.kpiHeaderLabel}>PARTIAL ORDERS</Text>
-          <Text style={styles.kpiCountText}>{formatNumber(partialCount)}</Text>
-          <Text style={styles.kpiAmountText}>{formatCurrencyWithCents(partialAmount)}</Text>
+          <View style={styles.splitHeader}>
+            <View style={[styles.dotPill, { backgroundColor: '#CCFBF1' }]}>
+              <View style={[styles.dot, { backgroundColor: '#0D9488' }]} />
+              <Text style={{ fontSize: 10, fontFamily: Typography.headingSemiBold, color: '#0D9488' }}>PARTIAL</Text>
+            </View>
+          </View>
+          <Text style={[styles.splitCount, { color: colors.textPrimary }]}>{formatNumber(partialCount)}</Text>
+          <Text style={[styles.splitAmount, { color: colors.textSecondary }]}>{formatCurrencyWithCents(partialAmount)}</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
 
-// ━━━━ Fixed Summary Table ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ─── Financial Breakdown Table Card ───────────────────────────────────────────
 
 const FixedSummaryTable = ({
   title,
@@ -524,38 +506,42 @@ const FixedSummaryTable = ({
   summary?: any;
   onPress: () => void;
 }) => {
+  const colors = useThemeColors();
+
   const statRows = [
-    { label: 'No of Orders', value: formatNumber(count) },
-    { label: 'Total Ordered Value', value: formatCurrencyWithCents(amount) },
-    { label: 'Orders Assigned To Vendors', value: formatNumber(summary?.ordersWithVendorCount ?? 0) },
-    {
-      label: 'Assigned Vendor Order Value',
-      value: formatCurrencyWithCents(summary?.ordersWithVendorAmount ?? summary?.vendorOrderAmount ?? 0),
-    },
-    { label: 'Orders Without Vendor Assignment', value: formatNumber(summary?.ordersWithoutVendorCount ?? 0) },
-    { label: 'Shipped Order Quantity Value', value: formatCurrencyWithCents(summary?.totalShippedAmount ?? 0) },
-    { label: 'Pending Order Quantity Value', value: formatCurrencyWithCents(summary?.totalPendingAmount ?? amount) },
-    { label: 'Invoiced Order Quantity Value', value: formatCurrencyWithCents(summary?.totalInvoicedAmount ?? 0) },
-    { label: 'Payment Received', value: formatCurrencyWithCents(summary?.totalPaymentsReceived ?? 0) },
-    { label: 'Advance Payment Received', value: formatCurrencyWithCents(summary?.advancePaymentReceived ?? 0) },
+    { label: 'No. of Orders', value: formatNumber(count), icon: 'receipt-outline' },
+    { label: 'Total Ordered Value', value: formatCurrencyWithCents(amount), icon: 'cash-outline' },
+    { label: 'Assigned To Vendors', value: formatNumber(summary?.ordersWithVendorCount ?? 0), icon: 'people-outline' },
+    { label: 'Assigned Vendor Order Value', value: formatCurrencyWithCents(summary?.ordersWithVendorAmount ?? summary?.vendorOrderAmount ?? 0), icon: 'pricetag-outline' },
+    { label: 'Orders Without Vendor', value: formatNumber(summary?.ordersWithoutVendorCount ?? 0), icon: 'alert-circle-outline' },
+    { label: 'Shipped Quantity Value', value: formatCurrencyWithCents(summary?.totalShippedAmount ?? 0), icon: 'car-outline' },
+    { label: 'Pending Quantity Value', value: formatCurrencyWithCents(summary?.totalPendingAmount ?? amount), icon: 'time-outline' },
+    { label: 'Invoiced Quantity Value', value: formatCurrencyWithCents(summary?.totalInvoicedAmount ?? 0), icon: 'document-text-outline' },
+    { label: 'Payment Received', value: formatCurrencyWithCents(summary?.totalPaymentsReceived ?? 0), icon: 'checkmark-circle-outline' },
+    { label: 'Advance Payment', value: formatCurrencyWithCents(summary?.advancePaymentReceived ?? 0), icon: 'wallet-outline' },
   ];
 
   return (
-    <TouchableOpacity style={styles.breakdownCard} onPress={onPress} activeOpacity={0.85}>
-      <View style={styles.breakdownHeaderFixed}>
-        <View style={styles.breakdownTitleRow}>
-          <Text style={styles.breakdownTitle}>{title}</Text>
-          <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
-        </View>
+    <TouchableOpacity style={[styles.tableCardContainer, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={onPress} activeOpacity={0.88}>
+      <View style={[styles.tableHeader, { backgroundColor: colors.primary }]}>
+        <Text style={styles.tableTitle}>{title}</Text>
+        <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
       </View>
-      <View style={styles.breakdownContent}>
+
+      <View style={styles.tableBody}>
         {statRows.map((row, index) => (
           <View
             key={index}
-            style={[styles.breakdownRow, index < statRows.length - 1 && styles.breakdownRowBorder]}
+            style={[
+              styles.tableRow,
+              index < statRows.length - 1 && [styles.tableRowBorder, { borderBottomColor: colors.border }],
+            ]}
           >
-            <Text style={styles.breakdownRowLabel}>{row.label}</Text>
-            <Text style={styles.breakdownRowValue}>{row.value}</Text>
+            <View style={styles.tableLabelWrap}>
+              <Ionicons name={row.icon as any} size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
+              <Text style={[styles.tableRowLabel, { color: colors.textSecondary }]}>{row.label}</Text>
+            </View>
+            <Text style={[styles.tableRowValue, { color: colors.textPrimary }]}>{row.value}</Text>
           </View>
         ))}
       </View>
@@ -563,11 +549,10 @@ const FixedSummaryTable = ({
   );
 };
 
-
-
-// â”€â”€â”€ Main Screen Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main Screen Component ───────────────────────────────────────────────────
 
 export default function OrdersScreen() {
+  const colors = useThemeColors();
   const { user } = useAuthContext();
   const token = (user as any)?.token ?? null;
 
@@ -627,14 +612,10 @@ export default function OrdersScreen() {
     [token]
   );
 
-  // Date-preset / custom range changes → ONLY re-fetch Orders (grey KPI + NEW/REPEAT KPIs)
-  // Does NOT affect open orders data below
   useEffect(() => {
     fetchOrdersForPreset(activePreset, customRange);
   }, [activePreset, customRange, fetchOrdersForPreset]);
 
-  // Open orders data → load once on token change / initial mount.
-  // Date range intentionally does NOT re-trigger this.
   useEffect(() => {
     (async () => {
       try {
@@ -660,8 +641,6 @@ export default function OrdersScreen() {
     },
   });
 
-  // Pull-to-refresh → only re-fetch the date-filtered Orders KPIs.
-  // Open orders below are intentionally untouched by date changes.
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchOrdersForPreset(activePreset, customRange, true);
@@ -719,26 +698,31 @@ export default function OrdersScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
       <Header
         activePreset={activePreset}
         customRange={customRange}
         onOpenFilter={() => setFilterModalVisible(true)}
       />
+
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY} colors={[PRIMARY]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
         }
       >
         <View style={styles.contentContainer}>
-          {/* 1. Search Bar at Top (Opens Dedicated Search View) */}
           <OrderSearchBar onPress={() => setSearchModalVisible(true)} />
 
-          {/* 2. Summary Card & NEW / REPEAT KPI Cards */}
-          <SummaryCard count={totalCount} totalAmount={totalAmount} loading={loading} />
+          <SummaryCard
+            count={totalCount}
+            totalAmount={totalAmount}
+            loading={loading}
+            onPress={() => navigateToAllOrders()}
+          />
+
           <OrdersKpiGrid
             newCount={newOrdersCount}
             newAmount={newOrdersAmount}
@@ -749,30 +733,46 @@ export default function OrdersScreen() {
             onPressRepeat={() => navigateToAllOrders('REPEAT')}
           />
 
-          {/* 3. ALL OPEN ORDERS / PENDING / PARTIAL KPI 3-card block */}
           <PendingAndPartialKpiGrid data={openOrdersData} />
 
-          {/* 4. Pending Orders Summary Table */}
-          <FixedSummaryTable
-            title="Pending"
-            count={openOrdersData.pendingOrdersCount ?? openOrdersData.pendingOrdersSummary?.totalOrders ?? 0}
-            amount={openOrdersData.pendingOrdersAmount ?? openOrdersData.pendingOrdersSummary?.totalOrderedAmount ?? 0}
-            summary={openOrdersData.pendingOrdersSummary}
-            onPress={() => router.push('/pending-orders' as any)}
-          />
+          <View style={{ gap: 14, marginTop: 12 }}>
+            <FixedSummaryTable
+              title="All Open Orders Breakdown"
+              count={openOrdersData.totalOpenOrders ?? (openOrdersData.pendingOrdersCount ?? 0) + (openOrdersData.partialOrdersCount ?? 0)}
+              amount={openOrdersData.totalOpenOrdersAmount ?? (openOrdersData.pendingOrdersAmount ?? 0) + (openOrdersData.partialOrdersAmount ?? 0)}
+              summary={(openOrdersData as any).openOrdersSummary}
+              onPress={() => router.push('/open-orders' as any)}
+            />
 
-          {/* 5. Partial Orders Summary Table */}
-          <FixedSummaryTable
-            title="Partial"
-            count={openOrdersData.partialOrdersCount ?? openOrdersData.partialOrdersSummary?.totalOrders ?? 0}
-            amount={openOrdersData.partialOrdersAmount ?? openOrdersData.partialOrdersSummary?.totalOrderedAmount ?? 0}
-            summary={openOrdersData.partialOrdersSummary}
-            onPress={() => router.push('/partial-orders' as any)}
-          />
+            <FixedSummaryTable
+              title="Pending Orders Breakdown"
+              count={openOrdersData.pendingOrdersCount ?? 0}
+              amount={openOrdersData.pendingOrdersAmount ?? 0}
+              summary={openOrdersData.pendingOrdersSummary}
+              onPress={() => router.push('/pending-orders' as any)}
+            />
+
+            <FixedSummaryTable
+              title="Partial Orders Breakdown"
+              count={openOrdersData.partialOrdersCount ?? 0}
+              amount={openOrdersData.partialOrdersAmount ?? 0}
+              summary={openOrdersData.partialOrdersSummary}
+              onPress={() => router.push('/partial-orders' as any)}
+            />
+          </View>
         </View>
       </ScrollView>
 
-      {/* Dedicated Full Screen Search Overlay Modal */}
+      <BottomNav />
+
+      <DateFilterModal
+        visible={filterModalVisible}
+        onClose={() => setFilterModalVisible(false)}
+        activePreset={activePreset}
+        customRange={customRange}
+        onApply={handleApplyFilter}
+      />
+
       <SearchOverlayModal
         visible={searchModalVisible}
         onClose={() => {
@@ -784,372 +784,188 @@ export default function OrdersScreen() {
         token={token}
         onSelectOrder={handleSelectOrder}
       />
-
-      <BottomNav />
-
-      <DateFilterModal
-        visible={filterModalVisible}
-        onClose={() => setFilterModalVisible(false)}
-        activePreset={activePreset}
-        customRange={customRange}
-        onApply={handleApplyFilter}
-      />
     </SafeAreaView>
   );
 }
 
-// â”€â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-const hairline = StyleSheet.hairlineWidth > 0 ? StyleSheet.hairlineWidth : 0.5;
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
-  scrollView: { flex: 1 },
-  scrollContent: { paddingTop: 10, paddingBottom: 24 },
-  contentContainer: { paddingHorizontal: 16, gap: 14 },
-
-  // Header
+  safeArea: { flex: 1 },
   header: {
     height: 54,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: hairline,
-    borderBottomColor: '#E7E6E2',
+    borderBottomWidth: 1,
   },
-  headerIconWrap: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  headerIconInner: { position: 'relative', width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  headerTitleLeft: {
-    fontSize: 19,
-    fontFamily: Typography.titleSerif,
-    fontWeight: '500',
-    color: PRIMARY,
-    marginLeft: 4,
-    flex: 1,
-  },
-  headerRightWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
+  headerIconWrap: { padding: 4, marginRight: 8 },
+  headerTitle: { fontSize: 18, fontFamily: Typography.headingSemiBold },
+  headerRightWrap: { marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 10 },
   filterBtnPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
+    gap: 4,
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    gap: 5,
+    paddingVertical: 5,
+    borderRadius: 16,
+    borderWidth: 1,
   },
-  filterBtnText: {
-    fontSize: 12,
-    fontFamily: Typography.headingSemiBold,
-    color: PRIMARY,
-  },
-  badge: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: PRIMARY,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  badgeText: { color: '#FFFFFF', fontSize: 10, fontFamily: Typography.headingSemiBold },
-
-  // Search Input Bar (Dashboard)
+  filterBtnText: { fontSize: 12, fontFamily: Typography.headingSemiBold },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingBottom: 24 },
+  contentContainer: { paddingHorizontal: 16, paddingTop: 12, gap: 12 },
   searchInputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    height: 44,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     paddingHorizontal: 12,
-    height: 44,
   },
   searchIcon: { marginRight: 8 },
-  searchPlaceholderText: {
-    fontSize: 14,
-    fontFamily: Typography.body,
-    color: SECONDARY,
-  },
-  clearBtn: { padding: 4 },
-
-  // â”€â”€â”€ Search Overlay Modal Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  searchOverlaySafeArea: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  searchOverlayHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 12,
-    borderBottomWidth: hairline,
-    borderBottomColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-  },
-  searchOverlayInputWrap: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 42,
-  },
-  searchOverlayInput: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: Typography.body,
-    color: PRIMARY,
-  },
-  searchCancelBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-  },
-  searchCancelText: {
-    fontSize: 15,
-    fontFamily: Typography.headingSemiBold,
-    color: '#2563EB',
-  },
-  searchSuggestionsScroll: {
-    flex: 1,
-  },
-  searchSuggestionsContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 32,
-    gap: 10,
-  },
-  suggestionSectionTitle: {
-    fontSize: 13,
-    fontFamily: Typography.headingSemiBold,
-    color: SECONDARY,
-    marginBottom: 4,
-    marginLeft: 2,
-  },
-  suggestionCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+  searchPlaceholderText: { fontSize: 13, fontFamily: Typography.bodyMedium },
+  
+  // Hero Summary Card
+  heroCard: {
     borderRadius: 14,
+    padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 1,
   },
-  suggestionLeftCol: {
-    flex: 1,
-    paddingRight: 12,
-    gap: 3,
-  },
-  suggestionOrderNo: {
-    fontSize: 15,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '700',
-    color: PRIMARY,
-  },
-  suggestionCompany: {
-    fontSize: 13,
-    fontFamily: Typography.bodyMedium,
-    color: SECONDARY,
-  },
-  suggestionStatusPill: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  suggestionStatusText: {
-    fontSize: 12,
-    fontFamily: Typography.headingSemiBold,
-    color: PRIMARY,
-  },
-  emptySearchWrap: {
+  heroHeaderRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 48,
-    paddingHorizontal: 24,
     gap: 8,
+    marginBottom: 12,
   },
-  emptySearchTitle: {
-    fontSize: 16,
-    fontFamily: Typography.headingSemiBold,
-    color: PRIMARY,
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  emptySearchSub: {
-    fontSize: 13,
-    fontFamily: Typography.bodyMedium,
-    color: SECONDARY,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-
-  // Top Grey Summary Card
-  summaryCard: {
-    backgroundColor: '#3A4151',
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  summaryColLeft: { gap: 2 },
-  summaryCountLabel: {
-    fontSize: 13,
-    fontFamily: Typography.bodyMedium,
-    color: 'rgba(255, 255, 255, 0.75)',
-  },
-  summaryCount: {
-    fontSize: 32,
-    fontFamily: Typography.numberHeavy,
-    color: '#FFFFFF',
-  },
-  summaryColRight: { alignItems: 'flex-end' },
-  summaryValue: {
-    fontSize: 20,
-    fontFamily: Typography.numberHeavy,
-    color: '#FFFFFF',
-  },
-
-  // KPI Grid
-  kpiContainer: { gap: 10 },
-  kpiRow: { flexDirection: 'row', gap: 10 },
-  kpiCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 14,
-    gap: 4,
-  },
-  whiteKpiCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 14,
-    gap: 4,
+  heroIconBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  kpiCountText: {
-    fontSize: 22,
+  heroTitle: {
+    fontSize: 11,
     fontFamily: Typography.headingSemiBold,
-    fontWeight: '700',
-    color: PRIMARY,
-  },
-  kpiAmountText: {
-    fontSize: 12,
-    fontFamily: Typography.bodyMedium,
-    color: SECONDARY,
-  },
-  kpiHeaderLabel: {
-    fontSize: 11.5,
-    fontFamily: Typography.headingSemiBold,
-    color: SECONDARY,
     letterSpacing: 0.5,
   },
-  kpiValueText: {
-    fontSize: 22,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '700',
-    color: PRIMARY,
+  heroBodyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
   },
-  kpiSubText: {
-    fontSize: 12,
-    fontFamily: Typography.bodyMedium,
-    color: SECONDARY,
-  },
+  heroCountCol: { flex: 1 },
+  heroCountText: { fontSize: 26, fontFamily: Typography.headingExtraBold },
+  heroCountLabel: { fontSize: 12, fontFamily: Typography.bodyMedium, marginTop: 2 },
+  heroAmountCol: { alignItems: 'flex-end' },
+  heroAmountText: { fontSize: 22, fontFamily: Typography.headingExtraBold },
+  heroAmountLabel: { fontSize: 12, fontFamily: Typography.bodyMedium, marginTop: 2 },
 
-  breakdownCard: {
-    backgroundColor: '#3A4151',
-    borderRadius: 14,
+  // Dual KPI Grid
+  kpiContainer: { gap: 10 },
+  kpiRow: { flexDirection: 'row', gap: 10 },
+  kpiCardAction: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  kpiCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  kpiTag: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  kpiTagText: { fontSize: 10, fontFamily: Typography.headingSemiBold },
+  kpiCountValue: { fontSize: 22, fontFamily: Typography.headingSemiBold, marginBottom: 2 },
+  kpiAmountValue: { fontSize: 12, fontFamily: Typography.bodyMedium },
+
+  // Open Orders Cards
+  openOrdersFullCard: {
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  openOrdersHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  openIconWrap: { width: 26, height: 26, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
+  openOrdersTitle: { fontSize: 12, fontFamily: Typography.headingSemiBold, letterSpacing: 0.3 },
+  openOrdersBody: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  openOrdersCount: { fontSize: 22, fontFamily: Typography.headingSemiBold },
+  openOrdersAmount: { fontSize: 18, fontFamily: Typography.headingSemiBold },
+  openOrdersSub: { fontSize: 11, fontFamily: Typography.bodyMedium, marginTop: 1 },
+
+  splitCard: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  splitHeader: { flexDirection: 'row', marginBottom: 8 },
+  dotPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
+  dot: { width: 6, height: 6, borderRadius: 3 },
+  splitCount: { fontSize: 19, fontFamily: Typography.headingSemiBold },
+  splitAmount: { fontSize: 12, fontFamily: Typography.bodyMedium, marginTop: 2 },
+
+  // Breakdown Tables
+  tableCardContainer: {
+    borderRadius: 12,
+    borderWidth: 1,
     overflow: 'hidden',
   },
-  breakdownHeaderFixed: {
-    backgroundColor: '#3A4151',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  breakdownTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  breakdownTitle: {
-    fontSize: 15,
-    fontFamily: Typography.headingSemiBold,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  breakdownContent: {
-    backgroundColor: '#FFFFFF',
-  },
-  breakdownRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
+  tableHeader: {
+    paddingHorizontal: 14,
     paddingVertical: 12,
-  },
-  breakdownRowBorder: {
-    borderBottomWidth: hairline,
-    borderBottomColor: '#E2E8F0',
-  },
-  breakdownRowLabel: {
-    fontSize: 13,
-    fontFamily: Typography.bodyMedium,
-    color: SECONDARY,
-    flex: 1,
-  },
-  breakdownRowValue: {
-    fontSize: 13,
-    fontFamily: Typography.headingSemiBold,
-    color: PRIMARY,
-    fontWeight: '600',
-  },
-
-  // Bottom Nav
-  bottomNav: {
-    height: 58,
     flexDirection: 'row',
-    borderTopWidth: hairline,
-  },
-  navTab: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  navLabel: {
-    fontSize: 10,
-    fontFamily: Typography.body,
-    marginTop: 3,
-  },
+  tableTitle: { fontSize: 13, fontFamily: Typography.headingSemiBold, color: '#FFFFFF' },
+  tableBody: { paddingHorizontal: 14, paddingVertical: 4 },
+  tableRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
+  tableRowBorder: { borderBottomWidth: 1 },
+  tableLabelWrap: { flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: 8 },
+  tableRowLabel: { fontSize: 12.5, fontFamily: Typography.bodyMedium },
+  tableRowValue: { fontSize: 13, fontFamily: Typography.headingSemiBold },
+
+  // Search Modal
+  searchOverlaySafeArea: { flex: 1 },
+  searchOverlayHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1 },
+  searchOverlayInputWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', height: 40, borderRadius: 10, borderWidth: 1, paddingHorizontal: 10 },
+  searchOverlayInput: { flex: 1, fontSize: 14, fontFamily: Typography.bodyMedium },
+  clearBtn: { padding: 4 },
+  searchCancelBtn: { marginLeft: 10, paddingVertical: 6, paddingHorizontal: 4 },
+  searchCancelText: { fontSize: 14, fontFamily: Typography.headingSemiBold },
+  searchSuggestionsScroll: { flex: 1 },
+  searchSuggestionsContainer: { padding: 14, gap: 10 },
+  suggestionCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderRadius: 10, borderWidth: 1 },
+  suggestionLeftCol: { flex: 1, paddingRight: 10 },
+  suggestionOrderNo: { fontSize: 14, fontFamily: Typography.headingSemiBold },
+  suggestionCompany: { fontSize: 12, fontFamily: Typography.bodyMedium, marginTop: 2 },
+  suggestionStatusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  suggestionStatusText: { fontSize: 11, fontFamily: Typography.headingSemiBold },
+  emptySearchWrap: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 20 },
+  emptySearchTitle: { fontSize: 15, fontFamily: Typography.headingSemiBold, marginTop: 10 },
+  emptySearchSub: { fontSize: 12, fontFamily: Typography.bodyMedium, textAlign: 'center', marginTop: 4 },
 });
-
-
